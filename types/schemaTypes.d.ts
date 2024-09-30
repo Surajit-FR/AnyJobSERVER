@@ -12,8 +12,6 @@ export interface IUser extends Document {
     password: string;
     avatar: string;
     coverImage:string;
-    signupType: string;
-    platformId?: string;
     isVerified:boolean;
     userType: string;
     refreshToken?: string;

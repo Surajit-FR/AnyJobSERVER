@@ -10,11 +10,11 @@ import { IUser } from '../../../types/schemaTypes';
 
 // HandleSocialAuthError
 export const HandleSocialAuthError = async (req: CustomRequest, res: Response, next: NextFunction) => {
-    const { email, uid, displayName, photoURL, phoneNumber, providerId } = req.body;
+    const { email, uid, displayName, photoURL, phoneNumber } = req.body;
 
     try {
         // Check if all required fields are present
-        if (!email || !uid || !displayName || !photoURL || !providerId) {
+        if (!email || !uid || !displayName || !photoURL ) {
             return res.status(400).send({
                 success: false,
                 message: 'Social login data is missing or incomplete!',

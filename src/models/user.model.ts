@@ -55,11 +55,7 @@ const UserSchema: Schema<IUser> = new Schema({
     isVerified:{
         type:Boolean,
         default:false
-    },
-    signupType: {
-        type: String,
-        default: "regular"
-    },
+    },   
     userType: {
         type: String,
         enum: ["SuperAdmin", "ServiceProvider", "Customer"],

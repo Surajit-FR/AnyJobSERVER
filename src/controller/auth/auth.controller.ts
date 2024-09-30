@@ -9,7 +9,7 @@ import { ApiResponse } from "../../utils/ApiResponse";
 import { uploadOnCloudinary } from "../../utils/cloudinary";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { IUser } from "../../../types/schemaTypes";
-import {GoogleAuth} from "../../utils/socialAuth"
+import { GoogleAuth } from "../../utils/socialAuth"
 import jwt, { JwtPayload } from 'jsonwebtoken';
 
 
@@ -19,7 +19,7 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
     const { firstName, lastName, email, password, userType }: IRegisterCredentials = req.body;
     // console.log("req.body==>",req.body);
     // return;
-    
+
 
     // Validate fields (Joi validation is preferred here)
     if ([firstName, lastName, email, password, userType].some((field) => field?.trim() === "")) {
@@ -217,7 +217,7 @@ export const AuthUserSocial = async (req: CustomRequest, res: Response) => {
         }
 
         // Continue with login logic
-        const USER_DATA = { ...user._doc, remember_me: false, auth_type: "social" };
+        const USER_DATA = { ...user._doc };
         const tokenData = generateAccessAndRefreshToken(res, USER_DATA._id);
 
         // Format the response as per the provided JSON structure
@@ -230,7 +230,6 @@ export const AuthUserSocial = async (req: CustomRequest, res: Response) => {
                     lastName: USER_DATA.lastName,
                     email: USER_DATA.email,
                     avatar: USER_DATA.avatar, // Add avatar if it's in USER_DATA
-                    signupType: "social", 
                     userType: USER_DATA.userType, // Ensure this is available in USER_DATA
                     isDeleted: false, // You might want to set this dynamically based on your logic
                     createdAt: USER_DATA.createdAt, // Ensure this is available in USER_DATA
@@ -244,7 +243,7 @@ export const AuthUserSocial = async (req: CustomRequest, res: Response) => {
             success: true,
 
         });
-        
+
     } catch (exc: any) {
         console.log(exc.message);
         return res.status(500).json({ success: false, message: "Internal server error", error: exc.message });

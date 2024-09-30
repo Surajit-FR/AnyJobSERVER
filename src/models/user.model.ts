@@ -6,6 +6,12 @@ import { emit } from "process";
 
 
 const UserSchema: Schema<IUser> = new Schema({
+    fullName:{
+        type: String,
+        required:false,
+        trim: true,
+        index: true,
+    },
     firstName: {
         type: String,
         required: [true, "First name is required"],
@@ -24,6 +30,9 @@ const UserSchema: Schema<IUser> = new Schema({
         unique: true,
         lowercase: true,
     },
+    dob:{
+        type:Date
+    },
     phone: {
         type: Number,
         required: false
@@ -32,9 +41,20 @@ const UserSchema: Schema<IUser> = new Schema({
         type: String,
         required: [true, "Password is required"],
     },
+    oldPassword: {
+        type: String,
+        // required: [true, "Password is required"],
+    },
     avatar: {
         type: String,
         required: true,
+    },
+    coverImage:{
+        type: String,
+    },
+    isVerified:{
+        type:Boolean,
+        default:false
     },
     signupType: {
         type: String,

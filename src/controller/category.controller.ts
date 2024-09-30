@@ -29,10 +29,10 @@ export const addCategory = asyncHandler(async (req: CustomRequest, res: Response
 
     const catImgFile = categoryImageFile.categoryImage ? categoryImageFile.categoryImage[0] : undefined;
 
-    console.log(catImgFile);
+    // console.log(catImgFile);
     // Upload files to Cloudinary
     const catImg = await uploadOnCloudinary(catImgFile?.path as string);
-    console.log(catImg);
+    // console.log(catImg);
 
     const newCategory = await CategoryModel.create({
         name,

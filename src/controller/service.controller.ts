@@ -15,8 +15,8 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         categoryId,
         subCategoryId,
         serviceStartDate,
-        serviceShift,
-        shiftTime,
+        serviceShifftId,
+        SelectedShiftTime,
         serviceZipCode,
         serviceLatitude,
         serviceLongitude,
@@ -31,8 +31,8 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         categoryId,
         subCategoryId,
         serviceStartDate,
-        serviceShift, // Fixed typo: from serviceShifft to serviceShift
-        shiftTime,
+        serviceShifftId, // Fixed typo: from serviceShifft to serviceShift
+        SelectedShiftTime,
         serviceZipCode,
         serviceLatitude,
         serviceLongitude,

@@ -1,6 +1,7 @@
 
 
 import dotenv from "dotenv";
+import { initSocket } from '../src/config/socket';
 dotenv.config({ path: './.env' });
 
 import connectDB from './db/db';
@@ -8,6 +9,9 @@ import http from 'http';
 import { app } from "./app";
 
 const server = http.createServer(app);
+
+// Initialize Socket.io with the HTTP server
+initSocket(server);
 
 connectDB().then(() => {
     server.on("error", (error) => {

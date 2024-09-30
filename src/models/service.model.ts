@@ -46,21 +46,22 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
         type: Date,
         required: [true, "Service Start Date is Required"]
     },
-    serviceShifft: {
-        type: String,
-        enum: ["Morning", "LateMorning", "Evening"],
-        // required: [true, "Service Shift is Required"]
+    serviceShifftId: {
+        type: Schema.Types.ObjectId,
+        ref: "shift",
+        required: [true, "Service Shift is Required"]
     },
-    shiftTime: {
-            startTime: {
-                type: String,
-                required: true
-            },
-            endTime: {
-                type: String,
-                required: true
-            }
-        
+    SelectedShiftTime: {
+        shiftId: {
+            type: Schema.Types.ObjectId,
+            ref: "shift",
+            required: [true, "Service Shift is Required"]
+        },
+        shiftTimeId: {
+            type: String,
+            required: true
+        }
+
         // required:  [true, "Service Shift Time is Required"]
     },
     serviceZipCode: {
@@ -74,39 +75,43 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
         type: Number,
         required: [true, "Service Longitude is required"]
     },
-    isIncentiveGiven:{
+    isIncentiveGiven: {
+        type: Boolean,
+        default: false
+    },
+    incentiveAmount: {
+        type: Number,
+        default: 0,
+        min: 10
+    },
+    isApproved: {
+        type: String,
+        enum: ["Pending", "Approved", "Rejected"],
+        default: "Pending"
+    },
+    isReqAcceptedByServiceProvider:{
         type:Boolean,
         default:false
     },
-    incentiveAmount:{
-        type:Number,
-        default:0,
-        min:10
+    // Answer array to store answers and derived answers
+    answerArray: [answerSchema],
+    serviceProductImage: {
+        type: String
     },
-    isApproved:{
-        type:String,
-        enum:["Pending","Approved","Rejected"],
-        default:"Pending"
-    },
-     // Answer array to store answers and derived answers
-     answerArray: [answerSchema],
-    serviceProductImage:{
-        type:String
-    },
-    otherInfo:{
-        type:{
-            productSerialNumber:{
-                type:Number
+    otherInfo: {
+        type: {
+            productSerialNumber: {
+                type: Number
             },
-            serviceDescription:{
-                type:String
+            serviceDescription: {
+                type: String
             }
-    
+
         }
     },
-    userId:{
-        type:Schema.Types.ObjectId,
-        ref:"user"
+    userId: {
+        type: Schema.Types.ObjectId,
+        ref: "user"
     },
     isDeleted: {
         type: Boolean,

@@ -1,4 +1,4 @@
-import mongoose, { Document, Schema, Model, model } from 'mongoose';
+import { Schema, Model, model } from 'mongoose';
 import { IDerivedQuestion, IQuestion } from '../../types/requests_responseType';
 
 

@@ -31,7 +31,7 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         categoryId,
         subCategoryId,
         serviceStartDate,
-        serviceShifftId, // Fixed typo: from serviceShifft to serviceShift
+        serviceShifftId, 
         SelectedShiftTime,
         serviceZipCode,
         serviceLatitude,
@@ -127,7 +127,7 @@ export const getPendingServiceRequest = asyncHandler(async (req: CustomRequest, 
 // updateService controller
 export const updateService = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { serviceId } = req.params;
-    const { isApproved }: { isApproved: Boolean } = req.body;
+    const { isApproved, isReqAcceptedByServiceProvider }: { isApproved: Boolean, isReqAcceptedByServiceProvider: Boolean } = req.body;
     console.log(req.params);
 
 
@@ -139,7 +139,8 @@ export const updateService = asyncHandler(async (req: CustomRequest, res: Respon
         { _id: new mongoose.Types.ObjectId(serviceId) },
         {
             $set: {
-                isApproved
+                isApproved,
+                isReqAcceptedByServiceProvider
             }
         }, { new: true }
     );
@@ -166,3 +167,4 @@ export const deleteService = asyncHandler(async (req: CustomRequest, res: Respon
 
     return sendSuccessResponse(res, 200, {}, "Service deleted successfully");
 });
+

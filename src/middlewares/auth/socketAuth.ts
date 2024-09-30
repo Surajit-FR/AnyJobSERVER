@@ -6,9 +6,7 @@ import jwt from 'jsonwebtoken';
 export const socketAuthMiddleware = (socket: Socket, next: (err?: ExtendedError) => void) => {
     const JWT_SECRET = process.env.REFRESH_TOKEN_SECRET;
     console.log({ JWT_SECRET });
-
-    const token = socket.handshake.headers.accesstoken; // Get the token from the query string
-
+    const token = socket.handshake.headers.accesstoken;
 
     if (!token) {
         // If no token is provided, block the connection
@@ -18,10 +16,8 @@ export const socketAuthMiddleware = (socket: Socket, next: (err?: ExtendedError)
     // Verify the token
     jwt.verify(token as string, JWT_SECRET as string, (err, decoded) => {
         if (err) {
-            console.log({ JWT_SECRET });
-
+            // console.log({ JWT_SECRET });
             // If token is invalid or expired, reject the connection
-            // console.log("line----19", token);
             return next(new Error("Authentication error: Invalid token"));
         }
 

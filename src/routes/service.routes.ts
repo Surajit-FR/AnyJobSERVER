@@ -4,17 +4,17 @@ import ServiceModel from "../models/service.model";
 import {
     addService,
     getPendingServiceRequest,
-    updateService,
+    updateServiceRequest,
     deleteService
 } from "../controller/service.controller";
 
-const router:Router = express.Router();
+const router: Router = express.Router();
 router.use(VerifyJWTToken); // Apply verifyJWT middleware to all routes in this file
 
 
 router.route('/').post(addService);
 router.route('/pending-service').get(getPendingServiceRequest);
-router.route("/c/:serviceId").delete(deleteService).put( updateService);
+router.route("/c/:serviceId").delete(deleteService).put(updateServiceRequest);
 
 
 export default router;

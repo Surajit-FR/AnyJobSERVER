@@ -1,6 +1,7 @@
 import { Server as HttpServer } from "http";
 import { Server, Socket } from "socket.io";
 import { socketAuthMiddleware } from "../middlewares/auth/socketAuth";
+import { updateServiceRequest } from "../controller/service.controller";
 
 
 // Function to initialize Socket.io
@@ -23,6 +24,9 @@ export const initSocket = (server: HttpServer) => {
 
         socket.on("acceptServiceRequest", (requestId: string) => {
             console.log(`Service provider with _id ${userId} accepted the request ${requestId}`);
+            //here the logic related with update service
+            
+
             io.emit("requestInactive", requestId);
         });
 

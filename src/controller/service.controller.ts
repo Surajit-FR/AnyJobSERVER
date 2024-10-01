@@ -47,12 +47,16 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
     };
 
     return sendSuccessResponse(res, 201, newService, "Service Request added Successfully");
-});
+}); 
 
+//fetch service request before any service provider accept the request.
 export const getPendingServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {
     const results = await ServiceModel.aggregate([
         {
-            $match: { isApproved: "Pending" }
+            $match: { 
+                isApproved: "Pending",
+                isReqAcceptedByServiceProvider:false  
+            }
         },
         {
             $lookup: {
@@ -123,9 +127,8 @@ export const getPendingServiceRequest = asyncHandler(async (req: CustomRequest, 
     }, "Service retrieved successfully.");
 });
 
-
 // updateService controller
-export const updateService = asyncHandler(async (req: CustomRequest, res: Response) => {
+export const updateServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { serviceId } = req.params;
     const { isApproved, isReqAcceptedByServiceProvider }: { isApproved: Boolean, isReqAcceptedByServiceProvider: Boolean } = req.body;
     console.log(req.params);
@@ -151,6 +154,7 @@ export const updateService = asyncHandler(async (req: CustomRequest, res: Respon
 
     return sendSuccessResponse(res, 200, updatedService, "Service Request updated Successfully");
 });
+
 
 export const deleteService = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { serviceId } = req.params;

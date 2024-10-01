@@ -24,7 +24,7 @@ router.route('/signup').post(
     ]),
     [ModelAuth(ValidateUser)],
     registerUser,
-    loginUser
+    // loginUser
 );
 
 // Auth user (social)

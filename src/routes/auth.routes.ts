@@ -7,7 +7,10 @@ import {
     logoutUser,
     loginUser,
     registerUser,
-    AuthUserSocial
+    AuthUserSocial,
+    getUser,
+    addAddress,
+    addAdditionalInfo
 } from "../controller/auth/auth.controller";
 import { upload } from "../middlewares/multer.middleware";
 import validateUser from "../models/validator/user.validate";
@@ -46,5 +49,24 @@ router.route('/logout').post(
 router.route('/refresh-token').post(
     refreshAccessToken
 );
+
+router.use(VerifyJWTToken);
+//get user
+router.route('/get-user').get(getUser)
+
+//add Address
+router.route('/add-address').post(addAddress);
+
+//add user additional information
+router.route('/add-additional-info').post(
+    upload.fields([
+        { name: "driverLicenseImage"},
+        { name: "companyLicenseImage"},
+        { name: "licenseProofImage"},
+        { name: "businessLicenseImage"},
+        { name: "businessImage"},
+    ]),
+    addAdditionalInfo);
+
 
 export default router;

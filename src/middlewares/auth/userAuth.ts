@@ -11,9 +11,9 @@ export const VerifyJWTToken = asyncHandler(async (req: CustomRequest, res: Respo
     try {
         let token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
         // Log the cookies and headers for debugging
-        console.log("Cookies:", req.cookies);
-        console.log("Authorization Header:", req.header("Authorization"));
-        console.log("Extracted Token:", token);
+        // console.log("Cookies:", req.cookies);
+        // console.log("Authorization Header:", req.header("Authorization"));
+        // console.log("Extracted Token:", token);
 
         if (!token) { // This checks for both null and empty string
             console.log("Token is missing or empty");

@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import UserModel from "../../models/user.model";
+import addressModel from "../../models/address.model";
+import additionalInfoModel from "../../models/userAdditionalInfo.model";
 import { ApiError } from "../../utils/ApisErrors";
 import { ICredentials, ILoginCredentials, IRegisterCredentials } from "../../../types/requests_responseType";
 import { sendSuccessResponse, sendErrorResponse } from "../../utils/response";
@@ -11,6 +13,7 @@ import { asyncHandler } from "../../utils/asyncHandler";
 import { IUser } from "../../../types/schemaTypes";
 import { GoogleAuth } from "../../utils/socialAuth"
 import jwt, { JwtPayload } from 'jsonwebtoken';
+import mongoose from "mongoose";
 
 
 
@@ -249,6 +252,142 @@ export const AuthUserSocial = async (req: CustomRequest, res: Response) => {
         return res.status(500).json({ success: false, message: "Internal server error", error: exc.message });
     }
 };
+
+//get user if added address and additional info
+// get user if added address and additional info
+export const getUser = asyncHandler(async (req: CustomRequest, res: Response) => {
+
+    const userId = req.user?._id as string;
+    console.log(userId);
+
+    // Find the additional info for the user
+    const additionalInfo = await additionalInfoModel.findOne({ userId: userId });
+
+    // Find the address for the user
+    const address = await addressModel.findOne({ userId: userId });
+
+    // Check if additional info or address exists
+    const isAdditionalInfoAdded = additionalInfo !== null;
+    const isAddressAdded = address !== null;
+
+    return sendSuccessResponse(res, 200, {
+        isAdditionalInfoAdded,
+        isAddressAdded,
+    }, "User  status retrieved successfully.");
+});
+
+// Add address for the user
+export const addAddress = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const userId = req.user?._id as string;
+
+    // Extract address details from request body
+    const { street, city, state, zipCode, country, latitude, longitude } = req.body;
+
+    // Validate required fields (you can use Joi or other validation if needed)
+    if (!zipCode || !latitude || !longitude) {
+        return sendErrorResponse(res, new ApiError(400, "All address fields are required"));
+    }
+
+    // Check if user already has an address
+    const existingAddress = await addressModel.findOne({ userId });
+
+    if (existingAddress) {
+        return sendErrorResponse(res, new ApiError(400, "Address already exists for this user"));
+    }
+
+    // Create a new address
+    const newAddress = new addressModel({
+        userId,
+        zipCode,
+        latitude,
+        longitude,
+    });
+
+    // Save the address to the database
+    const savedAddress = await newAddress.save();
+
+    return sendSuccessResponse(res, 201, savedAddress, "Address added successfully");
+});
+
+
+// Add additional info for the user
+export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const userId = req.user?._id as string;
+
+    // Extract additional info details from request body
+    const { companyName, companyIntroduction, DOB, driverLicense, EIN, socialSecurity, companyLicense, insurancePolicy,businessName } = req.body;
+
+    // Validate required fields (you can use Joi or other validation if needed)
+    // if (!companyName || !companyIntroduction || !DOB || !driverLicense || !EIN || !companyLicense || !insurancePolicy || !businessName) {
+    //     return sendErrorResponse(res, new ApiError(400, "All additional info fields are required"));
+    // }
+
+    // Check if user already has additional info
+    const existingAdditionalInfo = await additionalInfoModel.findOne({ userId });
+
+    if (existingAdditionalInfo) {
+        return sendErrorResponse(res, new ApiError(400, "Additional info already exists for this user"));
+    }
+
+    // Ensure req.files is defined and has the expected structure
+    const files = req.files as { [key: string]: Express.Multer.File[] } | undefined;
+
+    if (!files) {
+        return sendErrorResponse(res, new ApiError(400, "No files were uploaded"));
+    };
+
+    const driverLicenseImageFile = files.driverLicenseImage ? files.driverLicenseImage[0] : undefined;
+    const companyLicenseImageFile = files.companyLicenseImage ? files.companyLicenseImage[0] : undefined;
+    const licenseProofImageFile = files.licenseProofImage ? files.licenseProofImage[0] : undefined;
+    const businessLicenseImageFile = files.businessLicenseImage ? files.businessLicenseImage[0] : undefined;
+    const businessImageFile = files.businessImage ? files.businessImage[0] : undefined;
+    
+    
+    
+    if (!driverLicenseImageFile || !companyLicenseImageFile || !licenseProofImageFile || !businessLicenseImageFile || !businessImageFile) {
+        return sendErrorResponse(res, new ApiError(400, "file is required"));
+    };
+    console.log("============");
+    
+    // // Upload files to Cloudinary
+    const driverLicenseImage = await uploadOnCloudinary(driverLicenseImageFile?.path as string);
+    const companyLicenseImage = await uploadOnCloudinary(companyLicenseImageFile?.path);
+    const licenseProofImage = await uploadOnCloudinary(licenseProofImageFile.path);
+    const businessLicenseImage = await uploadOnCloudinary(businessLicenseImageFile.path);
+    const businessImage = await uploadOnCloudinary(businessImageFile.path);
+    
+    // console.log(driverLicenseImage);
+    if (!driverLicenseImage || !companyLicenseImage || !licenseProofImage || !businessLicenseImage || !businessImage) {
+            return sendErrorResponse(res, new ApiError(400, "Error uploading files"));
+    };
+
+    // Create a new additional info record
+    const newAdditionalInfo = new additionalInfoModel({
+        userId,
+        companyName,
+        companyIntroduction,
+        DOB,
+        driverLicense,
+        EIN,
+        socialSecurity,
+        companyLicense,
+        insurancePolicy,
+        businessName,
+        driverLicenseImage:driverLicenseImage?.url,
+        companyLicenseImage:companyLicenseImage?.url,
+        licenseProofImage:licenseProofImage?.url,
+        businessLicenseImage:businessLicenseImage?.url,
+        businessImage:businessImage?.url
+    });
+
+    // Save the additional info to the database
+    const savedAdditionalInfo = await newAdditionalInfo.save();
+
+    return sendSuccessResponse(res, 201, savedAdditionalInfo, "Additional info added successfully");
+});
+
+
+
 
 
 

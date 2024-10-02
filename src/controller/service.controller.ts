@@ -1,6 +1,7 @@
 import { Response } from "express";
 import { CustomRequest } from "../../types/commonType";
 import ServiceModel from "../models/service.model";
+import addressModel from "../models/address.model";
 import { ApiError } from "../utils/ApisErrors";
 import { sendErrorResponse, sendSuccessResponse } from "../utils/response";
 import { asyncHandler } from "../utils/asyncHandler";
@@ -170,5 +171,34 @@ export const deleteService = asyncHandler(async (req: CustomRequest, res: Respon
     };
 
     return sendSuccessResponse(res, 200, {}, "Service deleted successfully");
+});
+
+// Fetch Service Requests within zipcode range
+export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const userId = req.user?._id as string;
+    console.log(userId);    
+
+    // Step 1: Retrieve the user's information, including their zipcode
+    const user = await addressModel.findOne({userId}).select('zipCode');
+    if (!user  || !user.zipCode) {
+        return sendErrorResponse(res, new ApiError(400, 'User zipcode not found'));        
+    }
+    console.log("====");
+    const userZipcode = user.zipCode;
+
+    // // Step 2: Find service requests with zipcodes within range of +10 to -10 from the user's zipcode
+    const minZipcode = userZipcode - 10;
+    const maxZipcode = userZipcode + 10;
+
+    const serviceRequests = await ServiceModel.find({
+        serviceZipCode: {
+            $gte: minZipcode,
+            $lte: maxZipcode
+        },
+        isDeleted: false // Optionally exclude deleted service requests
+    });
+
+    // // Step 3: Return the service requests in the response
+    return sendSuccessResponse(res, 200, serviceRequests, 'Service requests fetched successfully');
 });
 

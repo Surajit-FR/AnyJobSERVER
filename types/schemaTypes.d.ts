@@ -12,6 +12,8 @@ export interface IUser extends Document {
     password: string;
     avatar: string;
     coverImage:string;
+    addressId:ObjectId;
+    additionalInfoId:ObjectId;
     isVerified:boolean;
     userType: string;
     refreshToken?: string;
@@ -22,6 +24,49 @@ export interface IUser extends Document {
     createdAt?: Date;
     updatedAt?: Date;
 };
+
+export interface IAdditionalUserInfo extends Document {
+    _id: string | ObjectId;
+    userId:ObjectId;
+    companyName: string;
+    companyIntroduction: string;
+    DOB:Date;
+    driverLicense: string;
+    driverLicenseImage: string;
+    EIN: string;
+    socialSecurity:string;
+    companyLicense: string;
+    companyLicenseImage: string;
+    insurancePolicy:number;
+    licenseProofImage:string;
+    businessLicenseImage:string;
+    businessImage:string;
+    businessName: string;
+    isReadAggrement: boolean;
+    isAnyArrivalFee?:boolean;
+    arrivalFee:number;
+    isDeleted?: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
+};
+
+export interface IAddressType extends Document {
+    _id: string | ObjectId;
+    userId:ObjectId;
+    street: string;
+    city: string;
+    state: string;
+    country: string;
+    zipCode: number;
+    apartmentNumber?: string; 
+    landmark?: string;        
+    latitude: number;        
+    longitude: number;       
+    isPrimary?: boolean;      
+    createdAt: Date;
+    updatedAt: Date;
+};
+
 
 export interface ICategorySchema extends Document {
     _id: ObjectId;

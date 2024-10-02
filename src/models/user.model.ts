@@ -1,8 +1,12 @@
 import mongoose, { Schema, Model } from "mongoose";
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { IUser } from "../../types/schemaTypes";
+import { IUser,IAddressType,IAdditionalUserInfo } from "../../types/schemaTypes";
 import { emit } from "process";
+
+
+
+
 
 
 const UserSchema: Schema<IUser> = new Schema({
@@ -47,10 +51,16 @@ const UserSchema: Schema<IUser> = new Schema({
     },
     avatar: {
         type: String,
-        required: true,
+        required: false,
     },
     coverImage:{
         type: String,
+    },
+    addressId:{
+        type:mongoose.Schema.Types.ObjectId
+    },
+    additionalInfoId:{
+        type:mongoose.Schema.Types.ObjectId
     },
     isVerified:{
         type:Boolean,

@@ -5,7 +5,8 @@ import {
     addService,
     getPendingServiceRequest,
     updateServiceRequest,
-    deleteService
+    deleteService,
+    fetchServiceRequest
 } from "../controller/service.controller";
 
 const router: Router = express.Router();
@@ -14,6 +15,7 @@ router.use(VerifyJWTToken); // Apply verifyJWT middleware to all routes in this 
 
 router.route('/').post(addService);
 router.route('/pending-service').get(getPendingServiceRequest);
+router.route('/get-service').get(fetchServiceRequest);
 router.route("/c/:serviceId").delete(deleteService).put(updateServiceRequest);
 
 

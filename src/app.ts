@@ -8,7 +8,8 @@ import { EXPRESS_CONFIG_LIMIT } from './constants';
 
 
 app.use(cors({
-    origin: process.env.CORS_ORIGIN
+    origin: process.env.CORS_ORIGIN,
+    credentials: true,
 }));
 
 
@@ -30,11 +31,11 @@ import shiftRouter from './routes/shift.routes';
 
 
 app.use("/api/v1/auth", authRouter);
-app.use('/api/v1/category',categoryRouter);
-app.use('/api/v1/subcategory',subcategoryRouter);
-app.use('/api/v1/service',serviceRouter);
-app.use('/api/v1/qusetion',questionRouter)
-app.use('/api/v1/shift',shiftRouter);
+app.use('/api/v1/category', categoryRouter);
+app.use('/api/v1/subcategory', subcategoryRouter);
+app.use('/api/v1/service', serviceRouter);
+app.use('/api/v1/qusetion', questionRouter)
+app.use('/api/v1/shift', shiftRouter);
 
 
 app.get('/ping', (req: Request, res: Response) => {

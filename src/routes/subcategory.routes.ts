@@ -1,7 +1,4 @@
 import express, { Router } from "express";
-import SubCategoryModel from "../models/subcategory.model";
-import ModelAuth from "../middlewares/auth/modelAuth";
-import validateSubCategory from "../models/validator/subcategory.validate";
 import { VerifyJWTToken, VerifySuperAdminJWTToken, VerifyServiceProviderJWTToken } from '../middlewares/auth/userAuth';
 import { upload } from "../middlewares/multer.middleware";
 import {
@@ -9,6 +6,7 @@ import {
     deleteSubCategory,
     getSubCategories,
     updateSubCategory,
+    getSubCategorieById
 } from "../controller/subcategory.controller";
 
 const router: Router = express.Router();
@@ -21,9 +19,9 @@ router.route('/').post(
     VerifySuperAdminJWTToken,
     addSubCategory);
 
-router.route("/c/:SubCategoryId").delete(VerifySuperAdminJWTToken, deleteSubCategory).patch(VerifySuperAdminJWTToken, updateSubCategory);
+router.route("/c/:SubCategoryId").get(getSubCategorieById).delete(VerifySuperAdminJWTToken, deleteSubCategory).patch(VerifySuperAdminJWTToken, updateSubCategory);
 
-router.route('/:categoryId').get(getSubCategories)
+router.route('/:categoryId').get(getSubCategories);
 
 
-export default router
+export default router;

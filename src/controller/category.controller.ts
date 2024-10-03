@@ -5,7 +5,9 @@ import { CustomRequest } from "../../types/commonType";
 import { ApiError } from "../utils/ApisErrors";
 import { sendErrorResponse, sendSuccessResponse } from "../utils/response";
 import CategoryModel from "../models/category.model";
-import { uploadOnCloudinary } from "../utils/cloudinary";
+import SubCategoryModel from "../models/subcategory.model";
+import QuestionModel from "../models/question.model";
+import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary";
 import { IAddCategoryPayloadReq } from "../../types/requests_responseType";
 
 
@@ -34,7 +36,7 @@ export const addCategory = asyncHandler(async (req: CustomRequest, res: Response
     // console.log(catImg);
 
     const newCategory = await CategoryModel.create({
-        name:trimmedName,
+        name: trimmedName,
         categoryImage: catImg?.url,
         owner: req.user?._id,
     });
@@ -63,11 +65,10 @@ export const getCategories = asyncHandler(async (req: CustomRequest, res: Respon
     }, "Category retrieved successfully.");
 });
 
-
 // updateCategory controller
 export const updateCategory = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const { CategoryId }  = req.params;
-    const { name, categoryImage}: { name: string ,categoryImage:string} = req.body;
+    const { CategoryId } = req.params;
+    const { name, categoryImage }: { name: string, categoryImage: string } = req.body;
     console.log(req.params);
 
 
@@ -99,12 +100,69 @@ export const deleteCategory = asyncHandler(async (req: CustomRequest, res: Respo
         return sendErrorResponse(res, new ApiError(400, "Category ID is required."));
     };
 
-    // Remove the Category from the database
-    const deletedCategory = await CategoryModel.findByIdAndDelete(CategoryId);
-
-    if (!deletedCategory) {
+    //  Find the category to delete
+    const categoryToDelete = await CategoryModel.findById(CategoryId);
+    if (!categoryToDelete) {
         return sendErrorResponse(res, new ApiError(404, "Category not found for deleting."));
     };
+    const imageUrls = [];
+    // Collect image from category
+    if (categoryToDelete.categoryImage) imageUrls.push(categoryToDelete.categoryImage);
 
-    return sendSuccessResponse(res, 200, {}, "Category deleted successfully");
+    //Find SubCategories 
+    const subcategories = await SubCategoryModel.find({ CategoryId })
+    // Collect images from subcategories
+    subcategories.forEach((subCategory) => {
+        if (subCategory.subCategoryImage) imageUrls.push(subCategory.subCategoryImage);
+    });
+
+    //  Delete all questions related to this category and its subcategories
+    await QuestionModel.deleteMany({
+        $or: [
+            { categoryId: CategoryId },  // Questions directly related to the main category
+        ]
+    });
+
+    await SubCategoryModel.deleteMany({ categoryId: CategoryId });
+
+    //  Delete the category
+    await CategoryModel.findByIdAndDelete(CategoryId);
+
+    // Remove images from Cloudinary
+    const deleteImages = imageUrls.map((url) => {
+         deleteFromCloudinary(url);
+    });
+
+    return sendSuccessResponse(res, 200, {}, "Category and its related subcategories and questions deleted successfully");
+});
+
+//fetch category by id
+export const getCategorieById = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const { CategoryId } = req.params;
+    if (!CategoryId) {
+        return sendErrorResponse(res, new ApiError(400, "Category ID is required."));
+    };
+
+    //  Find the category to delete
+    const categoryToFetch = await CategoryModel.findById(CategoryId);
+    if (!categoryToFetch) {
+        return sendErrorResponse(res, new ApiError(404, "Category not found."));
+    };
+    const results = await CategoryModel.aggregate([
+        {
+            $match: { _id: new mongoose.Types.ObjectId(CategoryId) }
+        },
+        {
+            $project: {
+                isDeleted: 0,
+                __v: 0
+            }
+        },
+        { $sort: { createdAt: -1 } },
+    ]);
+    // console.log(results);
+    // Return the videos along with pagination details
+    return sendSuccessResponse(res, 200, {
+        results,
+    }, "Category retrieved successfully.");
 });

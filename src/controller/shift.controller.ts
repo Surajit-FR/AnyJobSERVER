@@ -36,7 +36,6 @@ export const addShift = asyncHandler(async (req: CustomRequest, res: Response) =
 
 })
 
-
 export const fetchShift = asyncHandler(async(req:CustomRequest,res:Response)=>{
     
     const {shiftId} = req.params;

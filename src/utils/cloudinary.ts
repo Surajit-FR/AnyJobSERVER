@@ -35,8 +35,11 @@ export const deleteFromCloudinary = async (publicUrl: string, resourceType: "ima
     const publicId = publicUrl.split('/').slice(-1)[0].split('.')[0];
     try {
         await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+        // console.log("files deleted");
+        
     } catch (error) {
         console.error(`Failed to delete ${resourceType} with public_id: ${publicId} from Cloudinary`, error);
         throw new Error(`Failed to delete ${resourceType} from Cloudinary`);
     }
 };
+

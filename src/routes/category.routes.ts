@@ -3,7 +3,8 @@ import {
     getCategories,
     addCategory,
     deleteCategory,
-    updateCategory
+    updateCategory,
+    getCategorieById
 } from "../controller/category.controller";
 import ModelAuth from "../middlewares/auth/modelAuth";
 import validateCategory from '../models/validator/category.validate';
@@ -21,7 +22,7 @@ router.route('/').post(
     VerifySuperAdminJWTToken,
     addCategory);
 
-router.route("/c/:CategoryId").delete(VerifySuperAdminJWTToken, deleteCategory).put(VerifySuperAdminJWTToken, updateCategory);
+router.route("/c/:CategoryId").get(getCategorieById).delete(VerifySuperAdminJWTToken, deleteCategory).put(VerifySuperAdminJWTToken, updateCategory);
 
 router.route('/').get(getCategories);
 

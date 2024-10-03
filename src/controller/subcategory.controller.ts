@@ -4,10 +4,9 @@ import SubCategoryModel from "../models/subcategory.model";
 import QuestionModel from "../models/question.model";
 import { ApiError } from "../utils/ApisErrors";
 import { sendErrorResponse, sendSuccessResponse } from "../utils/response";
-import { AsyncHandler } from "../../types/commonType";
 import { asyncHandler } from "../utils/asyncHandler";
 import mongoose, { ObjectId } from "mongoose";
-import { uploadOnCloudinary } from "../utils/cloudinary";
+import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary";
 import { IAddSubCategoryPayloadReq, IQuestion } from "../../types/requests_responseType";
 
 // addSubCategory controller
@@ -36,9 +35,9 @@ export const addSubCategory = asyncHandler(async (req: CustomRequest, res: Respo
     // Create the subcategory
     const newSubCategory = await SubCategoryModel.create({
         categoryId,
-        name:trimmedName,
-        subCategoryImage: subCatImg?.url, 
-        owner:req.user?._id,
+        name: trimmedName,
+        subCategoryImage: subCatImg?.url,
+        owner: req.user?._id,
         questionArray
     });
 
@@ -61,7 +60,6 @@ export const addSubCategory = asyncHandler(async (req: CustomRequest, res: Respo
     };
     return sendSuccessResponse(res, 201, newSubCategory, "Subcategory and questions added successfully.");
 });
-
 
 //fetch categorywise subcategory 
 export const getSubCategories = asyncHandler(async (req: CustomRequest, res: Response) => {
@@ -112,12 +110,56 @@ export const deleteSubCategory = asyncHandler(async (req: CustomRequest, res: Re
         return sendErrorResponse(res, new ApiError(400, "SubCategory ID is required."));
     };
 
-    // Remove the SubCategory from the database
+    //  Delete all questions related to this category and its subcategories
+    await QuestionModel.deleteMany({
+        $or: [
+            { subCategoryId: SubCategoryId },
+        ]
+    });
+
+    //Find SubCategories 
+    const subcategory = await SubCategoryModel.findOne({ SubCategoryId })
+    if (subcategory && subcategory.subCategoryImage) {
+        const deleteSubCatImgFromCloudinary = await deleteFromCloudinary(subcategory.subCategoryImage)
+    }
+
+    //  Remove the SubCategory from the database
     const deletedSubCategory = await SubCategoryModel.findByIdAndDelete(SubCategoryId);
 
     if (!deletedSubCategory) {
         return sendErrorResponse(res, new ApiError(404, "SubCategory not found for deleting."));
     };
 
-    return sendSuccessResponse(res, 200, {}, "SubCategory deleted successfully");
+    return sendSuccessResponse(res, 200, {}, "SubCategory and its related questions deleted successfully");
+});
+
+//fetch category by id
+export const getSubCategorieById = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const { SubCategoryId } = req.params;
+    if (!SubCategoryId) {
+        return sendErrorResponse(res, new ApiError(400, "Category ID is required."));
+    };
+
+    //  Find the category to delete
+    const SubcategoryToFetch = await SubCategoryModel.findById(SubCategoryId);
+    if (!SubcategoryToFetch) {
+        return sendErrorResponse(res, new ApiError(404, "SubCategory not found."));
+    };
+    const results = await SubCategoryModel.aggregate([
+        {
+            $match: { _id: new mongoose.Types.ObjectId(SubCategoryId) }
+        },
+        {
+            $project: {
+                isDeleted: 0,
+                __v: 0
+            }
+        },
+        { $sort: { createdAt: -1 } },
+    ]);
+    // console.log(results);
+    // Return the videos along with pagination details
+    return sendSuccessResponse(res, 200, {
+        results,
+    }, "SubCategory retrieved successfully.");
 });

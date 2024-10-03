@@ -142,19 +142,8 @@ export const getSubCategorieById = asyncHandler(async (req: CustomRequest, res: 
     if (!SubcategoryToFetch) {
         return sendErrorResponse(res, new ApiError(404, "SubCategory not found."));
     };
-    const results = await SubCategoryModel.aggregate([
-        {
-            $match: { _id: new mongoose.Types.ObjectId(SubCategoryId) }
-        },
-        {
-            $project: {
-                isDeleted: 0,
-                __v: 0
-            }
-        },
-        { $sort: { createdAt: -1 } },
-    ]);
+
     // console.log(results);
     // Return the videos along with pagination details
-    return sendSuccessResponse(res, 200, results, "SubCategory retrieved successfully.");
+    return sendSuccessResponse(res, 200, SubcategoryToFetch, "SubCategory retrieved successfully.");
 });

@@ -5,7 +5,7 @@ import { CustomRequest } from "../../types/commonType";
 import { ApiError } from "../utils/ApisErrors";
 import { sendErrorResponse, sendSuccessResponse } from "../utils/response";
 import ShiftModel from "../models/shift.model";
-import {  IShiftTimeSchema } from "../../types/schemaTypes";
+import { IShiftTimeSchema } from "../../types/schemaTypes";
 
 //addShift controller
 export const addShift = asyncHandler(async (req: CustomRequest, res: Response) => {
@@ -16,7 +16,7 @@ export const addShift = asyncHandler(async (req: CustomRequest, res: Response) =
 
     //check for the duplicacy
     const existinfShiftName = await ShiftModel.findOne({ name: trimmedShiftName });
-    
+
     if (existinfShiftName) {
         return sendErrorResponse(res, new ApiError(400, "Category with the same name already exists."));
     };
@@ -36,19 +36,16 @@ export const addShift = asyncHandler(async (req: CustomRequest, res: Response) =
 
 })
 
-export const fetchShift = asyncHandler(async(req:CustomRequest,res:Response)=>{
-    
-    const {shiftId} = req.params;
+export const fetchShift = asyncHandler(async (req: CustomRequest, res: Response) => {
+
+    const { shiftId } = req.params;
     const results = await ShiftModel.aggregate([
         {
-            $match:{
-                _id:new mongoose.Types.ObjectId(shiftId)
+            $match: {
+                _id: new mongoose.Types.ObjectId(shiftId)
             }
         }
     ]);
 
-    return sendSuccessResponse(res, 200, {
-        results,
-
-    }, "Shift Timings retrieved successfully.");
+    return sendSuccessResponse(res, 200, results, "Shift Timings retrieved successfully.");
 });

@@ -120,12 +120,8 @@ export const getPendingServiceRequest = asyncHandler(async (req: CustomRequest, 
         },
         { $sort: { createdAt: -1 } },
     ]);
-    // console.log(results);
 
-    return sendSuccessResponse(res, 200, {
-        results,
-
-    }, "Service retrieved successfully.");
+    return sendSuccessResponse(res, 200, results, "Service retrieved successfully.");
 });
 
 // updateService controller
@@ -155,7 +151,6 @@ export const updateServiceRequest = asyncHandler(async (req: CustomRequest, res:
 
     return sendSuccessResponse(res, 200, updatedService, "Service Request updated Successfully");
 });
-
 
 export const deleteService = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { serviceId } = req.params;

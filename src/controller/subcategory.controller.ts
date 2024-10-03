@@ -72,10 +72,7 @@ export const getSubCategories = asyncHandler(async (req: CustomRequest, res: Res
     ]);
     console.log(results);
 
-    return sendSuccessResponse(res, 200, {
-        results,
-
-    }, "SubCategory retrieved successfully.");
+    return sendSuccessResponse(res, 200, results, "SubCategory retrieved successfully.");
 });
 
 // updateCategory controller
@@ -159,7 +156,5 @@ export const getSubCategorieById = asyncHandler(async (req: CustomRequest, res: 
     ]);
     // console.log(results);
     // Return the videos along with pagination details
-    return sendSuccessResponse(res, 200, {
-        results,
-    }, "SubCategory retrieved successfully.");
+    return sendSuccessResponse(res, 200, results, "SubCategory retrieved successfully.");
 });

@@ -1,5 +1,5 @@
 import { Response } from "express";;
-import mongoose, { ObjectId } from "mongoose";
+import mongoose from "mongoose";
 import { asyncHandler } from "../utils/asyncHandler";
 import { CustomRequest } from "../../types/commonType";
 import { ApiError } from "../utils/ApisErrors";
@@ -59,10 +59,7 @@ export const getCategories = asyncHandler(async (req: CustomRequest, res: Respon
     ]);
     // console.log(results);
     // Return the videos along with pagination details
-    return sendSuccessResponse(res, 200, {
-        results,
-
-    }, "Category retrieved successfully.");
+    return sendSuccessResponse(res, 200, results, "Category retrieved successfully.");
 });
 
 // updateCategory controller
@@ -130,7 +127,7 @@ export const deleteCategory = asyncHandler(async (req: CustomRequest, res: Respo
 
     // Remove images from Cloudinary
     const deleteImages = imageUrls.map((url) => {
-         deleteFromCloudinary(url);
+        deleteFromCloudinary(url);
     });
 
     return sendSuccessResponse(res, 200, {}, "Category and its related subcategories and questions deleted successfully");
@@ -139,6 +136,7 @@ export const deleteCategory = asyncHandler(async (req: CustomRequest, res: Respo
 //fetch category by id
 export const getCategorieById = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { CategoryId } = req.params;
+
     if (!CategoryId) {
         return sendErrorResponse(res, new ApiError(400, "Category ID is required."));
     };
@@ -148,21 +146,6 @@ export const getCategorieById = asyncHandler(async (req: CustomRequest, res: Res
     if (!categoryToFetch) {
         return sendErrorResponse(res, new ApiError(404, "Category not found."));
     };
-    const results = await CategoryModel.aggregate([
-        {
-            $match: { _id: new mongoose.Types.ObjectId(CategoryId) }
-        },
-        {
-            $project: {
-                isDeleted: 0,
-                __v: 0
-            }
-        },
-        { $sort: { createdAt: -1 } },
-    ]);
-    // console.log(results);
-    // Return the videos along with pagination details
-    return sendSuccessResponse(res, 200, {
-        results,
-    }, "Category retrieved successfully.");
+
+    return sendSuccessResponse(res, 200, categoryToFetch, "Category retrieved successfully.");
 });

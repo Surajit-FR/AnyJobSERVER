@@ -6,14 +6,12 @@ export interface IUser extends Document {
     firstName: string;
     lastName: string;
     email: string;
-    phone: number;
+    phone: string;
     dob: Date;
     oldPassword:string;
     password: string;
     avatar: string;
     coverImage:string;
-    addressId:ObjectId;
-    additionalInfoId:ObjectId;
     isVerified:boolean;
     userType: string;
     refreshToken?: string;
@@ -72,6 +70,7 @@ export interface ICategorySchema extends Document {
     _id: ObjectId;
     name: string;
     categoryImage: string;
+    owner:ObjectId;
     isDeleted: boolean;
     createdAt?: Date;
     updatedAt?: Date;
@@ -82,6 +81,7 @@ export interface ISubCategorySchema extends Document {
     categoryId: ObjectId;
     name: string;
     subCategoryImage: string;
+    owner:ObjectId;
     questionArray: Array<any>;
     isDeleted: boolean;
     createdAt?: Date;
@@ -125,6 +125,20 @@ export interface IQuestionSchema extends Document {
     createdAt?: Date;
     updatedAt?: Date;
 };
+
+// Interface for Derived Answer
+interface IDerivedAnswer extends Document {
+    option: string;
+    answer: string;
+    derivedAnswers: IDerivedAnswer[];
+}
+
+// Interface for Answer
+interface IAnswer extends Document {
+    answer: string;
+    selectedOption: string;
+    derivedAnswers: IDerivedAnswer[];
+}
 
 export interface IShiftTimeSchema extends Document {
     _id: ObjectId;

@@ -38,21 +38,17 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
     // Ensure `req.files` is defined and has the expected structure
     const files = req.files as { [key: string]: Express.Multer.File[] } | undefined;
 
-    if (!files) {
-        return sendErrorResponse(res, new ApiError(400, "No files were uploaded"));
-    };
+    let avatarUrl = ""
+    if (files && files.avatar) {
+        const avatarFile = files.avatar ? files.avatar[0] : undefined;
+        
+        // Upload files to Cloudinary
+        const avatar = await uploadOnCloudinary(avatarFile?.path as string);
+        if (!avatar) {
+            return sendErrorResponse(res, new ApiError(400, "Error uploading avatar file"));
+        };
 
-    const avatarFile = files.avatar ? files.avatar[0] : undefined;
-
-    if (!avatarFile) {
-        return sendErrorResponse(res, new ApiError(400, "Avatar file is required"));
-    };
-
-    // Upload files to Cloudinary
-    const avatar = await uploadOnCloudinary(avatarFile.path);
-
-    if (!avatar) {
-        return sendErrorResponse(res, new ApiError(400, "Error uploading avatar file"));
+        avatarUrl = avatar.url
     };
 
     // Create new user
@@ -62,7 +58,7 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
         email,
         password,
         userType,
-        avatar: avatar.url,
+        avatar: avatarUrl,
     });
     const savedUser = await newUser.save()
 
@@ -315,7 +311,7 @@ export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Re
     const userId = req.user?._id as string;
 
     // Extract additional info details from request body
-    const { companyName, companyIntroduction, DOB, driverLicense, EIN, socialSecurity, companyLicense, insurancePolicy,businessName } = req.body;
+    const { companyName, companyIntroduction, DOB, driverLicense, EIN, socialSecurity, companyLicense, insurancePolicy, businessName } = req.body;
 
     // Validate required fields (you can use Joi or other validation if needed)
     // if (!companyName || !companyIntroduction || !DOB || !driverLicense || !EIN || !companyLicense || !insurancePolicy || !businessName) {
@@ -341,24 +337,24 @@ export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Re
     const licenseProofImageFile = files.licenseProofImage ? files.licenseProofImage[0] : undefined;
     const businessLicenseImageFile = files.businessLicenseImage ? files.businessLicenseImage[0] : undefined;
     const businessImageFile = files.businessImage ? files.businessImage[0] : undefined;
-    
-    
-    
+
+
+
     if (!driverLicenseImageFile || !companyLicenseImageFile || !licenseProofImageFile || !businessLicenseImageFile || !businessImageFile) {
         return sendErrorResponse(res, new ApiError(400, "file is required"));
     };
     console.log("============");
-    
+
     // // Upload files to Cloudinary
     const driverLicenseImage = await uploadOnCloudinary(driverLicenseImageFile?.path as string);
     const companyLicenseImage = await uploadOnCloudinary(companyLicenseImageFile?.path);
     const licenseProofImage = await uploadOnCloudinary(licenseProofImageFile.path);
     const businessLicenseImage = await uploadOnCloudinary(businessLicenseImageFile.path);
     const businessImage = await uploadOnCloudinary(businessImageFile.path);
-    
+
     // console.log(driverLicenseImage);
     if (!driverLicenseImage || !companyLicenseImage || !licenseProofImage || !businessLicenseImage || !businessImage) {
-            return sendErrorResponse(res, new ApiError(400, "Error uploading files"));
+        return sendErrorResponse(res, new ApiError(400, "Error uploading files"));
     };
 
     // Create a new additional info record
@@ -373,11 +369,11 @@ export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Re
         companyLicense,
         insurancePolicy,
         businessName,
-        driverLicenseImage:driverLicenseImage?.url,
-        companyLicenseImage:companyLicenseImage?.url,
-        licenseProofImage:licenseProofImage?.url,
-        businessLicenseImage:businessLicenseImage?.url,
-        businessImage:businessImage?.url
+        driverLicenseImage: driverLicenseImage?.url,
+        companyLicenseImage: companyLicenseImage?.url,
+        licenseProofImage: licenseProofImage?.url,
+        businessLicenseImage: businessLicenseImage?.url,
+        businessImage: businessImage?.url
     });
 
     // Save the additional info to the database

@@ -15,7 +15,6 @@ export const addCategory = asyncHandler(async (req: CustomRequest, res: Response
 
     // Trim and convert name to lowercase
     const trimmedName = name.trim().toLowerCase();
-    console.log("trimmedName is===>", trimmedName);
     // Check if a category with the same name already exists (case-insensitive)
     const existingCategory = await CategoryModel.findOne({ name: trimmedName });
     if (existingCategory) {
@@ -35,7 +34,7 @@ export const addCategory = asyncHandler(async (req: CustomRequest, res: Response
     // console.log(catImg);
 
     const newCategory = await CategoryModel.create({
-        name,
+        name:trimmedName,
         categoryImage: catImg?.url,
         owner: req.user?._id,
     });

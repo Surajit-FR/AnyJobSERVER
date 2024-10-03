@@ -17,17 +17,28 @@ export const addSubCategory = asyncHandler(async (req: CustomRequest, res: Respo
     // Trim and convert name to lowercase
     const trimmedName = name.trim().toLowerCase();
 
-    // Check if a category with the same name already exists (case-insensitive)
+    // Check if a subcategory with the same name already exists (case-insensitive)
     const existingCategory = await SubCategoryModel.findOne({ name: trimmedName });
     if (existingCategory) {
         return sendErrorResponse(res, new ApiError(400, "Subcategory with the same name already exists."));
     }
 
+    //subcategory image upload in multer
+    const subCategoryImageFile = req.files as { [key: string]: Express.Multer.File[] } | undefined;
+    console.log(subCategoryImageFile);
+    if (!subCategoryImageFile) {
+        return sendErrorResponse(res, new ApiError(400, "No files were uploaded"));
+    };
+    const subCatImgFile = subCategoryImageFile.subCategoryImage ? subCategoryImageFile.subCategoryImage[0] : undefined;
+    // Upload files to Cloudinary
+    const subCatImg = await uploadOnCloudinary(subCatImgFile?.path as string);
+
     // Create the subcategory
     const newSubCategory = await SubCategoryModel.create({
         categoryId,
-        name,
-        // subCategoryImage: subCatImg?.url, // Handle subcategory image if necessary
+        name:trimmedName,
+        subCategoryImage: subCatImg?.url, 
+        owner:req.user?._id,
         questionArray
     });
 
@@ -48,14 +59,6 @@ export const addSubCategory = asyncHandler(async (req: CustomRequest, res: Respo
 
         return mainQuestion._id;
     };
-
-    // Iterate over the questionArray and save each question with nested derived questions
-    const questionIds = await Promise.all(questionArray.map((questionData: IQuestion) => saveQuestions(questionData, newSubCategory._id as unknown as mongoose.Types.ObjectId)));
-
-    // Optionally, store the array of question IDs in the subcategory (if needed)
-    // newSubCategory.questionArray = questionIds;
-    // await newSubCategory.save();
-
     return sendSuccessResponse(res, 201, newSubCategory, "Subcategory and questions added successfully.");
 });
 

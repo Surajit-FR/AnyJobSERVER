@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { IUser,IAddressType,IAdditionalUserInfo } from "../../types/schemaTypes";
 import { emit } from "process";
+import { string } from "joi";
 
 
 
@@ -38,7 +39,8 @@ const UserSchema: Schema<IUser> = new Schema({
         type:Date
     },
     phone: {
-        type: Number,
+        type: String,
+        default:"",
         required: false
     },
     password: {
@@ -51,17 +53,12 @@ const UserSchema: Schema<IUser> = new Schema({
     },
     avatar: {
         type: String,
+        default:"",
         required: false,
     },
     coverImage:{
         type: String,
-    },
-    addressId:{
-        type:mongoose.Schema.Types.ObjectId
-    },
-    additionalInfoId:{
-        type:mongoose.Schema.Types.ObjectId
-    },
+    }, 
     isVerified:{
         type:Boolean,
         default:false

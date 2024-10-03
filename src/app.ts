@@ -22,6 +22,7 @@ app.use(cookieParser());
 
 
 //routes
+import adminRouter from './routes/admin.routes';
 import authRouter from './routes/auth.routes';
 import categoryRouter from './routes/category.routes';
 import subcategoryRouter from './routes/subcategory.routes';
@@ -30,9 +31,10 @@ import questionRouter from './routes/question.routes';
 import shiftRouter from './routes/shift.routes';
 
 
+app.use("/api/v1/admin",adminRouter);
 app.use("/api/v1/auth", authRouter);
-app.use('/api/v1/category', categoryRouter);
-app.use('/api/v1/subcategory', subcategoryRouter);
+// app.use('/api/v1/category', categoryRouter);
+// app.use('/api/v1/subcategory', subcategoryRouter);
 app.use('/api/v1/service', serviceRouter);
 app.use('/api/v1/qusetion', questionRouter)
 app.use('/api/v1/shift', shiftRouter);

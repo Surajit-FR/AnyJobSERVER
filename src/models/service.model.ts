@@ -1,21 +1,6 @@
 import mongoose, { Schema, Model } from "mongoose";
-import { IServiceSchema } from "../../types/schemaTypes";
-import { boolean, number, string } from "joi";
+import { IAnswer, IDerivedAnswer, IServiceSchema } from "../../types/schemaTypes";
 
-
-// Interface for Derived Answer
-interface IDerivedAnswer extends Document {
-    option: string;
-    answer: string;
-    derivedAnswers: IDerivedAnswer[];
-}
-
-// Interface for Answer
-interface IAnswer extends Document {
-    answer: string;
-    selectedOption: string;
-    derivedAnswers: IDerivedAnswer[];
-}
 
 // Schema for Derived Answer (Recursive)
 const derivedAnswerSchema = new Schema<IDerivedAnswer>({
@@ -29,7 +14,10 @@ const answerSchema = new Schema<IAnswer>({
     answer: { type: String, required: true },
     selectedOption: { type: String, required: true },
     derivedAnswers: [derivedAnswerSchema] // Derived answers are nested here
-});
+});                                                                                                                                                                                                                                                                                                                                                                                      
+
+
+
 
 const ServiceSchema: Schema<IServiceSchema> = new Schema({
     categoryId: {
@@ -96,7 +84,8 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
     // Answer array to store answers and derived answers
     answerArray: [answerSchema],
     serviceProductImage: {
-        type: String
+        type: String,
+        default:""
     },
     otherInfo: {
         type: {

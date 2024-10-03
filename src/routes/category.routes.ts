@@ -1,16 +1,35 @@
 import express, { Router } from 'express';
 import {
-    getCategories
+    getCategories,
+    addCategory,
+    deleteCategory,
+    updateCategory
 } from "../controller/category.controller";
 import ModelAuth from "../middlewares/auth/modelAuth";
 import validateCategory from '../models/validator/category.validate';
 import { upload } from '../middlewares/multer.middleware';
-import { VerifyJWTToken } from '../middlewares/auth/userAuth';
+import { VerifyJWTToken, VerifySuperAdminJWTToken, VerifyServiceProviderJWTToken } from '../middlewares/auth/userAuth';
 
 const router: Router = express.Router();
-router.use(VerifyJWTToken); // Apply verifyJWT middleware to all routes in this file
 
-router.route('/').get(getCategories)
+
+
+router.use(VerifyJWTToken); // Apply SuperAdmin verifyJWT middleware
+router.route('/').post(
+    upload.fields([
+        { name: "categoryImage" },
+    ]),
+    [ModelAuth(validateCategory)],
+    VerifySuperAdminJWTToken,
+    addCategory);
+
+router.route("/c/:CategoryId").delete(VerifySuperAdminJWTToken, deleteCategory).put(VerifySuperAdminJWTToken, updateCategory);
+
+
+router.route('/').get(getCategories);
+
+
+
 
 
 

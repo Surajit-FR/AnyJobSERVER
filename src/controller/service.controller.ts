@@ -32,7 +32,7 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         categoryId,
         subCategoryId,
         serviceStartDate,
-        serviceShifftId, 
+        serviceShifftId,
         SelectedShiftTime,
         serviceZipCode,
         serviceLatitude,
@@ -48,15 +48,15 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
     };
 
     return sendSuccessResponse(res, 201, newService, "Service Request added Successfully");
-}); 
+});
 
 //fetch service request before any service provider accept the request.
 export const getPendingServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {
     const results = await ServiceModel.aggregate([
         {
-            $match: { 
+            $match: {
                 isApproved: "Pending",
-                isReqAcceptedByServiceProvider:false  
+                isReqAcceptedByServiceProvider: false
             }
         },
         {
@@ -164,7 +164,7 @@ export const deleteService = asyncHandler(async (req: CustomRequest, res: Respon
     };
 
     // Remove the Category from the database
-    const deletedService = await ServiceModel.findByIdAndDelete(serviceId);
+    const deletedService = await ServiceModel.findByIdAndUpdate(serviceId, { $set: { isDeleted: true } });
 
     if (!deletedService) {
         return sendErrorResponse(res, new ApiError(404, "Service  not found for deleting."));
@@ -176,12 +176,12 @@ export const deleteService = asyncHandler(async (req: CustomRequest, res: Respon
 // Fetch Service Requests within zipcode range
 export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {
     const userId = req.user?._id as string;
-    console.log(userId);    
+    console.log(userId);
 
     // Step 1: Retrieve the user's information, including their zipcode
-    const user = await addressModel.findOne({userId}).select('zipCode');
-    if (!user  || !user.zipCode) {
-        return sendErrorResponse(res, new ApiError(400, 'User zipcode not found'));        
+    const user = await addressModel.findOne({ userId }).select('zipCode');
+    if (!user || !user.zipCode) {
+        return sendErrorResponse(res, new ApiError(400, 'User zipcode not found'));
     }
     console.log("====");
     const userZipcode = user.zipCode;

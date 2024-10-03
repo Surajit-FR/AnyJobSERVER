@@ -11,10 +11,8 @@ import { upload } from '../middlewares/multer.middleware';
 import { VerifyJWTToken, VerifySuperAdminJWTToken, VerifyServiceProviderJWTToken } from '../middlewares/auth/userAuth';
 
 const router: Router = express.Router();
-
-
-
 router.use(VerifyJWTToken); // Apply SuperAdmin verifyJWT middleware
+
 router.route('/').post(
     upload.fields([
         { name: "categoryImage" },
@@ -25,14 +23,7 @@ router.route('/').post(
 
 router.route("/c/:CategoryId").delete(VerifySuperAdminJWTToken, deleteCategory).put(VerifySuperAdminJWTToken, updateCategory);
 
-
 router.route('/').get(getCategories);
 
 
-
-
-
-
 export default router
-
-

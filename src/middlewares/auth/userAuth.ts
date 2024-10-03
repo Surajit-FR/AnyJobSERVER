@@ -96,7 +96,33 @@ export const VerifyServiceProviderJWTToken = asyncHandler(async (req: CustomRequ
     }
 });
 
+export const VerifyCustomerJWTToken = asyncHandler(async (req: CustomRequest, res: Response, next: NextFunction) => {
+    try {
+        let token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
 
+        if (!token) {
+            console.log("Token is missing or empty");
+            return sendErrorResponse(res, new ApiError(401, "Unauthorized Request"));
+        };
 
+        const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET as string) as JwtPayload;
+        const user = await UserModel.findById(decodedToken?._id).select("-password -refreshToken");
 
+        if (!user) {
+            return sendErrorResponse(res, new ApiError(401, "Invalid access token"));
+        };
 
+        // Check if user is SuperAdmin
+        if (user.userType !== "Customer") {
+            return sendErrorResponse(res, new ApiError(403, "Access denied. Customer rights required."));
+        }
+
+        // Attach user data to the request
+        req.user = user;
+
+        // Proceed to the next middleware or route
+        next();
+    } catch (error: any) {
+        return sendErrorResponse(res, new ApiError(401, error.message || "Invalid access token"));
+    }
+});

@@ -67,7 +67,7 @@ export const getCategories = asyncHandler(async (req: CustomRequest, res: Respon
 // updateCategory controller
 export const updateCategory = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { CategoryId }  = req.params;
-    const { name }: { name: string } = req.body;
+    const { name, categoryImage}: { name: string ,categoryImage:string} = req.body;
     console.log(req.params);
 
 
@@ -79,7 +79,8 @@ export const updateCategory = asyncHandler(async (req: CustomRequest, res: Respo
         { _id: new mongoose.Types.ObjectId(CategoryId) },
         {
             $set: {
-                name
+                name,
+                categoryImage
             }
         }, { new: true }
     );

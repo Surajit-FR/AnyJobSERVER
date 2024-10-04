@@ -71,7 +71,7 @@ export const updateCategory = asyncHandler(async (req: CustomRequest, res: Respo
     const trimmedName = name.trim().toLowerCase();
     // Check if a category with the same name already exists (case-insensitive)
     const existingCategory = await CategoryModel.findOne({ name: trimmedName });
-    if (existingCategory) {
+    if (!existingCategory) {
         return sendErrorResponse(res, new ApiError(400, "Category with the same name already exists."));
     };
 

@@ -22,9 +22,13 @@ router.route('/').post(
     verifyUserType(['SuperAdmin']),
     addCategory);
 
-router.route("/c/:CategoryId").get(getCategorieById).delete(verifyUserType(['SuperAdmin']), deleteCategory).put(verifyUserType(['SuperAdmin']),  upload.fields([
-    { name: "categoryImage" },
-]),updateCategory);
+router.route("/c/:CategoryId")
+    .get(getCategorieById)
+    .delete(verifyUserType(['SuperAdmin']), deleteCategory)
+    .put(verifyUserType(['SuperAdmin']),
+        upload.fields([
+            { name: "categoryImage" },
+        ]), updateCategory);
 
 router.route('/').get(getCategories);
 

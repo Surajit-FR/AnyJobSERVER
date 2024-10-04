@@ -13,7 +13,6 @@ import { asyncHandler } from "../../utils/asyncHandler";
 import { IUser } from "../../../types/schemaTypes";
 import { GoogleAuth } from "../../utils/socialAuth"
 import jwt, { JwtPayload } from 'jsonwebtoken';
-import mongoose from "mongoose";
 
 
 
@@ -41,7 +40,7 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
     let avatarUrl = ""
     if (files && files.avatar) {
         const avatarFile = files.avatar ? files.avatar[0] : undefined;
-        
+
         // Upload files to Cloudinary
         const avatar = await uploadOnCloudinary(avatarFile?.path as string);
         if (!avatar) {
@@ -63,7 +62,7 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
     const savedUser = await newUser.save()
 
     const createdUser = await UserModel.findById(savedUser._id).select("-password -refreshToken");
-    console.log(createdUser);
+    // console.log(createdUser);
 
     if (!createdUser) {
         return sendErrorResponse(res, new ApiError(500, "Something went wrong while registering the user"));
@@ -71,8 +70,6 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
 
     return sendSuccessResponse(res, 201, createdUser, "User Registered Successfully");
 });
-
-
 
 //login user controller
 export const loginUser = asyncHandler(async (req: Request, res: Response) => {
@@ -86,6 +83,29 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
     );
     if (!user) {
         return sendErrorResponse(res, new ApiError(400, "User does not exist"));
+    };
+    //validate service provider
+    if (user.userType === "ServiceProvider" && !user.isVerified) {
+        // Find the additional info for the user
+        const additionalInfo = await additionalInfoModel.findOne({ userId: user._id });
+        const isAdditionalInfoAdded = additionalInfo !== null;
+
+        if (!isAdditionalInfoAdded) {
+            return sendErrorResponse(res, new ApiError(403, "Please submit your additional info to verify your account."));
+        };
+
+        // Find the address for the user
+        const address = await addressModel.findOne({ userId: user._id });
+        const isAddressAdded = address !== null;      
+    
+        if (!isAddressAdded) {
+            return sendErrorResponse(res, new ApiError(403, "Please submit your address details to verify your account."));
+        };
+
+        return sendErrorResponse(res, new ApiError(403, "Your account verification is under process. Please wait for confirmation."));
+
+
+
     };
 
     const isPasswordValid = await user.isPasswordCorrect(password);
@@ -249,12 +269,14 @@ export const AuthUserSocial = async (req: CustomRequest, res: Response) => {
     }
 };
 
-//get user if added address and additional info
 // get user if added address and additional info
 export const getUser = asyncHandler(async (req: CustomRequest, res: Response) => {
 
     const userId = req.user?._id as string;
     console.log(userId);
+
+    //Find user details
+    const userDetails = await UserModel.findById(userId).select("-password -refreshToken")
 
     // Find the additional info for the user
     const additionalInfo = await additionalInfoModel.findOne({ userId: userId });
@@ -267,6 +289,7 @@ export const getUser = asyncHandler(async (req: CustomRequest, res: Response) =>
     const isAddressAdded = address !== null;
 
     return sendSuccessResponse(res, 200, {
+        userDetails,
         isAdditionalInfoAdded,
         isAddressAdded,
     }, "User  status retrieved successfully.");
@@ -304,7 +327,6 @@ export const addAddress = asyncHandler(async (req: CustomRequest, res: Response)
 
     return sendSuccessResponse(res, 201, savedAddress, "Address added successfully");
 });
-
 
 // Add additional info for the user
 export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Response) => {

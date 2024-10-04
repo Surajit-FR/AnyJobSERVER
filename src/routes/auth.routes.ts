@@ -13,7 +13,6 @@ import {
     addAdditionalInfo
 } from "../controller/auth/auth.controller";
 import { upload } from "../middlewares/multer.middleware";
-import validateUser from "../models/validator/user.validate";
 import { VerifyJWTToken } from "../middlewares/auth/userAuth";
 import {HandleSocialAuthError} from '../middlewares/auth/socialAuth';
 

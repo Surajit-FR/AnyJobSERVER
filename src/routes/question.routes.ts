@@ -1,5 +1,5 @@
 import express, { Router } from "express";
-import { VerifyJWTToken, VerifySuperAdminJWTToken, VerifyServiceProviderJWTToken } from '../middlewares/auth/userAuth';
+import { VerifyJWTToken, verifyUserType } from '../middlewares/auth/userAuth';
 import { fetchQuestionsSubCategorySubCategorywise, } from "../controller/question.controller";
 
 const router: Router = express.Router();

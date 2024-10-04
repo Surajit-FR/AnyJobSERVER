@@ -15,5 +15,5 @@ const AddressSchema: Schema<IAddressType> = new Schema({
     longitude: { type: Number, required: [true, "Longitude is Required"] }
 }, { timestamps: true });
 
-const addressModel: Model<IAddressType> = mongoose.model<IAddressType>("address", AddressSchema);
-export default addressModel;
+const AddressModel: Model<IAddressType> = mongoose.model<IAddressType>("Address", AddressSchema);
+export default AddressModel;

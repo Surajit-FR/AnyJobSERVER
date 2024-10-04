@@ -13,7 +13,7 @@ import { IAddCategoryPayloadReq } from "../../types/requests_responseType";
 
 // addCategory controller
 export const addCategory = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const { name, categoryImage }: IAddCategoryPayloadReq = req.body;
+    const { name }: IAddCategoryPayloadReq = req.body;
 
     // Trim and convert name to lowercase
     const trimmedName = name.trim().toLowerCase();
@@ -65,9 +65,26 @@ export const getCategories = asyncHandler(async (req: CustomRequest, res: Respon
 // updateCategory controller
 export const updateCategory = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { CategoryId } = req.params;
-    const { name, categoryImage }: { name: string, categoryImage: string } = req.body;
-    console.log(req.params);
+    const { name }: { name: string } = req.body;
 
+    // Trim and convert name to lowercase
+    const trimmedName = name.trim().toLowerCase();
+    // Check if a category with the same name already exists (case-insensitive)
+    const existingCategory = await CategoryModel.findOne({ name: trimmedName });
+    if (existingCategory) {
+        return sendErrorResponse(res, new ApiError(400, "Category with the same name already exists."));
+    };
+
+    const categoryImageFile = req.files as { [key: string]: Express.Multer.File[] } | undefined;
+    if (!categoryImageFile) {
+        return sendErrorResponse(res, new ApiError(400, "No files were uploaded"));
+    };
+
+    const catImgFile = categoryImageFile.categoryImage ? categoryImageFile.categoryImage[0] : undefined;
+
+    // console.log(catImgFile);
+    // Upload files to Cloudinary
+    const catImg = await uploadOnCloudinary(catImgFile?.path as string);
 
     if (!CategoryId) {
         return sendErrorResponse(res, new ApiError(400, "Category ID is required."));
@@ -78,7 +95,7 @@ export const updateCategory = asyncHandler(async (req: CustomRequest, res: Respo
         {
             $set: {
                 name,
-                categoryImage
+                categoryImage: catImg?.url
             }
         }, { new: true }
     );

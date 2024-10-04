@@ -11,7 +11,7 @@ import { IAddSubCategoryPayloadReq, IQuestion } from "../../types/requests_respo
 
 // addSubCategory controller
 export const addSubCategory = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const { categoryId, name, subCategoryImage, questionArray }: IAddSubCategoryPayloadReq = req.body;
+    const { categoryId, name, questionArray }: IAddSubCategoryPayloadReq = req.body;
 
     // Trim and convert name to lowercase
     const trimmedName = name.trim().toLowerCase();
@@ -83,21 +83,40 @@ export const updateSubCategory = asyncHandler(async (req: CustomRequest, res: Re
     if (!SubCategoryId) {
         return sendErrorResponse(res, new ApiError(400, "SubCategory ID is required."));
     };
+    // Trim and convert name to lowercase
+    const trimmedName = name.trim().toLowerCase();
+
+    // Check if a subcategory with the same name already exists (case-insensitive)
+    const existingCategory = await SubCategoryModel.findOne({ name: trimmedName });
+    if (existingCategory) {
+        return sendErrorResponse(res, new ApiError(400, "Subcategory with the same name already exists."));
+    }
+
+    //subcategory image upload in multer
+    const subCategoryImageFile = req.files as { [key: string]: Express.Multer.File[] } | undefined;
+    console.log(subCategoryImageFile);
+    if (!subCategoryImageFile) {
+        return sendErrorResponse(res, new ApiError(400, "No files were uploaded"));
+    };
+    const subCatImgFile = subCategoryImageFile.subCategoryImage ? subCategoryImageFile.subCategoryImage[0] : undefined;
+    // Upload files to Cloudinary
+    const subCatImg = await uploadOnCloudinary(subCatImgFile?.path as string);
 
     const updatedSubCategory = await SubCategoryModel.findByIdAndUpdate(
         SubCategoryId,
         {
             $set: {
-                name
+                name: trimmedName,
+                subCategoryImage: subCatImg?.url
             }
         }, { new: true }
     );
 
     if (!updatedSubCategory) {
-        return sendErrorResponse(res, new ApiError(404, "Category not found for updating."));
+        return sendErrorResponse(res, new ApiError(404, "SubCategory not found for updating."));
     };
 
-    return sendSuccessResponse(res, 200, updatedSubCategory, "Category updated Successfully");
+    return sendSuccessResponse(res, 200, updatedSubCategory, "SubCategory updated Successfully");
 });
 
 // deleteCategory controller

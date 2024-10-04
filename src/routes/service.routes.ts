@@ -1,5 +1,5 @@
 import express, { Router } from "express";
-import { VerifyJWTToken, VerifySuperAdminJWTToken, VerifyServiceProviderJWTToken, VerifyCustomerJWTToken } from '../middlewares/auth/userAuth';
+import { VerifyJWTToken, verifyUserType } from '../middlewares/auth/userAuth';
 import {
     addService,
     getPendingServiceRequest,
@@ -11,13 +11,13 @@ import {
 const router: Router = express.Router();
 router.use(VerifyJWTToken); // Apply verifyJWT middleware to all routes in this file
 
-router.route('/').post(VerifyCustomerJWTToken, addService);
+router.route('/').post(verifyUserType(['Customer']), addService);
 
 router.route('/pending-service').get(getPendingServiceRequest);
 
-router.route('/get-service').get(VerifyServiceProviderJWTToken, fetchServiceRequest);
+router.route('/get-service').get(verifyUserType(['ServiceProvider']), fetchServiceRequest);
 
-router.route("/c/:serviceId").delete(VerifySuperAdminJWTToken, deleteService).put(VerifySuperAdminJWTToken,VerifyServiceProviderJWTToken, updateServiceRequest);
+router.route("/c/:serviceId").delete(verifyUserType(['SuperAdmin']), deleteService).put(verifyUserType(['SuperAdmin', 'ServiceProvider']), updateServiceRequest);
 
 
 export default router;

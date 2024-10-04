@@ -13,6 +13,7 @@ import { asyncHandler } from "../../utils/asyncHandler";
 import { IUser } from "../../../types/schemaTypes";
 import { GoogleAuth } from "../../utils/socialAuth"
 import jwt, { JwtPayload } from 'jsonwebtoken';
+import { ObjectId } from "mongoose";
 
 
 
@@ -89,17 +90,18 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
         // Find the additional info for the user
         const additionalInfo = await additionalInfoModel.findOne({ userId: user._id });
         const isAdditionalInfoAdded = additionalInfo !== null;
+        
 
         if (!isAdditionalInfoAdded) {
-            return sendErrorResponse(res, new ApiError(403, "Please submit your additional info to verify your account."));
+            return sendErrorResponse(res, new ApiError(403, "Please submit your additional info to verify your account.",[], { userId: user._id }));
         };
 
         // Find the address for the user
         const address = await addressModel.findOne({ userId: user._id });
-        const isAddressAdded = address !== null;      
-    
+        const isAddressAdded = address !== null;
+
         if (!isAddressAdded) {
-            return sendErrorResponse(res, new ApiError(403, "Please submit your address details to verify your account."));
+            return sendErrorResponse(res, new ApiError(403, "Please submit your address details to verify your account.", [], { userId: user._id }));
         };
 
         return sendErrorResponse(res, new ApiError(403, "Your account verification is under process. Please wait for confirmation."));

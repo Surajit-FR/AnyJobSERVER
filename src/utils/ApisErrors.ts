@@ -8,11 +8,12 @@ class ApiError extends Error {
         statusCode: number,
         message: string = "Something Went Wrong",
         errors: any[] = [],
+        data: any = null,
         stack: string = ""
     ) {
         super(message);
         this.statusCode = statusCode;
-        this.data = null;
+        this.data = data;
         this.success = false;
         this.errors = errors;
 

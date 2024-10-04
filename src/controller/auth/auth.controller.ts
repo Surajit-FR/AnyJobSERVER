@@ -79,34 +79,13 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
         return sendErrorResponse(res, new ApiError(400, "Email is required"));
     };
 
-    const user = await UserModel.findOne({ email }
-    );
+    const user = await UserModel.findOne({ email });
+
     if (!user) {
         return sendErrorResponse(res, new ApiError(400, "User does not exist"));
     };
-    //validate service provider
-    if (user.userType === "ServiceProvider" && !user.isVerified) {
-        // Find the additional info for the user
-        const additionalInfo = await additionalInfoModel.findOne({ userId: user._id });
-        const isAdditionalInfoAdded = additionalInfo !== null;
 
-        if (!isAdditionalInfoAdded) {
-            return sendErrorResponse(res, new ApiError(403, "Please submit your additional info to verify your account."));
-        };
-
-        // Find the address for the user
-        const address = await addressModel.findOne({ userId: user._id });
-        const isAddressAdded = address !== null;      
-    
-        if (!isAddressAdded) {
-            return sendErrorResponse(res, new ApiError(403, "Please submit your address details to verify your account."));
-        };
-
-        return sendErrorResponse(res, new ApiError(403, "Your account verification is under process. Please wait for confirmation."));
-
-
-
-    };
+    const userId = user._id;
 
     const isPasswordValid = await user.isPasswordCorrect(password);
     if (!isPasswordValid) {
@@ -119,6 +98,10 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
     const cookieOption: { httpOnly: boolean, secure: boolean } = {
         httpOnly: true,
         secure: true
+    };
+
+    if (user.userType === "ServiceProvider" && !user.isVerified) {
+        return sendErrorResponse(res, new ApiError(403, "Your account verification is under process. Please wait for confirmation.", [], userId));
     };
 
     return res.status(200)

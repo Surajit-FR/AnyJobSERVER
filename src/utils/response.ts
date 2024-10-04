@@ -2,13 +2,13 @@ import { Response } from "express";
 import { ApiError } from "./ApisErrors";
 import { ApiResponse } from "./ApiResponse";
 
-export const sendSuccessResponse  = <T>(
+export const sendSuccessResponse = <T>(
     res: Response,
     statusCode: number,
-    data:T,
-    message:string = "Success",
-)=>{
-    const response = new ApiResponse(statusCode,data,message);
+    data: T,
+    message: string = "Success",
+) => {
+    const response = new ApiResponse(statusCode, data, message);
     return res.status(response.statusCode).json(response);
 };
 
@@ -20,6 +20,7 @@ export const sendErrorResponse = (
         statusCode: error.statusCode,
         success: error.success,
         message: error.message,
-        errors: error.errors
+        errors: error.errors,
+        data: error.data
     });
 };

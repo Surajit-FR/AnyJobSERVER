@@ -9,19 +9,33 @@ import SubCategoryModel from "../models/subcategory.model";
 import QuestionModel from "../models/question.model";
 import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary";
 import { IAddCategoryPayloadReq } from "../../types/requests_responseType";
-
-
+import fs from 'fs';
 // addCategory controller
 export const addCategory = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { name }: IAddCategoryPayloadReq = req.body;
-
+    
+    
     // Trim and convert name to lowercase
-    const trimmedName = name.trim().toLowerCase();
+    const trimmedName = name.trim();
     // Check if a category with the same name already exists (case-insensitive)
-    const existingCategory = await CategoryModel.findOne({ name: trimmedName });
+    const existingCategory = await CategoryModel.findOne({ name: { $regex: new RegExp(`^${trimmedName}$`, 'i') } });   
+    
     if (existingCategory) {
+        // Delete the local image if it exists
+        const categoryImageFile = req.files as { [key: string]: Express.Multer.File[] } | undefined;
+        const catImgFile = categoryImageFile?.categoryImage ? categoryImageFile.categoryImage[0] : undefined;
+        
+        if (catImgFile) {
+            fs.unlink(catImgFile.path, (err) => {
+                if (err) {
+                    console.error("Error deleting local image:", err);
+                }
+            });
+        }
+
         return sendErrorResponse(res, new ApiError(400, "Category with the same name already exists."));
-    };
+    }
+    // console.log("--------");
 
     const categoryImageFile = req.files as { [key: string]: Express.Multer.File[] } | undefined;
     if (!categoryImageFile) {
@@ -68,12 +82,24 @@ export const updateCategory = asyncHandler(async (req: CustomRequest, res: Respo
     const { name }: { name: string } = req.body;
 
     // Trim and convert name to lowercase
-    const trimmedName = name.trim().toLowerCase();
+    const trimmedName = name.trim();
     // Check if a category with the same name already exists (case-insensitive)
-    const existingCategory = await CategoryModel.findOne({ name: trimmedName });
+    const existingCategory = await CategoryModel.findOne({ name: { $regex: new RegExp(`^${trimmedName}$`, 'i') } });   
     if (existingCategory) {
+        // Delete the local image if it exists
+        const categoryImageFile = req.files as { [key: string]: Express.Multer.File[] } | undefined;
+        const catImgFile = categoryImageFile?.categoryImage ? categoryImageFile.categoryImage[0] : undefined;
+        
+        if (catImgFile) {
+            fs.unlink(catImgFile.path, (err) => {
+                if (err) {
+                    console.error("Error deleting local image:", err);
+                }
+            });
+        }
+
         return sendErrorResponse(res, new ApiError(400, "Category with the same name already exists."));
-    };
+    }
 
     const categoryImageFile = req.files as { [key: string]: Express.Multer.File[] } | undefined;
     if (!categoryImageFile) {

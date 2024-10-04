@@ -1,3 +1,4 @@
+import fs from 'fs'; 
 import { Request, Response } from "express";
 import UserModel from "../../models/user.model";
 import addressModel from "../../models/address.model";
@@ -80,35 +81,13 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
         return sendErrorResponse(res, new ApiError(400, "Email is required"));
     };
 
-    const user = await UserModel.findOne({ email }
-    );
+    const user = await UserModel.findOne({ email });
+
     if (!user) {
         return sendErrorResponse(res, new ApiError(400, "User does not exist"));
     };
-    //validate service provider
-    if (user.userType === "ServiceProvider" && !user.isVerified) {
-        // Find the additional info for the user
-        const additionalInfo = await additionalInfoModel.findOne({ userId: user._id });
-        const isAdditionalInfoAdded = additionalInfo !== null;
-        
 
-        if (!isAdditionalInfoAdded) {
-            return sendErrorResponse(res, new ApiError(403, "Please submit your additional info to verify your account.",[], { userId: user._id }));
-        };
-
-        // Find the address for the user
-        const address = await addressModel.findOne({ userId: user._id });
-        const isAddressAdded = address !== null;
-
-        if (!isAddressAdded) {
-            return sendErrorResponse(res, new ApiError(403, "Please submit your address details to verify your account.", [], { userId: user._id }));
-        };
-
-        return sendErrorResponse(res, new ApiError(403, "Your account verification is under process. Please wait for confirmation."));
-
-
-
-    };
+    const userId = user._id;
 
     const isPasswordValid = await user.isPasswordCorrect(password);
     if (!isPasswordValid) {
@@ -121,6 +100,10 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
     const cookieOption: { httpOnly: boolean, secure: boolean } = {
         httpOnly: true,
         secure: true
+    };
+
+    if (user.userType === "ServiceProvider" && !user.isVerified) {
+        return sendErrorResponse(res, new ApiError(403, "Your account verification is under process. Please wait for confirmation.", [], userId));
     };
 
     return res.status(200)
@@ -299,7 +282,7 @@ export const getUser = asyncHandler(async (req: CustomRequest, res: Response) =>
 
 // Add address for the user
 export const addAddress = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const userId = req.user?._id as string;
+    const {userId} = req.params;
 
     // Extract address details from request body
     const { street, city, state, zipCode, country, latitude, longitude } = req.body;
@@ -331,21 +314,48 @@ export const addAddress = asyncHandler(async (req: CustomRequest, res: Response)
 });
 
 // Add additional info for the user
+
 export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const userId = req.user?._id as string;
+    const { userId } = req.params;
 
     // Extract additional info details from request body
     const { companyName, companyIntroduction, DOB, driverLicense, EIN, socialSecurity, companyLicense, insurancePolicy, businessName } = req.body;
-
-    // Validate required fields (you can use Joi or other validation if needed)
-    // if (!companyName || !companyIntroduction || !DOB || !driverLicense || !EIN || !companyLicense || !insurancePolicy || !businessName) {
-    //     return sendErrorResponse(res, new ApiError(400, "All additional info fields are required"));
-    // }
 
     // Check if user already has additional info
     const existingAdditionalInfo = await additionalInfoModel.findOne({ userId });
 
     if (existingAdditionalInfo) {
+        const files = req.files as { [key: string]: Express.Multer.File[] } | undefined;
+        if (!files) {
+            return sendErrorResponse(res, new ApiError(400, "No files were uploaded"));
+        };
+    
+        const driverLicenseImageFile = files.driverLicenseImage ? files.driverLicenseImage[0] : undefined;
+        const companyLicenseImageFile = files.companyLicenseImage ? files.companyLicenseImage[0] : undefined;
+        const licenseProofImageFile = files.licenseProofImage ? files.licenseProofImage[0] : undefined;
+        const businessLicenseImageFile = files.businessLicenseImage ? files.businessLicenseImage[0] : undefined;
+        const businessImageFile = files.businessImage ? files.businessImage[0] : undefined;
+    
+
+        // Remove local files associated with the existing additional info
+        const filesToRemove = [
+            driverLicenseImageFile?.path, 
+            companyLicenseImageFile?.path, 
+            licenseProofImageFile?.path, 
+            businessLicenseImageFile?.path, 
+            businessImageFile?.path
+        ];
+
+        filesToRemove.forEach((filePath) => {
+            if (filePath) {
+                fs.unlink(filePath, (err) => {
+                    if (err) {
+                        console.error("Error deleting local file:", err);
+                    }
+                });
+            }
+        });
+
         return sendErrorResponse(res, new ApiError(400, "Additional info already exists for this user"));
     }
 
@@ -362,21 +372,17 @@ export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Re
     const businessLicenseImageFile = files.businessLicenseImage ? files.businessLicenseImage[0] : undefined;
     const businessImageFile = files.businessImage ? files.businessImage[0] : undefined;
 
-
-
     if (!driverLicenseImageFile || !companyLicenseImageFile || !licenseProofImageFile || !businessLicenseImageFile || !businessImageFile) {
-        return sendErrorResponse(res, new ApiError(400, "file is required"));
+        return sendErrorResponse(res, new ApiError(400, "All files are required"));
     };
-    console.log("============");
 
-    // // Upload files to Cloudinary
+    // Upload files to Cloudinary
     const driverLicenseImage = await uploadOnCloudinary(driverLicenseImageFile?.path as string);
     const companyLicenseImage = await uploadOnCloudinary(companyLicenseImageFile?.path);
     const licenseProofImage = await uploadOnCloudinary(licenseProofImageFile.path);
     const businessLicenseImage = await uploadOnCloudinary(businessLicenseImageFile.path);
     const businessImage = await uploadOnCloudinary(businessImageFile.path);
 
-    // console.log(driverLicenseImage);
     if (!driverLicenseImage || !companyLicenseImage || !licenseProofImage || !businessLicenseImage || !businessImage) {
         return sendErrorResponse(res, new ApiError(400, "Error uploading files"));
     };
@@ -405,6 +411,7 @@ export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Re
 
     return sendSuccessResponse(res, 201, savedAdditionalInfo, "Additional info added successfully");
 });
+
 
 
 

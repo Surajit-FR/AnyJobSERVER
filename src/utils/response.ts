@@ -18,8 +18,8 @@ export const sendErrorResponse = (res: Response, error: ApiError) => {
         success: error.success,
         message: error.message,
         errors: error.errors,
+        data: error.data
     };
-
     // Conditionally add the data field if it exists and is not null
     if (error.data) {  // This will check if data exists and is not null/undefined
         responsePayload.data = error.data;

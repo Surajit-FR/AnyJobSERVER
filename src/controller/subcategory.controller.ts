@@ -8,23 +8,36 @@ import { asyncHandler } from "../utils/asyncHandler";
 import mongoose, { ObjectId } from "mongoose";
 import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary";
 import { IAddSubCategoryPayloadReq, IQuestion } from "../../types/requests_responseType";
+import fs from 'fs';
 
 // addSubCategory controller
 export const addSubCategory = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { categoryId, name, questionArray }: IAddSubCategoryPayloadReq = req.body;
 
     // Trim and convert name to lowercase
-    const trimmedName = name.trim().toLowerCase();
+    const trimmedName = name.trim();
 
     // Check if a subcategory with the same name already exists (case-insensitive)
-    const existingCategory = await SubCategoryModel.findOne({ name: trimmedName });
-    if (existingCategory) {
-        return sendErrorResponse(res, new ApiError(400, "Subcategory with the same name already exists."));
+    const existingSubCategory = await SubCategoryModel.findOne({ name: { $regex: new RegExp(`^${trimmedName}$`, 'i') } });
+    if (existingSubCategory) {
+        // Delete the local image if it exists
+        const subCategoryImageFile = req.files as { [key: string]: Express.Multer.File[] } | undefined;
+        const subCategoryImage = subCategoryImageFile?.subCategoryImage ? subCategoryImageFile.subCategoryImage[0] : undefined;
+        
+        if (subCategoryImage) {
+            fs.unlink(subCategoryImage.path, (err) => {
+                if (err) {
+                    console.error("Error deleting local image:", err);
+                }
+            });
+        }
+
+        return sendErrorResponse(res, new ApiError(400, "SubCategory with the same name already exists."));
     }
 
     //subcategory image upload in multer
     const subCategoryImageFile = req.files as { [key: string]: Express.Multer.File[] } | undefined;
-    console.log(subCategoryImageFile);
+    // console.log(subCategoryImageFile);
     if (!subCategoryImageFile) {
         return sendErrorResponse(res, new ApiError(400, "No files were uploaded"));
     };
@@ -75,7 +88,7 @@ export const getSubCategories = asyncHandler(async (req: CustomRequest, res: Res
     return sendSuccessResponse(res, 200, results, "SubCategory retrieved successfully.");
 });
 
-// updateCategory controller
+// update SubCategory controller
 export const updateSubCategory = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { SubCategoryId } = req.params;
     const { name }: { name: string } = req.body;
@@ -84,12 +97,24 @@ export const updateSubCategory = asyncHandler(async (req: CustomRequest, res: Re
         return sendErrorResponse(res, new ApiError(400, "SubCategory ID is required."));
     };
     // Trim and convert name to lowercase
-    const trimmedName = name.trim().toLowerCase();
+    const trimmedName = name.trim();
 
     // Check if a subcategory with the same name already exists (case-insensitive)
-    const existingCategory = await SubCategoryModel.findOne({ name: trimmedName });
-    if (existingCategory) {
-        return sendErrorResponse(res, new ApiError(400, "Subcategory with the same name already exists."));
+    const existingSubCategory = await SubCategoryModel.findOne({ name: { $regex: new RegExp(`^${trimmedName}$`, 'i') } });
+    if (existingSubCategory) {
+        // Delete the local image if it exists
+        const subCategoryImageFile = req.files as { [key: string]: Express.Multer.File[] } | undefined;
+        const subCategoryImage = subCategoryImageFile?.subCategoryImage ? subCategoryImageFile.subCategoryImage[0] : undefined;
+        
+        if (subCategoryImage) {
+            fs.unlink(subCategoryImage.path, (err) => {
+                if (err) {
+                    console.error("Error deleting local image:", err);
+                }
+            });
+        }
+
+        return sendErrorResponse(res, new ApiError(400, "SubCategory with the same name already exists."));
     }
 
     //subcategory image upload in multer

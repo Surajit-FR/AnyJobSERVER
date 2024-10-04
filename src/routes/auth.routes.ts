@@ -54,10 +54,10 @@ router.use(VerifyJWTToken);
 router.route('/get-user').get(getUser)
 
 //add Address
-router.route('/add-address').post(addAddress);
+router.route('/add-address/:userId').post(addAddress);
 
 //add user additional information
-router.route('/add-additional-info').post(
+router.route('/add-additional-info/:userId').post(
     upload.fields([
         { name: "driverLicenseImage"},
         { name: "companyLicenseImage"},

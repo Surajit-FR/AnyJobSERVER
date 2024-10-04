@@ -8,12 +8,12 @@ class ApiError extends Error {
         statusCode: number,
         message: string = "Something Went Wrong",
         errors: any[] = [],
-        data: any = null,  // Ensure 'data' is not defaulting to null when provided
+        data: any = null,
         stack: string = ""
     ) {
         super(message);
         this.statusCode = statusCode;
-        this.data = data;  // Assign the 'data' argument properly here
+        this.data = data;
         this.success = false;
         this.errors = errors;
 

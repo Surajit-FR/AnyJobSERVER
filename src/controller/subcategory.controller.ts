@@ -13,7 +13,7 @@ import { any, string } from "joi";
 
 // addSubCategory controller
 export const addSubCategory = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const { categoryId, name, questionArray } = req.body;
+    const { categoryId, name, questionArray }: IAddSubCategoryPayloadReq = req.body;
 
     // Parse questionArray if it's a string
     const parsedQuestionArray = typeof questionArray === 'string' ? JSON.parse(questionArray) : questionArray;
@@ -55,7 +55,6 @@ export const addSubCategory = asyncHandler(async (req: CustomRequest, res: Respo
         return sendErrorResponse(res, new ApiError(500, "Something went wrong while adding the Subcategory."));
     }
 
-    console.log("----");
     const saveQuestions = async (questionData: any, subCategoryId: mongoose.Types.ObjectId) => {
         // Convert the options object into a Map for the main question
         const optionsMap = new Map<string, string>(Object.entries(questionData.options));

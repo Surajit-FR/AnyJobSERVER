@@ -21,6 +21,10 @@ const shiftSchema:Schema<IShiftSchema> = new Schema({
     unique: true
   },
   shiftTimes: [shiftTimeSchema],  // Array of shift times for each shift
+  isDeleted:{
+    type:Boolean,
+    default:false
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,  
     ref: 'User'

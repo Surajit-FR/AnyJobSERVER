@@ -77,13 +77,13 @@ export interface ICategorySchema extends Document {
 };
 
 export interface ISubCategorySchema extends Document {
-    _id: ObjectId;
-    categoryId: ObjectId;
-    name: string;
-    subCategoryImage: string;
+    _id:ObjectId;
+    categoryId:ObjectId;
+    name:string;
+    subCategoryImage:string;
+    questionArray:Array<any>;
     owner:ObjectId;
-    questionArray: Array<any>;
-    isDeleted: boolean;
+    isDeleted:boolean;
     createdAt?: Date;
     updatedAt?: Date;
 };
@@ -113,15 +113,15 @@ export interface IServiceSchema extends Document {
 };
 
 export interface IQuestionSchema extends Document {
-    _id: ObjectId;
-    categoryId: ObjectId;
-    subCategoryId: ObjectId;
-    question: string;
-    options: Array;
-    optionSelected: string;
-    parentId: ObjectId;
-    subCategoryImage: string;
-    isDeleted: boolean;
+    _id:ObjectId;
+    categoryId:ObjectId;
+    subCategoryId:ObjectId;
+    question:string;
+    options:Array;
+    optionSelected:string;
+    parentId:ObjectId;
+    subCategoryImage:string;
+    isDeleted:boolean;
     createdAt?: Date;
     updatedAt?: Date;
 };

@@ -13,18 +13,18 @@ import fs from 'fs';
 // addCategory controller
 export const addCategory = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { name }: IAddCategoryPayloadReq = req.body;
-    
-    
+
+
     // Trim and convert name to lowercase
     const trimmedName = name.trim();
     // Check if a category with the same name already exists (case-insensitive)
-    const existingCategory = await CategoryModel.findOne({ name: { $regex: new RegExp(`^${trimmedName}$`, 'i') } });   
-    
+    const existingCategory = await CategoryModel.findOne({ name: { $regex: new RegExp(`^${trimmedName}$`, 'i') } });
+
     if (existingCategory) {
         // Delete the local image if it exists
         const categoryImageFile = req.files as { [key: string]: Express.Multer.File[] } | undefined;
         const catImgFile = categoryImageFile?.categoryImage ? categoryImageFile.categoryImage[0] : undefined;
-        
+
         if (catImgFile) {
             fs.unlink(catImgFile.path, (err) => {
                 if (err) {
@@ -81,15 +81,24 @@ export const updateCategory = asyncHandler(async (req: CustomRequest, res: Respo
     const { CategoryId } = req.params;
     const { name }: { name: string } = req.body;
 
-    // Trim and convert name to lowercase
+    if (!CategoryId) {
+        return sendErrorResponse(res, new ApiError(400, "Category ID is required."));
+    };
+
+    // Trim and convert name to lowercase for case-insensitive comparison
     const trimmedName = name.trim();
-    // Check if a category with the same name already exists (case-insensitive)
-    const existingCategory = await CategoryModel.findOne({ name: { $regex: new RegExp(`^${trimmedName}$`, 'i') } });   
+
+    // Check if a category with the same name already exists, excluding the current category being updated
+    const existingCategory = await CategoryModel.findOne({
+        _id: { $ne: new mongoose.Types.ObjectId(CategoryId) },  // Exclude the current category
+        name: { $regex: new RegExp(`^${trimmedName}$`, 'i') }   // Case-insensitive name comparison
+    });
+
     if (existingCategory) {
         // Delete the local image if it exists
         const categoryImageFile = req.files as { [key: string]: Express.Multer.File[] } | undefined;
         const catImgFile = categoryImageFile?.categoryImage ? categoryImageFile.categoryImage[0] : undefined;
-        
+
         if (catImgFile) {
             fs.unlink(catImgFile.path, (err) => {
                 if (err) {
@@ -101,29 +110,27 @@ export const updateCategory = asyncHandler(async (req: CustomRequest, res: Respo
         return sendErrorResponse(res, new ApiError(400, "Category with the same name already exists."));
     }
 
+    // Check if a category image file was uploaded
     const categoryImageFile = req.files as { [key: string]: Express.Multer.File[] } | undefined;
-    if (!categoryImageFile) {
-        return sendErrorResponse(res, new ApiError(400, "No files were uploaded"));
-    };
+    const catImgFile = categoryImageFile?.categoryImage ? categoryImageFile.categoryImage[0] : undefined;
 
-    const catImgFile = categoryImageFile.categoryImage ? categoryImageFile.categoryImage[0] : undefined;
+    let catImgUrl;
+    if (catImgFile) {
+        // Upload the category image file to Cloudinary
+        const catImg = await uploadOnCloudinary(catImgFile.path);
+        catImgUrl = catImg?.url;
+    }
 
-    // console.log(catImgFile);
-    // Upload files to Cloudinary
-    const catImg = await uploadOnCloudinary(catImgFile?.path as string);
-
-    if (!CategoryId) {
-        return sendErrorResponse(res, new ApiError(400, "Category ID is required."));
-    };
-
+    // Update the category details with new name and image (if uploaded)
     const updatedCategory = await CategoryModel.findByIdAndUpdate(
-        { _id: new mongoose.Types.ObjectId(CategoryId) },
+        new mongoose.Types.ObjectId(CategoryId),
         {
             $set: {
-                name,
-                categoryImage: catImg?.url
-            }
-        }, { new: true }
+                name: trimmedName,
+                ...(catImgUrl && { categoryImage: catImgUrl }) // Only update image if uploaded
+            },
+        },
+        { new: true }
     );
 
     if (!updatedCategory) {

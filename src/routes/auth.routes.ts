@@ -50,22 +50,5 @@ router.route('/refresh-token').post(
 );
 
 router.use(VerifyJWTToken);
-//get user
-router.route('/get-user').get(getUser)
-
-//add Address
-router.route('/add-address/:userId').post(addAddress);
-
-//add user additional information
-router.route('/add-additional-info/:userId').post(
-    upload.fields([
-        { name: "driverLicenseImage"},
-        { name: "companyLicenseImage"},
-        { name: "licenseProofImage"},
-        { name: "businessLicenseImage"},
-        { name: "businessImage"},
-    ]),
-    addAdditionalInfo);
-
 
 export default router;

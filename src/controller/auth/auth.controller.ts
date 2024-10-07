@@ -1,4 +1,4 @@
-import fs from 'fs'; 
+import fs from 'fs';
 import { Request, Response } from "express";
 import UserModel from "../../models/user.model";
 import addressModel from "../../models/address.model";
@@ -14,7 +14,6 @@ import { asyncHandler } from "../../utils/asyncHandler";
 import { IUser } from "../../../types/schemaTypes";
 import { GoogleAuth } from "../../utils/socialAuth"
 import jwt, { JwtPayload } from 'jsonwebtoken';
-import { ObjectId } from "mongoose";
 
 
 
@@ -33,6 +32,21 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
     // Check for duplicate user
     const existingUser = await UserModel.findOne({ email });
     if (existingUser) {
+        const files = req.files as { [key: string]: Express.Multer.File[] } | undefined;
+
+        if (!files) {
+            return sendErrorResponse(res, new ApiError(400, "No files were uploaded"));
+        }
+        const avatarFile = files.avatar ? files.avatar[0] : undefined;
+
+        if (avatarFile) {
+            fs.unlink(avatarFile.path, (err) => {
+                if (err) {
+                    console.error("Error deleting local image:", err);
+                }
+            });
+        }
+
         return sendErrorResponse(res, new ApiError(409, "User with email already exists"));
     };
 
@@ -258,31 +272,19 @@ export const AuthUserSocial = async (req: CustomRequest, res: Response) => {
 export const getUser = asyncHandler(async (req: CustomRequest, res: Response) => {
 
     const userId = req.user?._id as string;
-    console.log(userId);
+    // console.log(userId);
 
     //Find user details
-    const userDetails = await UserModel.findById(userId).select("-password -refreshToken")
+    const userDetails = await UserModel.findById(userId).select("-password -refreshToken -__v")
 
-    // Find the additional info for the user
-    const additionalInfo = await additionalInfoModel.findOne({ userId: userId });
-
-    // Find the address for the user
-    const address = await addressModel.findOne({ userId: userId });
-
-    // Check if additional info or address exists
-    const isAdditionalInfoAdded = additionalInfo !== null;
-    const isAddressAdded = address !== null;
-
-    return sendSuccessResponse(res, 200, {
+    return sendSuccessResponse(res, 200, 
         userDetails,
-        isAdditionalInfoAdded,
-        isAddressAdded,
-    }, "User  status retrieved successfully.");
+     "User retrieved successfully.");
 });
 
 // Add address for the user
 export const addAddress = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const {userId} = req.params;
+    const { userId } = req.params;
 
     // Extract address details from request body
     const { street, city, state, zipCode, country, latitude, longitude } = req.body;
@@ -314,7 +316,6 @@ export const addAddress = asyncHandler(async (req: CustomRequest, res: Response)
 });
 
 // Add additional info for the user
-
 export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { userId } = req.params;
 
@@ -329,20 +330,20 @@ export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Re
         if (!files) {
             return sendErrorResponse(res, new ApiError(400, "No files were uploaded"));
         };
-    
+
         const driverLicenseImageFile = files.driverLicenseImage ? files.driverLicenseImage[0] : undefined;
         const companyLicenseImageFile = files.companyLicenseImage ? files.companyLicenseImage[0] : undefined;
         const licenseProofImageFile = files.licenseProofImage ? files.licenseProofImage[0] : undefined;
         const businessLicenseImageFile = files.businessLicenseImage ? files.businessLicenseImage[0] : undefined;
         const businessImageFile = files.businessImage ? files.businessImage[0] : undefined;
-    
+
 
         // Remove local files associated with the existing additional info
         const filesToRemove = [
-            driverLicenseImageFile?.path, 
-            companyLicenseImageFile?.path, 
-            licenseProofImageFile?.path, 
-            businessLicenseImageFile?.path, 
+            driverLicenseImageFile?.path,
+            companyLicenseImageFile?.path,
+            licenseProofImageFile?.path,
+            businessLicenseImageFile?.path,
             businessImageFile?.path
         ];
 

@@ -130,7 +130,6 @@ export const updateServiceRequest = asyncHandler(async (req: CustomRequest, res:
     const { isApproved, isReqAcceptedByServiceProvider }: { isApproved: Boolean, isReqAcceptedByServiceProvider: Boolean } = req.body;
     console.log(req.params);
 
-
     if (!serviceId) {
         return sendErrorResponse(res, new ApiError(400, "Service ID is required."));
     };

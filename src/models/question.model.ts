@@ -14,7 +14,6 @@ const derivedQuestionSchema = new Schema<IDerivedQuestion>({
   },
   derivedQuestions: [this] // Recursively storing derived questions
 });
-
 // Main Question Schema
 const questionSchema = new Schema<IQuestion>({
   categoryId: { type: Schema.Types.ObjectId, required: true, ref: 'Category' },
@@ -27,7 +26,6 @@ const questionSchema = new Schema<IQuestion>({
   },
   derivedQuestions: [derivedQuestionSchema] // Storing derived questions within main question
 });
-
 // Create and export the Question model
 const QuestionModel: Model<IQuestion> = model<IQuestion>('Question', questionSchema);
 export default QuestionModel;

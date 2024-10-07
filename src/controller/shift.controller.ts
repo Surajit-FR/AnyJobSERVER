@@ -36,7 +36,7 @@ export const addShift = asyncHandler(async (req: CustomRequest, res: Response) =
 
 })
 
-export const fetchShift = asyncHandler(async (req: CustomRequest, res: Response) => {
+export const fetchShiftbyId = asyncHandler(async (req: CustomRequest, res: Response) => {
 
     const { shiftId } = req.params;
     const results = await ShiftModel.aggregate([
@@ -44,8 +44,21 @@ export const fetchShift = asyncHandler(async (req: CustomRequest, res: Response)
             $match: {
                 _id: new mongoose.Types.ObjectId(shiftId)
             }
+        },
+        {
+            $project:{
+                isDeleted:0,
+                __v:0,
+            }
         }
     ]);
+
+    return sendSuccessResponse(res, 200, results[0], "Shift Timings retrieved successfully.");
+});
+
+export const fetchShifs = asyncHandler(async (req: CustomRequest, res: Response) => {
+
+    const results = await ShiftModel.find({ isDeleted: false }).select('-__v -isDeleted');
 
     return sendSuccessResponse(res, 200, results, "Shift Timings retrieved successfully.");
 });

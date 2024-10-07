@@ -13,7 +13,10 @@ import { any, string } from "joi";
 
 // addSubCategory controller
 export const addSubCategory = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const { categoryId, name, questionArray }: IAddSubCategoryPayloadReq = req.body;
+    const { categoryId, name, questionArray } = req.body;
+
+    // Parse questionArray if it's a string
+    const parsedQuestionArray = typeof questionArray === 'string' ? JSON.parse(questionArray) : questionArray;
 
     const trimmedName = name.trim();
 
@@ -36,7 +39,7 @@ export const addSubCategory = asyncHandler(async (req: CustomRequest, res: Respo
     const subCategoryImageFile = req.files as { [key: string]: Express.Multer.File[] } | undefined;
     if (!subCategoryImageFile) {
         return sendErrorResponse(res, new ApiError(400, "No files were uploaded"));
-    };
+    }
     const subCatImgFile = subCategoryImageFile.subCategoryImage ? subCategoryImageFile.subCategoryImage[0] : undefined;
     const subCatImg = await uploadOnCloudinary(subCatImgFile?.path as string);
 
@@ -45,7 +48,7 @@ export const addSubCategory = asyncHandler(async (req: CustomRequest, res: Respo
         name: trimmedName,
         subCategoryImage: subCatImg?.url,
         owner: req.user?._id,
-        questionArray
+        questionArray: parsedQuestionArray // Use the parsed question array
     });
 
     if (!newSubCategory) {
@@ -77,7 +80,7 @@ export const addSubCategory = asyncHandler(async (req: CustomRequest, res: Respo
     };
 
     // Iterate over the questionArray and save each question with nested derived questions
-    const questionIds = await Promise.all(questionArray.map((questionData: IQuestion) => 
+    const questionIds = await Promise.all(parsedQuestionArray.map((questionData: IQuestion) =>
         saveQuestions(questionData, newSubCategory._id as unknown as mongoose.Types.ObjectId)
     ));
 

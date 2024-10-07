@@ -21,7 +21,7 @@ export interface IAddSubCategoryPayloadReq {
     categoryId: mongoose.Types.ObjectId,
     name: string,
     subCategoryImage: string,
-    questionArray:IQuestion
+    questionArray: IQuestion
 };
 
 export interface IAddSubCategoryQuestionArray {
@@ -30,14 +30,14 @@ export interface IAddSubCategoryQuestionArray {
     derivedQuestions: IDerivedQuestion[]; // Derived questions are stored here
 };
 
-interface IDerivedQuestion  {
+interface IDerivedQuestion {
     option: string;
     question: string;
     options: Map<string, string>;
     derivedQuestions: IDerivedQuestion[];
 };
 
-export interface IQuestion  {
+export interface IQuestion {
     map(arg0: (questionData: IQuestion) => Promise<import("mongoose").Types.ObjectId>): any;
     categoryId: mongoose.Types.ObjectId;
     subCategoryId: mongoose.Types.ObjectId;
@@ -46,7 +46,7 @@ export interface IQuestion  {
     derivedQuestions: IDerivedQuestion[]; // Derived questions are stored here
 };
 
-export interface IFetchQuestionCatSubCatWiseParams  {
+export interface IFetchQuestionCatSubCatWiseParams {
     categoryId: ObjectId;
     subCategoryId: ObjectId;
 };
@@ -55,7 +55,7 @@ export interface IAddServicePayloadReq {
     categoryId: ObjectId,
     subCategoryId: ObjectId,
     serviceStartDate: Date,
-    serviceShifftId:ObjectId,
+    serviceShifftId: ObjectId,
     SelectedShiftTime: object,
     serviceZipCode: Number,
     serviceLatitude: Number,
@@ -63,5 +63,5 @@ export interface IAddServicePayloadReq {
     isIncentiveGiven: Boolean,
     incentiveAmount: Number,
     userId: ObjectId,
-    answerArray:IQuestion
+    answerArray: IQuestion
 };

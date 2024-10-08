@@ -1,4 +1,4 @@
-import { Response } from "express";
+import { Request, Response } from "express";
 import { CustomRequest } from "../../types/commonType";
 import SubCategoryModel from "../models/subcategory.model";
 import QuestionModel from "../models/question.model";
@@ -86,7 +86,7 @@ export const addSubCategory = asyncHandler(async (req: CustomRequest, res: Respo
 });
 
 //fetch categorywise subcategory 
-export const getSubCategories = asyncHandler(async (req: CustomRequest, res: Response) => {
+export const getSubCategories = asyncHandler(async (req: Request, res: Response) => {
 
     const categoryId = req.query.categoryId as string;
     const matchStage: any = { isDeleted: false };
@@ -127,7 +127,7 @@ export const getSubCategories = asyncHandler(async (req: CustomRequest, res: Res
 });
 
 // update SubCategory controller
-export const updateSubCategory = asyncHandler(async (req: CustomRequest, res: Response) => {
+export const updateSubCategory = asyncHandler(async (req: Request, res: Response) => {
     const { SubCategoryId } = req.params;
     const { name }: { name: string } = req.body;
 
@@ -182,7 +182,7 @@ export const updateSubCategory = asyncHandler(async (req: CustomRequest, res: Re
 });
 
 // deleteCategory controller
-export const deleteSubCategory = asyncHandler(async (req: CustomRequest, res: Response) => {
+export const deleteSubCategory = asyncHandler(async (req: Request, res: Response) => {
     const { SubCategoryId } = req.params;
     if (!SubCategoryId) {
         return sendErrorResponse(res, new ApiError(400, "SubCategory ID is required."));
@@ -212,7 +212,7 @@ export const deleteSubCategory = asyncHandler(async (req: CustomRequest, res: Re
 });
 
 //fetch subcategory by id
-export const getSubCategorieById = asyncHandler(async (req: CustomRequest, res: Response) => {
+export const getSubCategorieById = asyncHandler(async (req: Request, res: Response) => {
     const { SubCategoryId } = req.params;
     if (!SubCategoryId) {
         return sendErrorResponse(res, new ApiError(400, "SubCategory ID is required."));
@@ -220,27 +220,27 @@ export const getSubCategorieById = asyncHandler(async (req: CustomRequest, res: 
 
     const results = await SubCategoryModel.aggregate([
         {
-            $match: { _id: new mongoose.Types.ObjectId(SubCategoryId) }  
+            $match: { _id: new mongoose.Types.ObjectId(SubCategoryId) }
         },
         {
             $lookup: {
-                from: "categories",  
-                localField: "categoryId", 
-                foreignField: "_id",  
-                as: "categoryId"  
+                from: "categories",
+                localField: "categoryId",
+                foreignField: "_id",
+                as: "categoryId"
             }
         },
         {
             $unwind: {
-                path: "$categoryId",  
-                preserveNullAndEmptyArrays: true  
+                path: "$categoryId",
+                preserveNullAndEmptyArrays: true
             }
         },
         {
             $project: {
-                isDeleted: 0,  
+                isDeleted: 0,
                 __v: 0,
-                'categoryId.isDeleted': 0,  
+                'categoryId.isDeleted': 0,
                 'categoryId.__v': 0
             }
         }

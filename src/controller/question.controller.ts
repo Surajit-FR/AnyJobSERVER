@@ -1,19 +1,18 @@
-import { Response } from "express";
-import { CustomRequest } from "../../types/commonType";
+import { Request, Response } from "express";
 import QuestionModel from "../models/question.model";
 import { sendSuccessResponse } from "../utils/response";
 import { asyncHandler } from "../utils/asyncHandler";
 import mongoose from "mongoose";
 
-export const fetchQuestionsSubCategorywise = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const  categoryId  = req.query.categoryId as string;
-    const  subCategoryId = req.params.subCategoryId;
+export const fetchQuestionsSubCategorywise = asyncHandler(async (req: Request, res: Response) => {
+    const categoryId = req.query.categoryId as string;
+    const subCategoryId = req.params.subCategoryId;
 
     const results = await QuestionModel.aggregate([
         {
             $match: {
                 categoryId: new mongoose.Types.ObjectId(categoryId),
-                subCategoryId:new mongoose.Types.ObjectId(subCategoryId)
+                subCategoryId: new mongoose.Types.ObjectId(subCategoryId)
             }
         },
         {

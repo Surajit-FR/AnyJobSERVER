@@ -1,4 +1,4 @@
-import { Response } from "express";
+import { Request, Response } from "express";
 import { CustomRequest } from "../../types/commonType";
 import ServiceModel from "../models/service.model";
 import addressModel from "../models/address.model";
@@ -51,7 +51,7 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
 });
 
 //fetch service request before any service provider accept the request.
-export const getPendingServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {
+export const getPendingServiceRequest = asyncHandler(async (req: Request, res: Response) => {
     const results = await ServiceModel.aggregate([
         {
             $match: {
@@ -125,7 +125,7 @@ export const getPendingServiceRequest = asyncHandler(async (req: CustomRequest, 
 });
 
 // updateService controller
-export const updateServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {
+export const updateServiceRequest = asyncHandler(async (req: Request, res: Response) => {
     const { serviceId } = req.params;
     const { isApproved, isReqAcceptedByServiceProvider }: { isApproved: Boolean, isReqAcceptedByServiceProvider: Boolean } = req.body;
     console.log(req.params);
@@ -151,7 +151,7 @@ export const updateServiceRequest = asyncHandler(async (req: CustomRequest, res:
     return sendSuccessResponse(res, 200, updatedService, "Service Request updated Successfully");
 });
 
-export const deleteService = asyncHandler(async (req: CustomRequest, res: Response) => {
+export const deleteService = asyncHandler(async (req: Request, res: Response) => {
     const { serviceId } = req.params;
     if (!serviceId) {
         return sendErrorResponse(res, new ApiError(400, "Service ID is required."));

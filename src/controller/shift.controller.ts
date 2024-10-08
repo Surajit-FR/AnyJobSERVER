@@ -1,4 +1,4 @@
-import { Response } from "express";;
+import { Request, Response } from "express";;
 import mongoose from "mongoose";
 import { asyncHandler } from "../utils/asyncHandler";
 import { CustomRequest } from "../../types/commonType";
@@ -36,7 +36,7 @@ export const addShift = asyncHandler(async (req: CustomRequest, res: Response) =
 
 })
 
-export const fetchShiftbyId = asyncHandler(async (req: CustomRequest, res: Response) => {
+export const fetchShiftbyId = asyncHandler(async (req: Request, res: Response) => {
 
     const { shiftId } = req.params;
     const results = await ShiftModel.aggregate([
@@ -46,9 +46,9 @@ export const fetchShiftbyId = asyncHandler(async (req: CustomRequest, res: Respo
             }
         },
         {
-            $project:{
-                isDeleted:0,
-                __v:0,
+            $project: {
+                isDeleted: 0,
+                __v: 0,
             }
         }
     ]);

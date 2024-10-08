@@ -1,4 +1,4 @@
-import { Response } from "express";;
+import { Response, Request } from "express";;
 import mongoose from "mongoose";
 import { asyncHandler } from "../utils/asyncHandler";
 import { CustomRequest } from "../../types/commonType";
@@ -63,7 +63,7 @@ export const addCategory = asyncHandler(async (req: CustomRequest, res: Response
 });
 
 //fetch all category
-export const getCategories = asyncHandler(async (req: CustomRequest, res: Response) => {
+export const getCategories = asyncHandler(async (req: Request, res: Response) => {
 
     const results = await CategoryModel.aggregate([
         {
@@ -77,7 +77,7 @@ export const getCategories = asyncHandler(async (req: CustomRequest, res: Respon
 });
 
 // updateCategory controller
-export const updateCategory = asyncHandler(async (req: CustomRequest, res: Response) => {
+export const updateCategory = asyncHandler(async (req: Request, res: Response) => {
     const { CategoryId } = req.params;
     const { name }: { name: string } = req.body;
 
@@ -141,7 +141,7 @@ export const updateCategory = asyncHandler(async (req: CustomRequest, res: Respo
 });
 
 // deleteCategory controller
-export const deleteCategory = asyncHandler(async (req: CustomRequest, res: Response) => {
+export const deleteCategory = asyncHandler(async (req: Request, res: Response) => {
     const { CategoryId } = req.params;
     if (!CategoryId) {
         return sendErrorResponse(res, new ApiError(400, "Category ID is required."));
@@ -184,7 +184,7 @@ export const deleteCategory = asyncHandler(async (req: CustomRequest, res: Respo
 });
 
 //fetch category by id
-export const getCategorieById = asyncHandler(async (req: CustomRequest, res: Response) => {
+export const getCategorieById = asyncHandler(async (req: Request, res: Response) => {
     const { CategoryId } = req.params;
 
     if (!CategoryId) {

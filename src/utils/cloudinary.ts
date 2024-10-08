@@ -14,7 +14,7 @@ export const uploadOnCloudinary = async (localFilePath: string): Promise<UploadA
         if (!localFilePath) return null;
         // Upload the file to Cloudinary
         const response: UploadApiResponse = await cloudinary.uploader.upload(localFilePath, {
-            resource_type: "raw",
+            resource_type: "auto",
         });
         // // File has been uploaded successfully
         // console.log("File has been uploaded to Cloudinary", response.url);
@@ -36,7 +36,7 @@ export const deleteFromCloudinary = async (publicUrl: string, resourceType: "ima
     try {
         await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
         // console.log("files deleted");
-        
+
     } catch (error) {
         console.error(`Failed to delete ${resourceType} with public_id: ${publicId} from Cloudinary`, error);
         throw new Error(`Failed to delete ${resourceType} from Cloudinary`);

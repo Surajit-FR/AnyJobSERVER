@@ -36,7 +36,7 @@ app.use('/api/v1/user',userRouter);
 app.use('/api/v1/category', categoryRouter);
 app.use('/api/v1/subcategory', subcategoryRouter);
 app.use('/api/v1/service', serviceRouter);
-app.use('/api/v1/qusetion', questionRouter)
+app.use('/api/v1/question', questionRouter)
 app.use('/api/v1/shift', shiftRouter);
 
 

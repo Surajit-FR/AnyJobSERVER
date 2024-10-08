@@ -8,12 +8,19 @@ export const fetchQuestionsSubCategorywise = asyncHandler(async (req: Request, r
     const categoryId = req.query.categoryId as string;
     const subCategoryId = req.params.subCategoryId;
 
+    const matchStage: any = {};
+
+    if (subCategoryId) {
+        matchStage.subCategoryId = new mongoose.Types.ObjectId(subCategoryId);
+    }
+
+    if (categoryId) {
+        matchStage.categoryId = new mongoose.Types.ObjectId(categoryId);
+    }
+
     const results = await QuestionModel.aggregate([
         {
-            $match: {
-                categoryId: new mongoose.Types.ObjectId(categoryId),
-                subCategoryId: new mongoose.Types.ObjectId(subCategoryId)
-            }
+            $match: matchStage
         },
         {
             $lookup: {

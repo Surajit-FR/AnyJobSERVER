@@ -65,3 +65,14 @@ export interface IAddServicePayloadReq {
     userId: ObjectId,
     answerArray: IQuestion
 };
+
+export interface HealthcheckResponse {
+    host: Array<string>;
+    message: string;
+    status: boolean;
+    time: Date;
+};
+
+export interface HealthcheckApiResponse {
+    response: HealthcheckResponse;
+};

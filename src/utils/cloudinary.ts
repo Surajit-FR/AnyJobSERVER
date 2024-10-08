@@ -14,7 +14,7 @@ export const uploadOnCloudinary = async (localFilePath: string): Promise<UploadA
         if (!localFilePath) return null;
         // Upload the file to Cloudinary
         const response: UploadApiResponse = await cloudinary.uploader.upload(localFilePath, {
-            resource_type: "auto",
+            resource_type: "raw",
         });
         // // File has been uploaded successfully
         // console.log("File has been uploaded to Cloudinary", response.url);

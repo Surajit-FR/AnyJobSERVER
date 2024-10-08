@@ -63,4 +63,3 @@ export const fetchQuestionsSubCategorywise = asyncHandler(async (req: Request, r
     ])
     return sendSuccessResponse(res, 200, results, "Questions retrieved successfully for the given Subcategory.");
 });
-

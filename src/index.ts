@@ -1,7 +1,5 @@
-
-
 import dotenv from "dotenv";
-import { initSocket } from '../src/config/socket';
+import { initSocket } from './config/socket';
 dotenv.config({ path: './.env' });
 
 import connectDB from './db/db';

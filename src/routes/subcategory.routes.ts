@@ -24,7 +24,7 @@ router.route("/c/:SubCategoryId").get(getSubCategorieById).delete(verifyUserType
 ]),verifyUserType(['SuperAdmin']),
     updateSubCategory);
 
-router.route('/:categoryId').get(getSubCategories);
+router.route('/').get(getSubCategories);
 
 
 export default router;

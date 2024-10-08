@@ -9,7 +9,6 @@ import mongoose, { ObjectId } from "mongoose";
 import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary";
 import { IAddSubCategoryPayloadReq, IQuestion } from "../../types/requests_responseType";
 import fs from 'fs';
-import { any, string } from "joi";
 
 // addSubCategory controller
 export const addSubCategory = asyncHandler(async (req: CustomRequest, res: Response) => {
@@ -88,14 +87,41 @@ export const addSubCategory = asyncHandler(async (req: CustomRequest, res: Respo
 
 //fetch categorywise subcategory 
 export const getSubCategories = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const { categoryId } = req.params;
+
+    const categoryId = req.query.categoryId as string;
+    const matchStage: any = { isDeleted: false };
+
+    if (categoryId) {
+        matchStage.categoryId = new mongoose.Types.ObjectId(categoryId);
+    }
     const results = await SubCategoryModel.aggregate([
         {
-            $match: { categoryId: new mongoose.Types.ObjectId(categoryId) }
+            $match: matchStage
+        },
+        {
+            $lookup: {
+                from: "categories",
+                foreignField: "_id",
+                localField: "categoryId",
+                as: "categoryId"
+            }
+        },
+        {
+            $unwind: {
+                path: "$categoryId",
+                preserveNullAndEmptyArrays: true
+            }
+        },
+        {
+            $project: {
+                isDeleted: 0,
+                __v: 0,
+                'categoryId.isDeleted': 0,
+                'categoryId.__v': 0
+            }
         },
         { $sort: { createdAt: -1 } },
     ]);
-    // console.log(results);
 
     return sendSuccessResponse(res, 200, results, "SubCategory retrieved successfully.");
 });
@@ -111,10 +137,9 @@ export const updateSubCategory = asyncHandler(async (req: CustomRequest, res: Re
     // Trim and convert name to lowercase
     const trimmedName = name.trim();
 
-    // Check if a subcategory with the same name already exists (case-insensitive)
+    // Check if a subcategory with the same name already exists
     const existingSubCategory = await SubCategoryModel.findOne({ name: { $regex: new RegExp(`^${trimmedName}$`, 'i') } });
     if (existingSubCategory) {
-        // Delete the local image if it exists
         const subCategoryImageFile = req.files as { [key: string]: Express.Multer.File[] } | undefined;
         const subCategoryImage = subCategoryImageFile?.subCategoryImage ? subCategoryImageFile.subCategoryImage[0] : undefined;
 
@@ -186,20 +211,46 @@ export const deleteSubCategory = asyncHandler(async (req: CustomRequest, res: Re
     return sendSuccessResponse(res, 200, {}, "SubCategory and its related questions deleted successfully");
 });
 
-//fetch category by id
+//fetch subcategory by id
 export const getSubCategorieById = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { SubCategoryId } = req.params;
     if (!SubCategoryId) {
-        return sendErrorResponse(res, new ApiError(400, "Category ID is required."));
+        return sendErrorResponse(res, new ApiError(400, "SubCategory ID is required."));
     };
 
-    //  Find the category to delete
-    const SubcategoryToFetch = await SubCategoryModel.findById(SubCategoryId);
-    if (!SubcategoryToFetch) {
+    const results = await SubCategoryModel.aggregate([
+        {
+            $match: { _id: new mongoose.Types.ObjectId(SubCategoryId) }  
+        },
+        {
+            $lookup: {
+                from: "categories",  
+                localField: "categoryId", 
+                foreignField: "_id",  
+                as: "categoryId"  
+            }
+        },
+        {
+            $unwind: {
+                path: "$categoryId",  
+                preserveNullAndEmptyArrays: true  
+            }
+        },
+        {
+            $project: {
+                isDeleted: 0,  
+                __v: 0,
+                'categoryId.isDeleted': 0,  
+                'categoryId.__v': 0
+            }
+        }
+    ]);
+
+    // Check if the SubCategory was found
+    if (!results || results.length === 0) {
         return sendErrorResponse(res, new ApiError(404, "SubCategory not found."));
-    };
+    }
 
-    // console.log(results);
-    // Return the videos along with pagination details
-    return sendSuccessResponse(res, 200, SubcategoryToFetch, "SubCategory retrieved successfully.");
+    // Return the retrieved SubCategory
+    return sendSuccessResponse(res, 200, results[0], "SubCategory retrieved successfully.");
 });

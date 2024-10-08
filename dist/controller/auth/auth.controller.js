@@ -106,7 +106,7 @@ exports.loginUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
     const loggedInUser = yield user_model_1.default.findById(user._id).select("-password -refreshToken");
     const cookieOption = {
         httpOnly: true,
-        secure: true
+        secure: false
     };
     if (user.userType === "ServiceProvider" && !user.isVerified) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(403, "Your account verification is under process. Please wait for confirmation.", [], userId));

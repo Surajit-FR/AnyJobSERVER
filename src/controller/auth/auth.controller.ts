@@ -113,7 +113,7 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
 
     const cookieOption: { httpOnly: boolean, secure: boolean } = {
         httpOnly: true,
-        secure: true
+        secure: false
     };
 
     if (user.userType === "ServiceProvider" && !user.isVerified) {
@@ -277,9 +277,9 @@ export const getUser = asyncHandler(async (req: CustomRequest, res: Response) =>
     //Find user details
     const userDetails = await UserModel.findById(userId).select("-password -refreshToken -__v")
 
-    return sendSuccessResponse(res, 200, 
+    return sendSuccessResponse(res, 200,
         userDetails,
-     "User retrieved successfully.");
+        "User retrieved successfully.");
 });
 
 // Add address for the user

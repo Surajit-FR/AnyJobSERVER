@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const dotenv_1 = __importDefault(require("dotenv"));
+const socket_1 = require("./config/socket");
 dotenv_1.default.config({ path: './.env' });
 const db_1 = __importDefault(require("./db/db"));
 const http_1 = __importDefault(require("http"));

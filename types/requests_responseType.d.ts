@@ -44,6 +44,7 @@ export interface IQuestion {
     question: string;
     options: Map<string, string>;
     derivedQuestions: IDerivedQuestion[]; // Derived questions are stored here
+    isDeleted:boolean
 };
 
 export interface IFetchQuestionCatSubCatWiseParams {

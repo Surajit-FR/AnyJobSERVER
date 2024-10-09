@@ -65,7 +65,6 @@ export interface IAddressType extends Document {
     updatedAt: Date;
 };
 
-
 export interface ICategorySchema extends Document {
     _id: ObjectId;
     name: string;
@@ -112,18 +111,24 @@ export interface IServiceSchema extends Document {
     updatedAt?: Date;
 };
 
-export interface IQuestionSchema extends Document {
-    _id:ObjectId;
-    categoryId:ObjectId;
-    subCategoryId:ObjectId;
-    question:string;
-    options:Array;
-    optionSelected:string;
-    parentId:ObjectId;
-    subCategoryImage:string;
-    isDeleted:boolean;
+export interface IDerivedQuestion {
+    option: string;
+    question: string;
+    options: Map<string, string>;
+    derivedQuestions: IDerivedQuestion[];
+};
+
+export interface IQuestion {
+    map(arg0: (questionData: IQuestion) => Promise<import("mongoose").Types.ObjectId>): any;
+    categoryId: mongoose.Types.ObjectId;
+    subCategoryId: mongoose.Types.ObjectId;
+    question: string;
+    options: Map<string, string>;
+    derivedQuestions: IDerivedQuestion[]; // Derived questions are stored here
+    isDeleted:boolean,
     createdAt?: Date;
     updatedAt?: Date;
+
 };
 
 // Interface for Derived Answer

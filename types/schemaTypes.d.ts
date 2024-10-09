@@ -156,3 +156,11 @@ export interface IShiftSchema extends Document {
     updatedAt?: Date;
 };
 
+export interface IOTPSchema extends Document {
+    _id:ObjectId;
+    userId:ObjectId;
+    otp:number;
+    createdAt?: Date;
+    expiredAt:Date;
+    updatedAt?: Date;
+};

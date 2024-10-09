@@ -30,7 +30,7 @@ export interface IAddSubCategoryQuestionArray {
     derivedQuestions: IDerivedQuestion[]; // Derived questions are stored here
 };
 
-interface IDerivedQuestion {
+export interface IDerivedQuestion {
     option: string;
     question: string;
     options: Map<string, string>;

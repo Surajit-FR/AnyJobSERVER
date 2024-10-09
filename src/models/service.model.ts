@@ -17,8 +17,6 @@ const answerSchema = new Schema<IAnswer>({
 });
 
 
-
-
 const ServiceSchema: Schema<IServiceSchema> = new Schema({
     categoryId: {
         type: Schema.Types.ObjectId,
@@ -46,7 +44,7 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
             required: [true, "Service Shift is Required"]
         },
         shiftTimeId: {
-            type: String,
+            type: Schema.Types.ObjectId,
             required: true
         }
 

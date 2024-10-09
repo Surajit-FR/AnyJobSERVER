@@ -24,7 +24,8 @@ const questionSchema = new Schema<IQuestion>({
     of: String,
     required: true,
   },
-  derivedQuestions: [derivedQuestionSchema] // Storing derived questions within main question
+  derivedQuestions: [derivedQuestionSchema],// Storing derived questions within main question
+  isDeleted:{type:Boolean,default:false}
 });
 // Create and export the Question model
 const QuestionModel: Model<IQuestion> = model<IQuestion>('Question', questionSchema);

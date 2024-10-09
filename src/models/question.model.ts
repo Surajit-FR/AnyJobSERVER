@@ -1,7 +1,6 @@
 import { Schema, Model, model } from 'mongoose';
-import { IDerivedQuestion, IQuestion } from '../../types/requests_responseType';
-
-
+// import { IDerivedQuestion, IQuestion } from '../../types/requests_responseType';
+import { IDerivedQuestion,IQuestion } from '../../types/schemaTypes';
 
 // Schema for Derived Questions (Recursive Structure)
 const derivedQuestionSchema = new Schema<IDerivedQuestion>({
@@ -24,10 +23,10 @@ const questionSchema = new Schema<IQuestion>({
     of: String,
     required: true,
   },
-  derivedQuestions: [derivedQuestionSchema],// Storing derived questions within main question
-  isDeleted:{type:Boolean,default:false}
-});
-// Create and export the Question model
+  derivedQuestions: [derivedQuestionSchema],
+  isDeleted: { type: Boolean, default: false }
+}, { timestamps: true });
+
 const QuestionModel: Model<IQuestion> = model<IQuestion>('Question', questionSchema);
 export default QuestionModel;
 

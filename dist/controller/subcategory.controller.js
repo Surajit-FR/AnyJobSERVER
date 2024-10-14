@@ -127,10 +127,11 @@ exports.updateSubCategory = (0, asyncHandler_1.asyncHandler)((req, res) => __awa
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "SubCategory ID is required."));
     }
     ;
-    // Trim and convert name to lowercase
     const trimmedName = name.trim();
-    // Check if a subcategory with the same name already exists
-    const existingSubCategory = yield subcategory_model_1.default.findOne({ name: { $regex: new RegExp(`^${trimmedName}$`, 'i') } });
+    const existingSubCategory = yield subcategory_model_1.default.findOne({
+        _id: { $ne: new mongoose_1.default.Types.ObjectId(SubCategoryId) },
+        name: { $regex: new RegExp(`^${trimmedName}$`, 'i') }
+    });
     if (existingSubCategory) {
         const subCategoryImageFile = req.files;
         const subCategoryImage = (subCategoryImageFile === null || subCategoryImageFile === void 0 ? void 0 : subCategoryImageFile.subCategoryImage) ? subCategoryImageFile.subCategoryImage[0] : undefined;
@@ -143,15 +144,12 @@ exports.updateSubCategory = (0, asyncHandler_1.asyncHandler)((req, res) => __awa
         }
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "SubCategory with the same name already exists."));
     }
-    //subcategory image upload in multer
     const subCategoryImageFile = req.files;
-    // console.log(subCategoryImageFile);
     if (!subCategoryImageFile) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "No files were uploaded"));
     }
     ;
     const subCatImgFile = subCategoryImageFile.subCategoryImage ? subCategoryImageFile.subCategoryImage[0] : undefined;
-    // Upload files to Cloudinary
     const subCatImg = yield (0, cloudinary_1.uploadOnCloudinary)(subCatImgFile === null || subCatImgFile === void 0 ? void 0 : subCatImgFile.path);
     const updatedSubCategory = yield subcategory_model_1.default.findByIdAndUpdate(SubCategoryId, {
         $set: {

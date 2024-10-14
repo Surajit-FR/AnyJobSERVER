@@ -35,13 +35,15 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
         serviceLongitude,
         isIncentiveGiven,
         incentiveAmount,
-        answerArray, // Set answerArray in the new service
-        userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id // Ensure userId is taken from the authenticated user
+        answerArray,
+        userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id
     });
     if (!newService) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(500, "Something went wrong while creating the Service Request."));
     }
     ;
+    // console.log("----");        
+    // await sendOTP(req.user?._id )    
     return (0, response_1.sendSuccessResponse)(res, 201, newService, "Service Request added Successfully");
 }));
 //fetch service request before any service provider accept the request.
@@ -154,14 +156,12 @@ exports.fetchServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __a
     var _a;
     const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
     console.log(userId);
-    // Step 1: Retrieve the user's information, including their zipcode
     const user = yield address_model_1.default.findOne({ userId }).select('zipCode');
     if (!user || !user.zipCode) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, 'User zipcode not found'));
     }
-    console.log("====");
+    // console.log("====");
     const userZipcode = user.zipCode;
-    // // Step 2: Find service requests with zipcodes within range of +10 to -10 from the user's zipcode
     const minZipcode = userZipcode - 10;
     const maxZipcode = userZipcode + 10;
     const serviceRequests = yield service_model_1.default.find({
@@ -169,8 +169,7 @@ exports.fetchServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __a
             $gte: minZipcode,
             $lte: maxZipcode
         },
-        isDeleted: false // Optionally exclude deleted service requests
+        isDeleted: false
     });
-    // // Step 3: Return the service requests in the response
     return (0, response_1.sendSuccessResponse)(res, 200, serviceRequests, 'Service requests fetched successfully');
 }));

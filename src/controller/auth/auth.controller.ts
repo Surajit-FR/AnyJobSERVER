@@ -272,12 +272,3 @@ export const AuthUserSocial = async (req: CustomRequest, res: Response) => {
         return res.status(500).json({ success: false, message: "Internal server error", error: exc.message });
     }
 };
-
-
-
-
-
-
-
-
-

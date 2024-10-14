@@ -6,7 +6,6 @@ import { ApiError } from "../utils/ApisErrors";
 import { sendErrorResponse, sendSuccessResponse } from "../utils/response";
 import { asyncHandler } from "../utils/asyncHandler";
 import mongoose, { ObjectId } from "mongoose";
-import { sendOTP } from "../utils/twilio";
 import { IAddServicePayloadReq } from "../../types/requests_responseType";
 
 
@@ -39,16 +38,14 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         serviceLongitude,
         isIncentiveGiven,
         incentiveAmount,
-        answerArray, 
-        userId: req.user?._id 
+        answerArray,
+        userId: req.user?._id
     });
-    
+
     if (!newService) {
         return sendErrorResponse(res, new ApiError(500, "Something went wrong while creating the Service Request."));
     };
 
-    // console.log("----");        
-    // await sendOTP(req.user?._id )    
     return sendSuccessResponse(res, 201, newService, "Service Request added Successfully");
 });
 

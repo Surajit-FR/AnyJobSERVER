@@ -6,23 +6,54 @@ import additionalInfoModel from "../../src/models/userAdditionalInfo.model";
 import { ApiError } from "../../src/utils/ApisErrors";
 import { sendSuccessResponse, sendErrorResponse } from "../../src/utils/response";
 import { CustomRequest } from "../../types/commonType";
-import { ApiResponse } from "../../src/utils/ApiResponse";
 import { uploadOnCloudinary } from "../../src/utils/cloudinary";
 import { asyncHandler } from "../../src/utils/asyncHandler";
-import { IUser } from "../../types/schemaTypes";
 
 
 // get loggedin user
 export const getUser = asyncHandler(async (req: CustomRequest, res: Response) => {
 
     const userId = req.user?._id as string;
-    // console.log(userId);
 
-    //Find user details
-    const userDetails = await UserModel.findById(userId).select("-password -refreshToken -__v")
+    const userDetails = await UserModel.aggregate([
+        {
+            $match: {
+                isDeleted: false,
+                _id: userId
+            }
+        },
+        {
+            $lookup: {
+                from: "additionalinfos",
+                foreignField: "userId",
+                localField: "_id",
+                as: "additionalInfo"
+            }
+        },
+        {
+            $lookup: {
+                from: "addresses",
+                foreignField: "userId",
+                localField: "_id",
+                as: "userAddress"
+            }
+        },
+        {
+            $project: {
+                __v: 0,
+                isDeleted: 0,
+                refreshToken: 0,
+                password: 0,
+                'additionalInfo.__v': 0,
+                'additionalInfo.isDeleted': 0,
+                'userAddress.__v': 0,
+                'userAddress.isDeleted': 0,
+            }
+        }
+    ]);
 
     return sendSuccessResponse(res, 200,
-        userDetails,
+        userDetails[0],
         "User retrieved successfully.");
 });
 
@@ -176,23 +207,11 @@ export const getServiceProviderList = asyncHandler(async (req: Request, res: Res
             }
         },
         {
-            $unwind: {
-                preserveNullAndEmptyArrays: true,
-                path: "$additionalInfo"
-            }
-        },
-        {
             $lookup: {
                 from: "addresses",
                 foreignField: "userId",
                 localField: "_id",
                 as: "userAddress"
-            }
-        },
-        {
-            $unwind: {
-                preserveNullAndEmptyArrays: true,
-                path: "$userAddress"
             }
         },
         {
@@ -214,6 +233,7 @@ export const getServiceProviderList = asyncHandler(async (req: Request, res: Res
         "ServiceProvider list retrieved successfully.");
 });
 
+//get registered customer list
 export const getRegisteredCustomerList = asyncHandler(async (req: Request, res: Response) => {
     const results = await UserModel.aggregate([
         {
@@ -237,6 +257,7 @@ export const getRegisteredCustomerList = asyncHandler(async (req: Request, res: 
         "Registered Customers list retrieved successfully.");
 });
 
+//get all users list
 export const getUsers = asyncHandler(async (req: Request, res: Response) => {
     const results = await UserModel.aggregate([
         {
@@ -253,23 +274,11 @@ export const getUsers = asyncHandler(async (req: Request, res: Response) => {
             }
         },
         {
-            $unwind: {
-                preserveNullAndEmptyArrays: true,
-                path: "$additionalInfo"
-            }
-        },
-        {
             $lookup: {
                 from: "addresses",
                 foreignField: "userId",
                 localField: "_id",
                 as: "userAddress"
-            }
-        },
-        {
-            $unwind: {
-                preserveNullAndEmptyArrays: true,
-                path: "$userAddress"
             }
         },
         {

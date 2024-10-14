@@ -7,10 +7,7 @@ import {
     logoutUser,
     loginUser,
     registerUser,
-    AuthUserSocial,
-    getUser,
-    addAddress,
-    addAdditionalInfo
+    AuthUserSocial,    
 } from "../controller/auth/auth.controller";
 import { upload } from "../middlewares/multer.middleware";
 import { VerifyJWTToken } from "../middlewares/auth/userAuth";

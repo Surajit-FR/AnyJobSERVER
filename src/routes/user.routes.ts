@@ -37,8 +37,8 @@ router.route('/add-additional-info/:userId').post(
 //fetch serviceProvider List
 router.route('/get-service-providers').get(getServiceProviderList);
 
-//fetch customer List
-router.route('/get-registered-cutomer').get(getRegisteredCustomerList);
+//fetch customers List
+router.route('/get-registered-customers').get(getRegisteredCustomerList);
 
 //fetch users List
 router.route('/get-users').get(getUsers);

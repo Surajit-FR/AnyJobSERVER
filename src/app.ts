@@ -13,7 +13,6 @@ app.use(cors({
 }));
 
 
-
 app.use(morgan("dev"));
 app.use(express.json({ limit: EXPRESS_CONFIG_LIMIT }));
 app.use(express.urlencoded({ extended: true, limit: EXPRESS_CONFIG_LIMIT }));
@@ -38,9 +37,9 @@ app.use('/api/v1/user', userRouter);
 app.use('/api/v1/category', categoryRouter);
 app.use('/api/v1/subcategory', subcategoryRouter);
 app.use('/api/v1/service', serviceRouter);
-app.use('/api/v1/question', questionRouter)
+app.use('/api/v1/question', questionRouter);
 app.use('/api/v1/shift', shiftRouter);
-app.use('/api/v1', otpRouter)
+app.use('/api/v1', otpRouter);
 
 
 app.get('/ping', (req: Request, res: Response) => {

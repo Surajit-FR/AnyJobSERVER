@@ -165,7 +165,7 @@ export interface IOTPSchema extends Document {
     _id:ObjectId;
     userId:ObjectId;
     phoneNumber:string;
-    otp:number;
+    otp:string;
     createdAt?: Date;
     expiredAt:Date;
     updatedAt?: Date;

@@ -5,6 +5,7 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { sendErrorResponse, sendSuccessResponse } from '../utils/response';
 import { ApiError } from '../utils/ApisErrors';
 import { Request, Response } from "express";
+import { v4 as uuidv4 } from 'uuid';
 
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
@@ -12,7 +13,9 @@ const authToken = process.env.TWILIO_AUTH_TOKEN;
 const client = twilio(accountSid, authToken);
 
 const generateOTP = () => {
-    return Math.floor(100000 + Math.random() * 900000); // Generates a 6-digit OTP
+    const otp = uuidv4().slice(0, 6); // Generates a 6-digit OTP
+    // console.log({otp});    
+    return otp
 };
 
 export const sendOTP = asyncHandler(async (req: Request, res: Response) => {

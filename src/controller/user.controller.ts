@@ -190,14 +190,37 @@ export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Re
 
 //get serviceProvider List
 export const getServiceProviderList = asyncHandler(async (req: Request, res: Response) => {
+    const { page = 1, limit = 10, query = '', sortBy = 'createdAt', sortType = 'desc' } = req.query;
 
+    // Convert `page` and `limit` to numbers, if not provided, default values are used
+    const pageNumber = parseInt(page as string, 10);
+    const limitNumber = parseInt(limit as string, 10);
+
+    // Handle search query
+    const searchQuery = query
+        ? {
+            $or: [
+                { firstName: { $regex: query, $options: "i" } },
+                { lastName: { $regex: query, $options: "i" } },
+                { email: { $regex: query, $options: "i" } }
+            ]
+        }
+        : {};
+
+    // Build the match criteria
+    const matchCriteria = {
+        isDeleted: false,
+        userType: "ServiceProvider",
+        ...searchQuery
+    };
+
+    // Handle sorting, default sorting is by createdAt in descending order
+    const sortCriteria: any = {};
+    sortCriteria[sortBy as string] = sortType === 'desc' ? -1 : 1;
+
+    // Get the data using aggregation
     const results = await UserModel.aggregate([
-        {
-            $match: {
-                isDeleted: false,
-                userType: "ServiceProvider"
-            }
-        },
+        { $match: matchCriteria },
         {
             $lookup: {
                 from: "additionalinfos",
@@ -225,22 +248,65 @@ export const getServiceProviderList = asyncHandler(async (req: Request, res: Res
                 'userAddress.__v': 0,
                 'userAddress.isDeleted': 0,
             }
-        }
+        },
+        { $sort: sortCriteria },
+        { $skip: (pageNumber - 1) * limitNumber },
+        { $limit: limitNumber }
     ]);
 
-    return sendSuccessResponse(res, 200,
-        results,
-        "ServiceProvider list retrieved successfully.");
+    // Count total records for pagination
+    const totalRecords = await UserModel.countDocuments(matchCriteria);
+
+    // Send the response
+    return sendSuccessResponse(res, 200, {
+        serviceProviders: results,
+        pagination: {
+            total: totalRecords,
+            page: pageNumber,
+            limit: limitNumber
+        }
+    }, "ServiceProvider list retrieved successfully.");
 });
 
 //get registered customer list
 export const getRegisteredCustomerList = asyncHandler(async (req: Request, res: Response) => {
-    const results = await UserModel.aggregate([
+    const { page = 1, limit = 10, query = "", sortBy = "createdAt", sortType = "asc" } = req.query;
+
+    // Convert page and limit to integers
+    const pageNumber = parseInt(page as string, 10);
+    const pageSize = parseInt(limit as string, 10);
+
+    // Convert sortType to 1 (ascending) or -1 (descending)
+    const sortDirection = sortType === "asc" ? 1 : -1;
+
+    // Ensure sortBy is a string
+    const sortField = typeof sortBy === 'string' ? sortBy : "createdAt";
+
+    // Create a search filter for the query (searches by name, email, etc.)
+    const searchFilter = {
+        $or: [
+            { firstName: { $regex: query, $options: "i" } },
+            { lastName: { $regex: query, $options: "i" } },
+            { email: { $regex: query, $options: "i" } },
+        ]
+    };
+
+    const matchCriteria = {
+        isDeleted: false,
+        userType: "Customer",
+        ...searchFilter
+    };
+
+    // Fetch the total number of customers before pagination
+    const totalCustomers = await UserModel.countDocuments(matchCriteria);
+
+    // Calculate total pages
+    const totalPages = Math.ceil(totalCustomers / pageSize);
+
+    // Fetch the filtered and paginated results
+    const customers = await UserModel.aggregate([
         {
-            $match: {
-                isDeleted: false,
-                userType: "Customer"
-            }
+            $match: matchCriteria
         },
         {
             $project: {
@@ -249,12 +315,27 @@ export const getRegisteredCustomerList = asyncHandler(async (req: Request, res: 
                 refreshToken: 0,
                 password: 0,
             }
+        },
+        {
+            $sort: { [sortField]: sortDirection }
+        },
+        {
+            $skip: (pageNumber - 1) * pageSize
+        },
+        {
+            $limit: pageSize
         }
     ]);
 
-    return sendSuccessResponse(res, 200,
-        results,
-        "Registered Customers list retrieved successfully.");
+    return sendSuccessResponse(res, 200, {
+        customers,
+        pagination: {
+            total: totalCustomers,
+            totalPages,
+            currentPage: pageNumber,
+            limit: pageSize
+        }
+    }, "Registered Customers list retrieved successfully.");
 });
 
 //get all users list

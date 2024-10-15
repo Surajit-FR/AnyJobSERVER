@@ -109,16 +109,11 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, user._id);
     const loggedInUser = await UserModel.findById(user._id).select("-password -refreshToken");
 
-    const cookieOption: {
-        httpOnly: boolean,
-        secure: boolean,
-        maxAge: number,
-        sameSite: 'lax' | 'strict' | 'none'
-    } = {
+    const cookieOption: { httpOnly: boolean, secure: boolean, maxAge: number, sameSite: 'lax' | 'strict' | 'none' } = {
         httpOnly: true,
-        secure: false,
+        secure: true,
         maxAge: 24 * 60 * 60 * 1000, // 1 Day
-        sameSite: 'lax'
+        sameSite: 'strict'
     };
 
     if (user.userType === "ServiceProvider" && !user.isVerified) {

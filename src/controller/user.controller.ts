@@ -1,13 +1,13 @@
 import fs from 'fs';
 import { Request, Response } from "express";
-import UserModel from "../../src/models/user.model";
-import addressModel from "../../src/models/address.model";
-import additionalInfoModel from "../../src/models/userAdditionalInfo.model";
-import { ApiError } from "../../src/utils/ApisErrors";
-import { sendSuccessResponse, sendErrorResponse } from "../../src/utils/response";
+import UserModel from "../models/user.model";
+import addressModel from "../models/address.model";
+import additionalInfoModel from "../models/userAdditionalInfo.model";
+import { ApiError } from "../utils/ApisErrors";
+import { sendSuccessResponse, sendErrorResponse } from "../utils/response";
 import { CustomRequest } from "../../types/commonType";
-import { uploadOnCloudinary } from "../../src/utils/cloudinary";
-import { asyncHandler } from "../../src/utils/asyncHandler";
+import { uploadOnCloudinary } from "../utils/cloudinary";
+import { asyncHandler } from "../utils/asyncHandler";
 
 
 // get loggedin user

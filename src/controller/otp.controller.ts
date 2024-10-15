@@ -49,7 +49,7 @@ export const sendOTP = asyncHandler(async (req: Request, res: Response) => {
 
     // console.log('OTP sent:', message);
 
-    return sendSuccessResponse(res, 201, "OTP sent successfully");
+    return sendSuccessResponse(res, 201, message, "OTP sent successfully");
 });
 
 export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {

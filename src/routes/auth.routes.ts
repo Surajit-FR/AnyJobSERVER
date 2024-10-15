@@ -12,12 +12,14 @@ import {
 import { upload } from "../middlewares/multer.middleware";
 import { VerifyJWTToken } from "../middlewares/auth/userAuth";
 import {HandleSocialAuthError} from '../middlewares/auth/socialAuth';
+import { rateLimiter } from '../middlewares/rateLimiter.middleware';
 
 
 const router: Router = express.Router();
 
 //sign-up
 router.route('/signup').post(
+    rateLimiter,
     upload.fields([
         { name: "avatar", maxCount: 1 },
     ]),
@@ -27,25 +29,27 @@ router.route('/signup').post(
 );
 
 // Auth user (social)
-router.post('/user/social', [ HandleSocialAuthError], AuthUserSocial);
+router.post('/user/social',rateLimiter, [ HandleSocialAuthError], AuthUserSocial);
 
 //login or sign-in route
 router.route('/signin').post(
+    rateLimiter,
     loginUser
 );
 
 /***************************** secured routes *****************************/
 // Logout
 router.route('/logout').post(
+    rateLimiter,
     [VerifyJWTToken],
     logoutUser
 );
 
 // Refresh token routes
 router.route('/refresh-token').post(
+    rateLimiter,
     refreshAccessToken
 );
 
-router.use(VerifyJWTToken);
 
 export default router;

@@ -4,8 +4,11 @@ import { VerifyJWTToken, verifyUserType } from "../middlewares/auth/userAuth";
 import {
     getUser,
     addAddress,
-    addAdditionalInfo
-} from "../controller/auth/auth.controller";
+    addAdditionalInfo,
+    getServiceProviderList,
+    getRegisteredCustomerList,
+    getUsers
+} from "../controller/user.controller";
 
 
 const router: Router = express.Router();
@@ -14,7 +17,7 @@ const router: Router = express.Router();
 router.use(VerifyJWTToken);
 
 //get user
-router.route('/get-user').get(getUser)
+router.route('/get-user').get(getUser);
 
 //add user Address
 router.route('/add-address/:userId').post(verifyUserType(["ServiceProvider"]), addAddress);
@@ -30,6 +33,18 @@ router.route('/add-additional-info/:userId').post(
     ]),
     verifyUserType(["ServiceProvider"]),
     addAdditionalInfo);
+
+//fetch serviceProvider List
+router.route('/get-service-providers').get(getServiceProviderList);
+
+//fetch customer List
+router.route('/get-registered-cutomer').get(getRegisteredCustomerList);
+
+//fetch users List
+router.route('/get-users').get(getUsers);
+
+
+
 
 
 export default router;

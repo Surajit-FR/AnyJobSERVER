@@ -6,7 +6,6 @@ import { ApiError } from "../utils/ApisErrors";
 import { sendErrorResponse, sendSuccessResponse } from "../utils/response";
 import { asyncHandler } from "../utils/asyncHandler";
 import mongoose, { ObjectId } from "mongoose";
-import { sendSMS } from "../utils/twilio";
 import { IAddServicePayloadReq } from "../../types/requests_responseType";
 
 
@@ -39,8 +38,8 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         serviceLongitude,
         isIncentiveGiven,
         incentiveAmount,
-        answerArray, // Set answerArray in the new service
-        userId: req.user?._id // Ensure userId is taken from the authenticated user
+        answerArray,
+        userId: req.user?._id
     });
 
     if (!newService) {
@@ -172,15 +171,13 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
     const userId = req.user?._id as string;
     console.log(userId);
 
-    // Step 1: Retrieve the user's information, including their zipcode
     const user = await addressModel.findOne({ userId }).select('zipCode');
     if (!user || !user.zipCode) {
         return sendErrorResponse(res, new ApiError(400, 'User zipcode not found'));
     }
-    console.log("====");
+    // console.log("====");
     const userZipcode = user.zipCode;
 
-    // // Step 2: Find service requests with zipcodes within range of +10 to -10 from the user's zipcode
     const minZipcode = userZipcode - 10;
     const maxZipcode = userZipcode + 10;
 
@@ -189,10 +186,8 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
             $gte: minZipcode,
             $lte: maxZipcode
         },
-        isDeleted: false // Optionally exclude deleted service requests
+        isDeleted: false
     });
 
-    // // Step 3: Return the service requests in the response
     return sendSuccessResponse(res, 200, serviceRequests, 'Service requests fetched successfully');
-});
-
+}); 

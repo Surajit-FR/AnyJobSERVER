@@ -10,12 +10,8 @@ import { CustomRequest } from '../../../types/commonType';
 export const VerifyJWTToken = asyncHandler(async (req: CustomRequest, res: Response, next: NextFunction) => {
     try {
         let token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
-        // Log the cookies and headers for debugging
-        // console.log("Cookies:", req.cookies);
-        // console.log("Authorization Header:", req.header("Authorization"));
-        // console.log("Extracted Token:", token);
 
-        if (!token) { // This checks for both null and empty string
+        if (!token) { 
             console.log("Token is missing or empty");
             return sendErrorResponse(res, new ApiError(401, "Unauthorized Request"));
         };
@@ -34,105 +30,11 @@ export const VerifyJWTToken = asyncHandler(async (req: CustomRequest, res: Respo
     }
 });
 
-// export const VerifySuperAdminJWTToken = asyncHandler(async (req: CustomRequest, res: Response, next: NextFunction) => {
-//     try {
-//         let token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
-
-//         if (!token) {
-//             console.log("Token is missing or empty");
-//             return sendErrorResponse(res, new ApiError(401, "Unauthorized Request"));
-//         };
-
-//         const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET as string) as JwtPayload;
-//         const user = await UserModel.findById(decodedToken?._id).select("-password -refreshToken");
-
-//         if (!user) {
-//             return sendErrorResponse(res, new ApiError(401, "Invalid access token"));
-//         };
-
-//         // Check if user is SuperAdmin
-//         if (user.userType !== "SuperAdmin") {
-//             return sendErrorResponse(res, new ApiError(403, "Access denied. SuperAdmin rights required."));
-//         }
-
-//         // Attach user data to the request
-//         req.user = user;
-
-//         // Proceed to the next middleware or route
-//         next();
-//     } catch (error: any) {
-//         return sendErrorResponse(res, new ApiError(401, error.message || "Invalid access token"));
-//     }
-// });
-
-// export const VerifyServiceProviderJWTToken = asyncHandler(async (req: CustomRequest, res: Response, next: NextFunction) => {
-//     try {
-//         let token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
-
-//         if (!token) {
-//             console.log("Token is missing or empty");
-//             return sendErrorResponse(res, new ApiError(401, "Unauthorized Request"));
-//         };
-
-//         const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET as string) as JwtPayload;
-//         const user = await UserModel.findById(decodedToken?._id).select("-password -refreshToken");
-
-//         if (!user) {
-//             return sendErrorResponse(res, new ApiError(401, "Invalid access token"));
-//         };
-
-//         // Check if user is SuperAdmin
-//         if (user.userType !== "ServiceProvider") {
-//             return sendErrorResponse(res, new ApiError(403, "Access denied. ServiceProvider rights required."));
-//         }
-
-//         // Attach user data to the request
-//         req.user = user;
-
-//         // Proceed to the next middleware or route
-//         next();
-//     } catch (error: any) {
-//         return sendErrorResponse(res, new ApiError(401, error.message || "Invalid access token"));
-//     }
-// });
-
-// export const VerifyCustomerJWTToken = asyncHandler(async (req: CustomRequest, res: Response, next: NextFunction) => {
-//     try {
-//         let token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
-
-//         if (!token) {
-//             console.log("Token is missing or empty");
-//             return sendErrorResponse(res, new ApiError(401, "Unauthorized Request"));
-//         };
-
-//         const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET as string) as JwtPayload;
-//         const user = await UserModel.findById(decodedToken?._id).select("-password -refreshToken");
-
-//         if (!user) {
-//             return sendErrorResponse(res, new ApiError(401, "Invalid access token"));
-//         };
-
-//         // Check if user is SuperAdmin
-//         if (user.userType !== "Customer") {
-//             return sendErrorResponse(res, new ApiError(403, "Access denied. Customer rights required."));
-//         }
-
-//         // Attach user data to the request
-//         req.user = user;
-
-//         // Proceed to the next middleware or route
-//         next();
-//     } catch (error: any) {
-//         return sendErrorResponse(res, new ApiError(401, error.message || "Invalid access token"));
-//     }
-// });
-
 export const verifyUserType = (requiredUserTypes: string[] | null = null) => {
     return asyncHandler(async (req: CustomRequest, res: Response, next: NextFunction) => {
         if (!req.user) {
             return sendErrorResponse(res, new ApiError(401, "Unauthorized Request"));
-        }
-        
+        }        
 
         if (requiredUserTypes && !requiredUserTypes.includes(req.user.userType)) {
             return sendErrorResponse(res, new ApiError(403, `Access denied. Requires one of the following roles: ${requiredUserTypes.join(", ")}.`));

@@ -22,6 +22,7 @@ app.use(cookieParser());
 
 
 //routes
+import healthcheckRouter from "./routes/healthcheck.routes"
 import authRouter from './routes/auth.routes';
 import userRouter from './routes/user.routes';
 import categoryRouter from './routes/category.routes';
@@ -29,8 +30,9 @@ import subcategoryRouter from './routes/subcategory.routes';
 import serviceRouter from './routes/service.routes';
 import questionRouter from './routes/question.routes';
 import shiftRouter from './routes/shift.routes';
+import otpRouter from './routes/otp.routes';
 
-
+app.use("/api/v1/healthcheck", healthcheckRouter)
 app.use("/api/v1/auth", authRouter);
 app.use('/api/v1/user',userRouter);
 app.use('/api/v1/category', categoryRouter);
@@ -38,6 +40,7 @@ app.use('/api/v1/subcategory', subcategoryRouter);
 app.use('/api/v1/service', serviceRouter);
 app.use('/api/v1/question', questionRouter)
 app.use('/api/v1/shift', shiftRouter);
+app.use('/api/v1',otpRouter)
 
 
 app.get('/ping', (req: Request, res: Response) => {

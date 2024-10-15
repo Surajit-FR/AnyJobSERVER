@@ -14,9 +14,7 @@ const answerSchema = new Schema<IAnswer>({
     answer: { type: String, required: true },
     selectedOption: { type: String, required: true },
     derivedAnswers: [derivedAnswerSchema] // Derived answers are nested here
-});                                                                                                                                                                                                                                                                                                                                                                                      
-
-
+});
 
 
 const ServiceSchema: Schema<IServiceSchema> = new Schema({
@@ -46,7 +44,7 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
             required: [true, "Service Shift is Required"]
         },
         shiftTimeId: {
-            type: String,
+            type: Schema.Types.ObjectId,
             required: true
         }
 
@@ -77,15 +75,15 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
         enum: ["Pending", "Approved", "Rejected"],
         default: "Pending"
     },
-    isReqAcceptedByServiceProvider:{
-        type:Boolean,
-        default:false
+    isReqAcceptedByServiceProvider: {
+        type: Boolean,
+        default: false
     },
     // Answer array to store answers and derived answers
     answerArray: [answerSchema],
     serviceProductImage: {
         type: String,
-        default:""
+        default: ""
     },
     otherInfo: {
         type: {
@@ -110,5 +108,5 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
 }, { timestamps: true });
 
 
-const ServiceModel: Model<IServiceSchema> = mongoose.model<IServiceSchema>('service', ServiceSchema);
+const ServiceModel: Model<IServiceSchema> = mongoose.model<IServiceSchema>('Service', ServiceSchema);
 export default ServiceModel;

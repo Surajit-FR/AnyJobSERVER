@@ -22,8 +22,8 @@ const questionSchema = new mongoose_1.Schema({
         of: String,
         required: true,
     },
-    derivedQuestions: [derivedQuestionSchema] // Storing derived questions within main question
-});
-// Create and export the Question model
+    derivedQuestions: [derivedQuestionSchema],
+    isDeleted: { type: Boolean, default: false }
+}, { timestamps: true });
 const QuestionModel = (0, mongoose_1.model)('Question', questionSchema);
 exports.default = QuestionModel;

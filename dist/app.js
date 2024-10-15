@@ -21,6 +21,7 @@ app.use(express_1.default.urlencoded({ extended: true, limit: constants_1.EXPRES
 app.use(express_1.default.static("public"));
 app.use((0, cookie_parser_1.default)());
 //routes
+const healthcheck_routes_1 = __importDefault(require("./routes/healthcheck.routes"));
 const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
 const user_routes_1 = __importDefault(require("./routes/user.routes"));
 const category_routes_1 = __importDefault(require("./routes/category.routes"));
@@ -28,6 +29,7 @@ const subcategory_routes_1 = __importDefault(require("./routes/subcategory.route
 const service_routes_1 = __importDefault(require("./routes/service.routes"));
 const question_routes_1 = __importDefault(require("./routes/question.routes"));
 const shift_routes_1 = __importDefault(require("./routes/shift.routes"));
+app.use("/api/v1/healthcheck", healthcheck_routes_1.default);
 app.use("/api/v1/auth", auth_routes_1.default);
 app.use('/api/v1/user', user_routes_1.default);
 app.use('/api/v1/category', category_routes_1.default);

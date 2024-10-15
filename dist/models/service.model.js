@@ -63,7 +63,7 @@ const ServiceSchema = new mongoose_1.Schema({
             required: [true, "Service Shift is Required"]
         },
         shiftTimeId: {
-            type: String,
+            type: mongoose_1.Schema.Types.ObjectId,
             required: true
         }
         // required:  [true, "Service Shift Time is Required"]
@@ -122,5 +122,5 @@ const ServiceSchema = new mongoose_1.Schema({
         default: false,
     },
 }, { timestamps: true });
-const ServiceModel = mongoose_1.default.model('service', ServiceSchema);
+const ServiceModel = mongoose_1.default.model('Service', ServiceSchema);
 exports.default = ServiceModel;

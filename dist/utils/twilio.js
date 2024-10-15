@@ -12,37 +12,39 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendSMS = void 0;
+exports.sendOTP = void 0;
 const twilio_1 = __importDefault(require("twilio"));
-// Twilio credentials from environment variables
+const otp_model_1 = __importDefault(require("../models/otp.model"));
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const client = (0, twilio_1.default)(accountSid, authToken);
-// General function to send SMS
-const sendSMS = (phoneNumber, message) => __awaiter(void 0, void 0, void 0, function* () {
+const generateOTP = () => {
+    return Math.floor(100000 + Math.random() * 900000); // Generates a 6-digit OTP
+};
+const sendOTP = (userId, to) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        if (!phoneNumber || !message) {
-            throw new Error("Phone number and message are required");
-        }
-        const smsResponse = yield client.messages.create({
-            body: message,
-            to: phoneNumber, // Receiver's phone number
-            from: process.env.TWILIO_PHONE_NUMBER // Your Twilio number
+        const otp = generateOTP();
+        const expiryDuration = 5 * 60 * 1000;
+        const expiredAt = new Date(Date.now() + expiryDuration);
+        const otpEntry = new otp_model_1.default({
+            userId: userId,
+            otp: otp,
+            expiredAt: expiredAt,
         });
-        console.log(`SMS sent to ${phoneNumber}: ${smsResponse.sid}`);
-        return {
-            success: true,
-            sid: smsResponse.sid,
-            message: `SMS sent successfully to ${phoneNumber}`,
-        };
+        yield otpEntry.save();
+        // Send OTP 
+        const message = yield client.messages.create({
+            body: `Your OTP code is ${otp}`,
+            from: process.env.TWILIO_PHONE_NUMBER,
+            to: to,
+        });
+        console.log(message);
+        return { message, otp };
     }
     catch (error) {
-        console.error(`Failed to send SMS: ${error.message}`);
-        return {
-            success: false,
-            message: `Failed to send SMS to ${phoneNumber}`,
-            error: error.message
-        };
+        console.error('Error sending OTP:', error);
+        throw error;
     }
 });
-exports.sendSMS = sendSMS;
+exports.sendOTP = sendOTP;
+module.exports = { sendOTP: exports.sendOTP };

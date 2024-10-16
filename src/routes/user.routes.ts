@@ -36,10 +36,10 @@ router.use(VerifyJWTToken);
 router.route('/get-user').get(getUser);
 
 //add user Address
-router.route('/add-address/:userId').post(verifyUserType(["ServiceProvider"]), addAddress);
+router.route('/add-address').post(verifyUserType(["ServiceProvider"]), addAddress);
 
 //add user additional information
-router.route('/add-additional-info/:userId').post(
+router.route('/add-additional-info').post(
     upload.fields([
         { name: "driverLicenseImage" },
         { name: "companyLicenseImage" },

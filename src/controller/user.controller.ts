@@ -59,7 +59,6 @@ export const getUser = asyncHandler(async (req: CustomRequest, res: Response) =>
 
 // Add address for the user
 export const addAddress = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const { userId } = req.params;
 
     // Extract address details from request body
     const { street, city, state, zipCode, country, latitude, longitude } = req.body;
@@ -70,7 +69,7 @@ export const addAddress = asyncHandler(async (req: CustomRequest, res: Response)
     }
 
     // Check if user already has an address
-    const existingAddress = await addressModel.findOne({ userId });
+    const existingAddress = await addressModel.findOne({ userId:req.user?._id });
 
     if (existingAddress) {
         return sendErrorResponse(res, new ApiError(400, "Address already exists for this user"));
@@ -78,7 +77,7 @@ export const addAddress = asyncHandler(async (req: CustomRequest, res: Response)
 
     // Create a new address
     const newAddress = new addressModel({
-        userId,
+        userId:req.user?._id,
         zipCode,
         latitude,
         longitude,
@@ -92,13 +91,12 @@ export const addAddress = asyncHandler(async (req: CustomRequest, res: Response)
 
 // Add additional info for the user
 export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const { userId } = req.params;
 
     // Extract additional info details from request body
     const { companyName, companyIntroduction, DOB, driverLicense, EIN, socialSecurity, companyLicense, insurancePolicy, businessName } = req.body;
 
     // Check if user already has additional info
-    const existingAdditionalInfo = await additionalInfoModel.findOne({ userId });
+    const existingAdditionalInfo = await additionalInfoModel.findOne({ userId:req.user?._id });
 
     if (existingAdditionalInfo) {
         const files = req.files as { [key: string]: Express.Multer.File[] } | undefined;
@@ -165,7 +163,7 @@ export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Re
 
     // Create a new additional info record
     const newAdditionalInfo = new additionalInfoModel({
-        userId,
+        userId:req.user?._id,
         companyName,
         companyIntroduction,
         DOB,

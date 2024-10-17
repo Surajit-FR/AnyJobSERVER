@@ -115,13 +115,18 @@ export const deleteShift = asyncHandler(async (req: Request, res: Response) => {
     if (!shiftId) {
         return sendErrorResponse(res, new ApiError(400, "Shift ID is required."));
     };
-    
+
     if (!mongoose.Types.ObjectId.isValid(shiftId)) {
         return sendErrorResponse(res, new ApiError(400, "Invalid shift ID."));
     };
 
     // Delete the shift details 
-    const deletedShift = await ShiftModel.findByIdAndDelete(new mongoose.Types.ObjectId(shiftId));
+    const deletedShift = await ShiftModel.findByIdAndUpdate(
+        new mongoose.Types.ObjectId(shiftId),
+        {
+            $set: { isDeleted: true }
+        },
+    );
 
     if (!deletedShift) {
         return sendErrorResponse(res, new ApiError(404, "Shift not found for deleting."));

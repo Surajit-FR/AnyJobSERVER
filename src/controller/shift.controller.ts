@@ -10,18 +10,19 @@ import { IShiftTimeSchema } from "../../types/schemaTypes";
 //addShift controller
 export const addShift = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { shiftName, shiftTimes }: { shiftName: String, shiftTimes: IShiftTimeSchema } = req.body;
-
+    
     //trimmed shiftName
     const trimmedShiftName = shiftName.trim().toLowerCase();
-
+    
     //check for the duplicacy
-    const existinfShiftName = await ShiftModel.findOne({ name: trimmedShiftName });
-
+    const existinfShiftName = await ShiftModel.findOne({ shiftName: trimmedShiftName });
+    
     if (existinfShiftName) {
-        return sendErrorResponse(res, new ApiError(400, "Category with the same name already exists."));
+        return sendErrorResponse(res, new ApiError(400, "Shift with the same name already exists."));
     };
-
+    
     // Create and save the shift
+    console.log("===");
     const newShift = await ShiftModel.create({
         shiftName: trimmedShiftName,
         shiftTimes,

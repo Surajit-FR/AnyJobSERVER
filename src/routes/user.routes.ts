@@ -7,7 +7,8 @@ import {
     addAdditionalInfo,
     getServiceProviderList,
     getRegisteredCustomerList,
-    getUsers
+    getUsers,
+    verifyServiceProvider
 } from "../controller/user.controller";
 import {
     getCategories,
@@ -58,6 +59,12 @@ router.route('/get-registered-customers').get(getRegisteredCustomerList);
 
 //fetch users List
 router.route('/get-users').get(getUsers);
+
+router.route('/verify/:serviceProviderId').patch(
+    verifyUserType(["SuperAdmin"]),
+    verifyServiceProvider
+);
+
 
 
 

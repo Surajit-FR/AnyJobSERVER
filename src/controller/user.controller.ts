@@ -8,6 +8,7 @@ import { sendSuccessResponse, sendErrorResponse } from "../utils/response";
 import { CustomRequest } from "../../types/commonType";
 import { uploadOnCloudinary } from "../utils/cloudinary";
 import { asyncHandler } from "../utils/asyncHandler";
+import mongoose from 'mongoose';
 
 
 // get loggedin user
@@ -69,7 +70,7 @@ export const addAddress = asyncHandler(async (req: CustomRequest, res: Response)
     }
 
     // Check if user already has an address
-    const existingAddress = await addressModel.findOne({ userId:req.user?._id });
+    const existingAddress = await addressModel.findOne({ userId: req.user?._id });
 
     if (existingAddress) {
         return sendErrorResponse(res, new ApiError(400, "Address already exists for this user"));
@@ -77,7 +78,7 @@ export const addAddress = asyncHandler(async (req: CustomRequest, res: Response)
 
     // Create a new address
     const newAddress = new addressModel({
-        userId:req.user?._id,
+        userId: req.user?._id,
         zipCode,
         latitude,
         longitude,
@@ -96,7 +97,7 @@ export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Re
     const { companyName, companyIntroduction, DOB, driverLicense, EIN, socialSecurity, companyLicense, insurancePolicy, businessName } = req.body;
 
     // Check if user already has additional info
-    const existingAdditionalInfo = await additionalInfoModel.findOne({ userId:req.user?._id });
+    const existingAdditionalInfo = await additionalInfoModel.findOne({ userId: req.user?._id });
 
     if (existingAdditionalInfo) {
         const files = req.files as { [key: string]: Express.Multer.File[] } | undefined;
@@ -163,7 +164,7 @@ export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Re
 
     // Create a new additional info record
     const newAdditionalInfo = new additionalInfoModel({
-        userId:req.user?._id,
+        userId: req.user?._id,
         companyName,
         companyIntroduction,
         DOB,
@@ -377,4 +378,32 @@ export const getUsers = asyncHandler(async (req: Request, res: Response) => {
     return sendSuccessResponse(res, 200,
         results,
         "Users retrieved successfully.");
+});
+
+export const verifyServiceProvider = asyncHandler(async (req: Request, res: Response) => {
+    const { serviceProviderId } = req.params;
+    const { isVerified }: { isVerified: boolean } = req.body;
+
+    if (!serviceProviderId) {
+        return sendErrorResponse(res, new ApiError(400, "Service Provider ID is required."));
+    };
+
+    if (!mongoose.Types.ObjectId.isValid(serviceProviderId)) {
+        return sendErrorResponse(res, new ApiError(400, "Invalid Service Provider ID."));
+    };
+
+    const results = await UserModel.findByIdAndUpdate(
+        serviceProviderId,
+        { $set: { isVerified } },
+        { new: true }
+    );
+    if (!results) {
+        return sendErrorResponse(res, new ApiError(404, "Service Provider not found."));
+    }
+
+    const message = isVerified
+        ? "Service Provider profile verified successfully."
+        : "Service Provider profile made unverified.";
+
+    return sendSuccessResponse(res, 200, results, message);
 });

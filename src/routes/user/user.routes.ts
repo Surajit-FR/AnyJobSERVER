@@ -5,15 +5,26 @@ import {
 import {
     getSubCategories,
 } from "../../controller/subcategory.controller";
+import {
+    fetchShiftbyId,
+    fetchShifs,
+} from "../../controller/shift.controller";
 
 const router: Router = express.Router();
 
 //without token
 
-//get all categories
+//Categories
 router.route('/get-all-categories').get(getCategories);
 
-//get all subcategories
+//Subcategories
 router.route('/get-all-subcategories').get(getSubCategories);
+
+//Shifts
+router.route('/get-all-shifts').get(fetchShifs);
+router.route('/fetch-shift/:shiftId').get(fetchShiftbyId);
+
+
+
 
 export default router;

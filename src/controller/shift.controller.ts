@@ -53,15 +53,22 @@ export const fetchShiftbyId = asyncHandler(async (req: Request, res: Response) =
             }
         }
     ]);
+    const responseData = results.length
+        ? sendSuccessResponse(res, 200, results[0], "Shift Timings retrieved successfully.")
+        : sendErrorResponse(res, new ApiError(404, "Shift not found."));
+    return responseData
 
-    return sendSuccessResponse(res, 200, results[0], "Shift Timings retrieved successfully.");
 });
 
 export const fetchShifs = asyncHandler(async (req: CustomRequest, res: Response) => {
 
     const results = await ShiftModel.find({ isDeleted: false }).select('-__v -isDeleted');
 
-    return sendSuccessResponse(res, 200, results, "Shift Timings retrieved successfully.");
+    const responseData = results.length
+        ? sendSuccessResponse(res, 200, results, "Shift Timings retrieved successfully.")
+        : sendErrorResponse(res, new ApiError(404, "Shift not found."));
+    return responseData;
+
 });
 
 // Update Shift Controller

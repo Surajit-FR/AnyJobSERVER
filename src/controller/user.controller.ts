@@ -381,7 +381,7 @@ export const getUsers = asyncHandler(async (req: Request, res: Response) => {
 });
 
 //get single user
-export const getSingleUser = asyncHandler(async (req: CustomRequest, res: Response) => {
+export const getSingleUser = asyncHandler(async (req: Request, res: Response) => {
 
     const { userId } = req.params;
 

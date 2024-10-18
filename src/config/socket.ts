@@ -26,7 +26,6 @@ export const initSocket = (server: HttpServer) => {
             console.log(`Service provider with _id ${userId} accepted the request ${requestId}`);
             //here the logic related with update service
             
-
             io.emit("requestInactive", requestId);
         });
 

@@ -8,26 +8,12 @@ import {
     getServiceProviderList,
     getRegisteredCustomerList,
     getUsers,
-    verifyServiceProvider
+    verifyServiceProvider,
+    getSingleUser
 } from "../controller/user.controller";
-import {
-    getCategories,
-} from "../controller/category.controller";
-import {
-    getSubCategories,
-} from "../controller/subcategory.controller";
 
 
 const router: Router = express.Router();
-
-//without token
-
-//get all categories
-router.route('/get-all-categories').get(getCategories);
-
-//get all subcategories
-router.route('/get-all-subcategories').get(getSubCategories);
-
 
 
 //Protected routes for users
@@ -60,14 +46,14 @@ router.route('/get-registered-customers').get(getRegisteredCustomerList);
 //fetch users List
 router.route('/get-users').get(getUsers);
 
+//fetch single user
+router.route('/:userId').get(getSingleUser);
+
+
+
 router.route('/verify/:serviceProviderId').patch(
     verifyUserType(["SuperAdmin"]),
     verifyServiceProvider
 );
-
-
-
-
-
 
 export default router;

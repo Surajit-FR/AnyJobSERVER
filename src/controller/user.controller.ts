@@ -8,7 +8,7 @@ import { sendSuccessResponse, sendErrorResponse } from "../utils/response";
 import { CustomRequest } from "../../types/commonType";
 import { uploadOnCloudinary } from "../utils/cloudinary";
 import { asyncHandler } from "../utils/asyncHandler";
-import mongoose from 'mongoose';
+import mongoose, { mongo } from 'mongoose';
 
 
 // get loggedin user
@@ -378,6 +378,61 @@ export const getUsers = asyncHandler(async (req: Request, res: Response) => {
     return sendSuccessResponse(res, 200,
         results,
         "Users retrieved successfully.");
+});
+
+//get single user
+export const getSingleUser = asyncHandler(async (req: CustomRequest, res: Response) => {
+
+    const { userId } = req.params;
+
+    if (!userId) {
+        return sendErrorResponse(res, new ApiError(400, "User ID is required."));
+    };
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return sendErrorResponse(res, new ApiError(400, "Invalid User ID."));
+    };
+
+    const userDetails = await UserModel.aggregate([
+        {
+            $match: {
+                isDeleted: false,
+                _id: new mongoose.Types.ObjectId(userId)
+            }
+        },
+        {
+            $lookup: {
+                from: "additionalinfos",
+                foreignField: "userId",
+                localField: "_id",
+                as: "additionalInfo"
+            }
+        },
+        {
+            $lookup: {
+                from: "addresses",
+                foreignField: "userId",
+                localField: "_id",
+                as: "userAddress"
+            }
+        },
+        {
+            $project: {
+                __v: 0,
+                isDeleted: 0,
+                refreshToken: 0,
+                password: 0,
+                'additionalInfo.__v': 0,
+                'additionalInfo.isDeleted': 0,
+                'userAddress.__v': 0,
+                'userAddress.isDeleted': 0,
+            }
+        }
+    ]);
+
+    return sendSuccessResponse(res, 200,
+        userDetails[0],
+        "User retrieved successfully.");
 });
 
 export const verifyServiceProvider = asyncHandler(async (req: Request, res: Response) => {

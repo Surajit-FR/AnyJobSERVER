@@ -17,7 +17,7 @@ export const initSocket = (server: HttpServer) => {
 
     io.on("connection", (socket: Socket) => {
         const userId = socket.data.userId;
-        console.log("socket=>", socket.handshake);
+        // console.log("socket=>", socket.handshake);
 
 
         console.log(`Service provider with userId ${userId} connected on socket ${socket.id}`);
@@ -26,7 +26,6 @@ export const initSocket = (server: HttpServer) => {
             console.log(`Service provider with _id ${userId} accepted the request ${requestId}`);
             //here the logic related with update service
             
-
             io.emit("requestInactive", requestId);
         });
 

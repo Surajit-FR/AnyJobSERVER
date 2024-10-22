@@ -14,7 +14,6 @@ import { GoogleAuth } from "../../utils/socialAuth"
 import jwt, { JwtPayload } from 'jsonwebtoken';
 
 
-
 //register user controller
 export const registerUser = asyncHandler(async (req: Request, res: Response) => {
     const { firstName, lastName, email, password, userType }: IRegisterCredentials = req.body;
@@ -82,7 +81,28 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
         return sendErrorResponse(res, new ApiError(500, "Something went wrong while registering the user"));
     };
 
-    return sendSuccessResponse(res, 201, createdUser, "User Registered Successfully");
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, createdUser._id);
+    const registeredInUser = await UserModel.findById(createdUser._id).select("-password -refreshToken");
+
+    const cookieOption: { httpOnly: boolean, secure: boolean, maxAge: number, sameSite: 'lax' | 'strict' | 'none' } = {
+        httpOnly: true,
+        secure: true,
+        maxAge: 24 * 60 * 60 * 1000, // 1 Day
+        sameSite: 'strict'
+    };
+
+    return res.status(201)
+        .cookie("accessToken", accessToken, cookieOption)
+        .cookie("refreshToken", refreshToken, cookieOption)
+        .json
+        (
+            new ApiResponse
+                (
+                    200,
+                    { user: registeredInUser, accessToken, refreshToken },
+                    "User Registered Successfully"
+                )
+        );
 });
 
 //login user controller

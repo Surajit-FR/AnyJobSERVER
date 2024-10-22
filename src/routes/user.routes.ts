@@ -7,11 +7,14 @@ import {
     addAdditionalInfo,
     getServiceProviderList,
     getRegisteredCustomerList,
-    getUsers
+    getUsers,
+    verifyServiceProvider,
+    getSingleUser
 } from "../controller/user.controller";
 
 
 const router: Router = express.Router();
+
 
 //Protected routes for users
 router.use(VerifyJWTToken);
@@ -20,10 +23,10 @@ router.use(VerifyJWTToken);
 router.route('/get-user').get(getUser);
 
 //add user Address
-router.route('/add-address/:userId').post(verifyUserType(["ServiceProvider"]), addAddress);
+router.route('/add-address').post(verifyUserType(["ServiceProvider"]), addAddress);
 
 //add user additional information
-router.route('/add-additional-info/:userId').post(
+router.route('/add-additional-info').post(
     upload.fields([
         { name: "driverLicenseImage" },
         { name: "companyLicenseImage" },
@@ -43,8 +46,14 @@ router.route('/get-registered-customers').get(getRegisteredCustomerList);
 //fetch users List
 router.route('/get-users').get(getUsers);
 
+//fetch single user
+router.route('/:userId').get(getSingleUser);
 
 
 
+router.route('/verify/:serviceProviderId').patch(
+    verifyUserType(["SuperAdmin"]),
+    verifyServiceProvider
+);
 
 export default router;

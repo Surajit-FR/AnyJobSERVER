@@ -8,6 +8,7 @@ import { sendSuccessResponse, sendErrorResponse } from "../utils/response";
 import { CustomRequest } from "../../types/commonType";
 import { uploadOnCloudinary } from "../utils/cloudinary";
 import { asyncHandler } from "../utils/asyncHandler";
+import mongoose, { mongo } from 'mongoose';
 
 
 // get loggedin user
@@ -59,7 +60,6 @@ export const getUser = asyncHandler(async (req: CustomRequest, res: Response) =>
 
 // Add address for the user
 export const addAddress = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const { userId } = req.params;
 
     // Extract address details from request body
     const { street, city, state, zipCode, country, latitude, longitude } = req.body;
@@ -70,7 +70,7 @@ export const addAddress = asyncHandler(async (req: CustomRequest, res: Response)
     }
 
     // Check if user already has an address
-    const existingAddress = await addressModel.findOne({ userId });
+    const existingAddress = await addressModel.findOne({ userId: req.user?._id });
 
     if (existingAddress) {
         return sendErrorResponse(res, new ApiError(400, "Address already exists for this user"));
@@ -78,7 +78,7 @@ export const addAddress = asyncHandler(async (req: CustomRequest, res: Response)
 
     // Create a new address
     const newAddress = new addressModel({
-        userId,
+        userId: req.user?._id,
         zipCode,
         latitude,
         longitude,
@@ -92,13 +92,12 @@ export const addAddress = asyncHandler(async (req: CustomRequest, res: Response)
 
 // Add additional info for the user
 export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const { userId } = req.params;
 
     // Extract additional info details from request body
     const { companyName, companyIntroduction, DOB, driverLicense, EIN, socialSecurity, companyLicense, insurancePolicy, businessName } = req.body;
 
     // Check if user already has additional info
-    const existingAdditionalInfo = await additionalInfoModel.findOne({ userId });
+    const existingAdditionalInfo = await additionalInfoModel.findOne({ userId: req.user?._id });
 
     if (existingAdditionalInfo) {
         const files = req.files as { [key: string]: Express.Multer.File[] } | undefined;
@@ -165,7 +164,7 @@ export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Re
 
     // Create a new additional info record
     const newAdditionalInfo = new additionalInfoModel({
-        userId,
+        userId: req.user?._id,
         companyName,
         companyIntroduction,
         DOB,
@@ -379,4 +378,87 @@ export const getUsers = asyncHandler(async (req: Request, res: Response) => {
     return sendSuccessResponse(res, 200,
         results,
         "Users retrieved successfully.");
+});
+
+//get single user
+export const getSingleUser = asyncHandler(async (req: Request, res: Response) => {
+
+    const { userId } = req.params;
+
+    if (!userId) {
+        return sendErrorResponse(res, new ApiError(400, "User ID is required."));
+    };
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return sendErrorResponse(res, new ApiError(400, "Invalid User ID."));
+    };
+
+    const userDetails = await UserModel.aggregate([
+        {
+            $match: {
+                isDeleted: false,
+                _id: new mongoose.Types.ObjectId(userId)
+            }
+        },
+        {
+            $lookup: {
+                from: "additionalinfos",
+                foreignField: "userId",
+                localField: "_id",
+                as: "additionalInfo"
+            }
+        },
+        {
+            $lookup: {
+                from: "addresses",
+                foreignField: "userId",
+                localField: "_id",
+                as: "userAddress"
+            }
+        },
+        {
+            $project: {
+                __v: 0,
+                isDeleted: 0,
+                refreshToken: 0,
+                password: 0,
+                'additionalInfo.__v': 0,
+                'additionalInfo.isDeleted': 0,
+                'userAddress.__v': 0,
+                'userAddress.isDeleted': 0,
+            }
+        }
+    ]);
+
+    return sendSuccessResponse(res, 200,
+        userDetails[0],
+        "User retrieved successfully.");
+});
+
+export const verifyServiceProvider = asyncHandler(async (req: Request, res: Response) => {
+    const { serviceProviderId } = req.params;
+    const { isVerified }: { isVerified: boolean } = req.body;
+
+    if (!serviceProviderId) {
+        return sendErrorResponse(res, new ApiError(400, "Service Provider ID is required."));
+    };
+
+    if (!mongoose.Types.ObjectId.isValid(serviceProviderId)) {
+        return sendErrorResponse(res, new ApiError(400, "Invalid Service Provider ID."));
+    };
+
+    const results = await UserModel.findByIdAndUpdate(
+        serviceProviderId,
+        { $set: { isVerified } },
+        { new: true }
+    );
+    if (!results) {
+        return sendErrorResponse(res, new ApiError(404, "Service Provider not found."));
+    }
+
+    const message = isVerified
+        ? "Service Provider profile verified successfully."
+        : "Service Provider profile made unverified.";
+
+    return sendSuccessResponse(res, 200, results, message);
 });

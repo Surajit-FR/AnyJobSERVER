@@ -11,7 +11,7 @@ export const VerifyJWTToken = asyncHandler(async (req: CustomRequest, res: Respo
     try {
         let token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
 
-        if (!token) { 
+        if (!token) {
             console.log("Token is missing or empty");
             return sendErrorResponse(res, new ApiError(401, "Unauthorized Request"));
         };
@@ -34,7 +34,7 @@ export const verifyUserType = (requiredUserTypes: string[] | null = null) => {
     return asyncHandler(async (req: CustomRequest, res: Response, next: NextFunction) => {
         if (!req.user) {
             return sendErrorResponse(res, new ApiError(401, "Unauthorized Request"));
-        }        
+        }
 
         if (requiredUserTypes && !requiredUserTypes.includes(req.user.userType)) {
             return sendErrorResponse(res, new ApiError(403, `Access denied. Requires one of the following roles: ${requiredUserTypes.join(", ")}.`));

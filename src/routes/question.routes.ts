@@ -1,13 +1,29 @@
 import express, { Router } from "express";
 import { VerifyJWTToken, verifyUserType } from '../middlewares/auth/userAuth';
-import { fetchQuestionsSubCategorywise, fetchSingleQuestion, updateSingleQuestion } from "../controller/question.controller";
+import {
+    addQuestions,
+    // fetchQuestionsCategorywise,
+    fetchSingleQuestion,
+    updateSingleQuestion,
+    fetchQuestions,
+    deleteSingleQuestion
+} from "../controller/question.controller";
 
 const router: Router = express.Router();
 router.use(VerifyJWTToken);
 
-router.route('/:subCategoryId').get(fetchQuestionsSubCategorywise);
-router.route('/:subcategoryId/:questionId').get(fetchSingleQuestion);
-router.route('/:subcategoryId/:questionId').patch(verifyUserType(["SuperAdmin"]), updateSingleQuestion);
+router.route('/')
+    .post(verifyUserType(['SuperAdmin']), addQuestions)
+    .get(fetchQuestions);
+
+// router.route('/:categoryId').get(fetchQuestionsCategorywise);
+
+router.route('/q/:categoryId/:questionId')
+    .get(fetchSingleQuestion)
+    .patch(verifyUserType(["SuperAdmin"]), updateSingleQuestion)
+
+router.route('/:questionId').delete(verifyUserType(["SuperAdmin"]), deleteSingleQuestion);
+
 
 
 

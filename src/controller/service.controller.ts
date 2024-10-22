@@ -24,15 +24,15 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         incentiveAmount,
         userId,
         answerArray // Expecting answerArray instead of answers
-    }: IAddServicePayloadReq = req.body;
+    }: IAddServicePayloadReq = req.body;  
 
     // Prepare the new service object
     const newService = await ServiceModel.create({
         categoryId,
         subCategoryId,
-        serviceStartDate,
         serviceShifftId,
         SelectedShiftTime,
+        serviceStartDate,
         serviceZipCode,
         serviceLatitude,
         serviceLongitude,

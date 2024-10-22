@@ -16,7 +16,6 @@ const derivedQuestionSchema = new Schema<IDerivedQuestion>({
 // Main Question Schema
 const questionSchema = new Schema<IQuestion>({
   categoryId: { type: Schema.Types.ObjectId, required: true, ref: 'Category' },
-  subCategoryId: { type: Schema.Types.ObjectId, required: true, ref: 'SubCategory' },
   question: { type: String, required: true },
   options: {
     type: Map,

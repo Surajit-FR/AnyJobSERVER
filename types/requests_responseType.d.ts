@@ -37,6 +37,11 @@ export interface IDerivedQuestion {
     derivedQuestions: IDerivedQuestion[];
 };
 
+export interface IAddQuestionPayloadReq {
+    categoryId: mongoose.Types.ObjectId,
+    questionArray: IQuestion
+};
+
 export interface IQuestion {
     map(arg0: (questionData: IQuestion) => Promise<import("mongoose").Types.ObjectId>): any;
     categoryId: mongoose.Types.ObjectId;

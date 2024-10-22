@@ -4,24 +4,122 @@ import { sendErrorResponse, sendSuccessResponse } from "../utils/response";
 import { asyncHandler } from "../utils/asyncHandler";
 import mongoose from "mongoose";
 import { ApiError } from "../utils/ApisErrors";
+import { CustomRequest } from "../../types/commonType";
+import { IAddQuestionPayloadReq } from "../../types/requests_responseType";
+import { IQuestion } from "../../types/schemaTypes";
 
-export const fetchQuestionsSubCategorywise = asyncHandler(async (req: Request, res: Response) => {
-    const categoryId = req.query.categoryId as string;
-    const subCategoryId = req.params.subCategoryId;
 
-    const matchStage: any = {};
+export const addQuestions = asyncHandler(async (req: CustomRequest, res: Response) => {
 
-    if (subCategoryId) {
-        matchStage.subCategoryId = new mongoose.Types.ObjectId(subCategoryId);
-    }
+    const { categoryId, questionArray }: IAddQuestionPayloadReq = req.body;
 
+    const parsedQuestionArray = typeof questionArray === 'string' ? JSON.parse(questionArray) : questionArray;
+
+    const saveQuestions = async (questionData: any, categoryId: mongoose.Types.ObjectId) => {
+        const optionsMap = new Map<string, string>(Object.entries(questionData.options));
+
+        const derivedQuestions = questionData.derivedQuestions?.map((derivedQuestion: any) => ({
+            option: derivedQuestion.option,
+            question: derivedQuestion.question,
+            options: new Map<string, string>(Object.entries(derivedQuestion.options)),
+            derivedQuestions: derivedQuestion.derivedQuestions || []
+        })) || [];
+
+        const mainQuestion = await QuestionModel.create({
+            categoryId,
+            question: questionData.question,
+            options: optionsMap,
+            derivedQuestions
+        });
+        return mainQuestion._id;
+    };
+
+    const questionIds = await Promise.all(parsedQuestionArray.map((questionData: IQuestion) =>
+        saveQuestions(questionData, categoryId as mongoose.Types.ObjectId)
+    ));
+
+    return sendSuccessResponse(res, 201, { questionIds }, "Questions added successfully.");
+});
+
+// export const fetchQuestionsCategorywise = asyncHandler(async (req: Request, res: Response) => {
+//     const { categoryId } = req.params;
+//     let finalResult;
+
+//     const results = await QuestionModel.aggregate([
+//         {
+//             $match: {
+//                 isDeleted: false,
+//                 categoryId: new mongoose.Types.ObjectId(categoryId)
+//             }
+//         },
+//         {
+//             $lookup: {
+//                 from: "categories",
+//                 foreignField: "_id",
+//                 localField: "categoryId",
+//                 as: "categoryId"
+//             }
+//         },
+//         {
+//             $unwind: {
+//                 path: "$categoryId",
+//                 preserveNullAndEmptyArrays: true
+//             }
+//         },
+
+//         {
+//             $project: {
+//                 isDeleted: 0,
+//                 __v: 0,
+//                 'categoryId.isDeleted': 0,
+//                 'categoryId.__v': 0,
+//             }
+//         },
+//         {
+//             $sort: {
+//                 createdAt: 1
+//             }
+//         }
+//     ]);
+//     if (results.length) {
+//         let category = results[0].categoryId;
+//         const questions = results.map(question => ({
+//             _id: question._id,
+//             question: question.question,
+//             options: question.options,
+//             derivedQuestions: question.derivedQuestions,
+//             createdAt: question.createdAt,
+//             updatedAt: question.updatedAt
+//         }));
+//         finalResult = {
+//             category: {
+//                 _id: category._id,
+//                 name: category.name,
+//                 categoryImage: category.categoryImage,
+//                 owner: category.owner,
+//                 questions: questions
+//             }
+
+//         }
+//     }
+//     return sendSuccessResponse(res, 200, finalResult, "Questions retrieved successfully for the given Category.");
+// });
+
+export const fetchQuestions = asyncHandler(async (req: Request, res: Response) => {
+    const categoryId = req.query.categoryId; // Get categoryId from query parameters
+
+    const matchCriteria: { isDeleted: boolean; categoryId?: mongoose.Types.ObjectId } = {
+        isDeleted: false
+    };
+
+    // Add categoryId to match criteria if it exists
     if (categoryId) {
-        matchStage.categoryId = new mongoose.Types.ObjectId(categoryId);
+        matchCriteria.categoryId = new mongoose.Types.ObjectId(categoryId as string);
     }
 
     const results = await QuestionModel.aggregate([
         {
-            $match: matchStage
+            $match: matchCriteria // Use the built match criteria
         },
         {
             $lookup: {
@@ -38,44 +136,63 @@ export const fetchQuestionsSubCategorywise = asyncHandler(async (req: Request, r
             }
         },
         {
-            $lookup: {
-                from: "subcategories",
-                foreignField: "_id",
-                localField: "subCategoryId",
-                as: "subCategoryId"
-            }
-        },
-        {
-            $unwind: {
-                path: "$subCategoryId",
-                preserveNullAndEmptyArrays: true
-            }
-        },
-        {
             $project: {
                 isDeleted: 0,
                 __v: 0,
                 'categoryId.isDeleted': 0,
                 'categoryId.__v': 0,
-                'subCategoryId.isDeleted': 0,
-                'subCategoryId.__v': 0
             }
         },
-    ])
-    return sendSuccessResponse(res, 200, results, "Questions retrieved successfully for the given Subcategory.");
+        {
+            $sort: {
+                createdAt: 1
+            }
+        }
+    ]);
+
+    const groupedResults: Record<string, any> = {};
+
+    results.forEach((question: any) => {
+        const categoryKey = question.categoryId._id.toString();
+
+        if (!groupedResults[categoryKey]) {
+            groupedResults[categoryKey] = {
+                _id: question.categoryId._id,
+                name: question.categoryId.name,
+                categoryImage: question.categoryId.categoryImage,
+                owner: question.categoryId.owner,
+                questions: []
+            };
+        }
+
+        groupedResults[categoryKey].questions.push({
+            _id: question._id,
+            question: question.question,
+            options: question.options,
+            derivedQuestions: question.derivedQuestions,
+            createdAt: question.createdAt,
+            updatedAt: question.updatedAt
+        });
+    });
+
+    // Convert groupedResults object into an array
+    const finalResults = Object.values(groupedResults);
+
+    return sendSuccessResponse(res, 200, finalResults, "Questions retrieved successfully.");
 });
 
 export const fetchSingleQuestion = asyncHandler(async (req: Request, res: Response) => {
-    const { subcategoryId, questionId } = req.params;
+    const { categoryId, questionId } = req.params;
+    let finalResult;
 
-    if (!subcategoryId && !questionId) {
-        return sendErrorResponse(res, new ApiError(400, "Both SubCategory ID and Question ID are required."));
-    }
+    if (!categoryId && !questionId) {
+        return sendErrorResponse(res, new ApiError(400, "Both CategoryId ID and Question ID are required."));
+    };
 
-    const question = await QuestionModel.aggregate([
+    const results = await QuestionModel.aggregate([
         {
             $match: {
-                subCategoryId: new mongoose.Types.ObjectId(subcategoryId),
+                categoryId: new mongoose.Types.ObjectId(categoryId),
                 _id: new mongoose.Types.ObjectId(questionId),
                 isDeleted: false
             }
@@ -95,58 +212,78 @@ export const fetchSingleQuestion = asyncHandler(async (req: Request, res: Respon
             }
         },
         {
-            $lookup: {
-                from: "subcategories",
-                foreignField: "_id",
-                localField: "subCategoryId",
-                as: "subCategoryId"
-            }
-        },
-        {
-            $unwind: {
-                path: "$subCategoryId",
-                preserveNullAndEmptyArrays: true
-            }
-        },
-        {
             $project: {
                 isDeleted: 0,
                 __v: 0,
                 'categoryId.isDeleted': 0,
                 'categoryId.__v': 0,
-                'subCategoryId.isDeleted': 0,
-                'subCategoryId.__v': 0
             }
         },
     ])
 
-    if (!question) {
+    if (!results) {
         return sendErrorResponse(res, new ApiError(404, "Question not found."));
-    }
+    };
 
-    // Return the found question
-    return sendSuccessResponse(res, 200, question, "Question retrieved successfully.");
+    if (results.length) {
+        let category = results[0].categoryId;
+        const questions = results.map(question => ({
+            _id: question._id,
+            question: question.question,
+            options: question.options,
+            derivedQuestions: question.derivedQuestions,
+            createdAt: question.createdAt,
+            updatedAt: question.updatedAt
+        }));
+        finalResult = {
+            _id: category._id,
+            name: category.name,
+            categoryImage: category.categoryImage,
+            owner: category.owner,
+            questions: questions
+        }
+    }
+    return sendSuccessResponse(res, 200, finalResult, "Questions retrieved successfully .");
 
 });
 
 export const updateSingleQuestion = asyncHandler(async (req: Request, res: Response) => {
-    const { subcategoryId, questionId } = req.params;
+    const { categoryId, questionId } = req.params;
     const updates = req.body;
 
-    if (!subcategoryId && !questionId) {
-        return sendErrorResponse(res, new ApiError(400, "Both SubCategory ID and Question ID are required."));
+    if (!categoryId && !questionId) {
+        return sendErrorResponse(res, new ApiError(400, "Both Category ID and Question ID are required."));
     }
 
     // Find and update the question by subcategoryId and questionId
     const updatedQuestion = await QuestionModel.findOneAndUpdate(
-        { _id: new mongoose.Types.ObjectId(questionId), subCategoryId: new mongoose.Types.ObjectId(subcategoryId), },
+        { _id: new mongoose.Types.ObjectId(questionId), categoryId: new mongoose.Types.ObjectId(categoryId), },
         { $set: updates },
         { new: true, }
-    );
+    ).select('-isDeleted -__v');
 
     if (!updatedQuestion) {
         return sendErrorResponse(res, new ApiError(404, "Question not found."));
     }
 
     return sendSuccessResponse(res, 200, updatedQuestion, "Question updated successfully.");
+});
+
+export const deleteSingleQuestion = asyncHandler(async (req: Request, res: Response) => {
+    const { questionId } = req.params;
+
+    if (!questionId) {
+        return sendErrorResponse(res, new ApiError(400, "Question ID are required."));
+    }
+
+    // Find and update the question by subcategoryId and questionId
+    const deletedQuestion = await QuestionModel.findByIdAndDelete(
+        { _id: new mongoose.Types.ObjectId(questionId), }
+    );
+
+    if (!deletedQuestion) {
+        return sendErrorResponse(res, new ApiError(404, "Question not found."));
+    }
+
+    return sendSuccessResponse(res, 200, {}, "Question deleted successfully.");
 });

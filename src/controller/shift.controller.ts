@@ -15,13 +15,14 @@ export const addShift = asyncHandler(async (req: CustomRequest, res: Response) =
     const trimmedShiftName = shiftName.trim().toLowerCase();
 
     //check for the duplicacy
-    const existinfShiftName = await ShiftModel.findOne({ name: trimmedShiftName });
+    const existinfShiftName = await ShiftModel.findOne({ shiftName: trimmedShiftName });
 
     if (existinfShiftName) {
-        return sendErrorResponse(res, new ApiError(400, "Category with the same name already exists."));
+        return sendErrorResponse(res, new ApiError(400, "Shift with the same name already exists."));
     };
 
     // Create and save the shift
+    console.log("===");
     const newShift = await ShiftModel.create({
         shiftName: trimmedShiftName,
         shiftTimes,
@@ -52,13 +53,91 @@ export const fetchShiftbyId = asyncHandler(async (req: Request, res: Response) =
             }
         }
     ]);
+    const responseData = results.length
+        ? sendSuccessResponse(res, 200, results[0], "Shift Timings retrieved successfully.")
+        : sendErrorResponse(res, new ApiError(404, "Shift not found."));
+    return responseData
 
-    return sendSuccessResponse(res, 200, results[0], "Shift Timings retrieved successfully.");
 });
 
 export const fetchShifs = asyncHandler(async (req: CustomRequest, res: Response) => {
 
     const results = await ShiftModel.find({ isDeleted: false }).select('-__v -isDeleted');
 
-    return sendSuccessResponse(res, 200, results, "Shift Timings retrieved successfully.");
+    const responseData = results.length
+        ? sendSuccessResponse(res, 200, results, "Shift Timings retrieved successfully.")
+        : sendErrorResponse(res, new ApiError(404, "Shift not found."));
+    return responseData;
+
+});
+
+// Update Shift Controller
+export const updateShift = asyncHandler(async (req: Request, res: Response) => {
+    const { shiftId } = req.params;
+    const { shiftName, shiftTimes }: { shiftName: string, shiftTimes: Array<IShiftTimeSchema> } = req.body;
+
+    if (!shiftId) {
+        return sendErrorResponse(res, new ApiError(400, "Shift ID is required."));
+    };
+
+    if (!mongoose.Types.ObjectId.isValid(shiftId)) {
+        return sendErrorResponse(res, new ApiError(400, "Invalid shift ID."));
+    };
+
+    // Trim and convert name to lowercase for case-insensitive comparison
+    const trimmedName = shiftName.trim();
+
+    // Check if a category with the same name already exists, excluding the current category being updated
+    const existingShift = await ShiftModel.findOne({
+        _id: { $ne: new mongoose.Types.ObjectId(shiftId) },  // Exclude the current category
+        shiftName: { $regex: new RegExp(`^${trimmedName}$`, 'i') }   // Case-insensitive name comparison
+    });
+
+    if (existingShift) {
+        return sendErrorResponse(res, new ApiError(400, "Category with the same name already exists."));
+    }
+
+    // Update the shift details with new name and image (if uploaded)
+    const updatedShift = await ShiftModel.findByIdAndUpdate(
+        new mongoose.Types.ObjectId(shiftId),
+        {
+            $set: {
+                shiftName: trimmedName,
+                shiftTimes: shiftTimes
+            },
+        },
+        { new: true }
+    );
+
+    if (!updatedShift) {
+        return sendErrorResponse(res, new ApiError(404, "Shift not found for updating."));
+    };
+
+    return sendSuccessResponse(res, 200, updatedShift, "Shift updated Successfully");
+});
+
+export const deleteShift = asyncHandler(async (req: Request, res: Response) => {
+    const { shiftId } = req.params;
+
+    if (!shiftId) {
+        return sendErrorResponse(res, new ApiError(400, "Shift ID is required."));
+    };
+
+    if (!mongoose.Types.ObjectId.isValid(shiftId)) {
+        return sendErrorResponse(res, new ApiError(400, "Invalid shift ID."));
+    };
+
+    // Delete the shift details 
+    const deletedShift = await ShiftModel.findByIdAndUpdate(
+        new mongoose.Types.ObjectId(shiftId),
+        {
+            $set: { isDeleted: true }
+        },
+    );
+
+    if (!deletedShift) {
+        return sendErrorResponse(res, new ApiError(404, "Shift not found for deleting."));
+    };
+
+    return sendSuccessResponse(res, 200, {}, "Shift deleted Successfully");
 });

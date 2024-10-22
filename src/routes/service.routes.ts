@@ -9,8 +9,8 @@ import {
 } from "../controller/service.controller";
 
 const router: Router = express.Router();
-router.use(VerifyJWTToken); // Apply verifyJWT middleware to all routes in this file
 
+router.use(VerifyJWTToken); // Apply verifyJWT middleware to all routes in this file
 router.route('/').post(verifyUserType(['Customer']), addService);
 
 router.route('/get-pending-service').get(getPendingServiceRequest);

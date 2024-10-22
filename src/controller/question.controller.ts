@@ -9,41 +9,33 @@ import { IAddQuestionPayloadReq } from "../../types/requests_responseType";
 import { IQuestion } from "../../types/schemaTypes";
 
 export const addQuestions = asyncHandler(async (req: CustomRequest, res: Response) => {
-    console.log("----");
 
     const { categoryId, questionArray }: IAddQuestionPayloadReq = req.body;
 
-    // Parse questionArray if it's a string
     const parsedQuestionArray = typeof questionArray === 'string' ? JSON.parse(questionArray) : questionArray;
 
     const saveQuestions = async (questionData: any, categoryId: mongoose.Types.ObjectId) => {
-        // Convert the options object into a Map for the main question
         const optionsMap = new Map<string, string>(Object.entries(questionData.options));
 
-        // Process derived questions to convert their options to Map as well
         const derivedQuestions = questionData.derivedQuestions?.map((derivedQuestion: any) => ({
             option: derivedQuestion.option,
             question: derivedQuestion.question,
-            options: new Map<string, string>(Object.entries(derivedQuestion.options)), // Convert derived question options to Map
+            options: new Map<string, string>(Object.entries(derivedQuestion.options)),
             derivedQuestions: derivedQuestion.derivedQuestions || []
         })) || [];
 
-        // Save the main question along with its derived questions
         const mainQuestion = await QuestionModel.create({
             categoryId,
             question: questionData.question,
-            options: optionsMap, // Use the converted Map here
-            derivedQuestions // Use the processed derived questions
+            options: optionsMap,
+            derivedQuestions
         });
         return mainQuestion._id;
     };
 
-    // Iterate over the questionArray and save each question with nested derived questions
     const questionIds = await Promise.all(parsedQuestionArray.map((questionData: IQuestion) =>
         saveQuestions(questionData, categoryId as mongoose.Types.ObjectId)
     ));
-
-
 
     return sendSuccessResponse(res, 201, { questionIds }, "Questions added successfully.");
 });
@@ -185,20 +177,20 @@ export const fetchQuestions = asyncHandler(async (req: Request, res: Response) =
     // Convert groupedResults object into an array
     const finalResults = Object.values(groupedResults);
 
-    return sendSuccessResponse(res, 200, finalResults, "Questions retrieved successfully for the given Category.");
+    return sendSuccessResponse(res, 200, finalResults, "Questions retrieved successfully.");
 });
 
 export const fetchSingleQuestion = asyncHandler(async (req: Request, res: Response) => {
-    const { subcategoryId, questionId } = req.params;
+    const { categoryId, questionId } = req.params;
 
-    if (!subcategoryId && !questionId) {
-        return sendErrorResponse(res, new ApiError(400, "Both SubCategory ID and Question ID are required."));
+    if (!categoryId && !questionId) {
+        return sendErrorResponse(res, new ApiError(400, "Both CategoryId ID and Question ID are required."));
     }
 
     const question = await QuestionModel.aggregate([
         {
             $match: {
-                subCategoryId: new mongoose.Types.ObjectId(subcategoryId),
+                categoryId: new mongoose.Types.ObjectId(categoryId),
                 _id: new mongoose.Types.ObjectId(questionId),
                 isDeleted: false
             }
@@ -218,27 +210,11 @@ export const fetchSingleQuestion = asyncHandler(async (req: Request, res: Respon
             }
         },
         {
-            $lookup: {
-                from: "subcategories",
-                foreignField: "_id",
-                localField: "subCategoryId",
-                as: "subCategoryId"
-            }
-        },
-        {
-            $unwind: {
-                path: "$subCategoryId",
-                preserveNullAndEmptyArrays: true
-            }
-        },
-        {
             $project: {
                 isDeleted: 0,
                 __v: 0,
                 'categoryId.isDeleted': 0,
                 'categoryId.__v': 0,
-                'subCategoryId.isDeleted': 0,
-                'subCategoryId.__v': 0
             }
         },
     ])
@@ -247,22 +223,21 @@ export const fetchSingleQuestion = asyncHandler(async (req: Request, res: Respon
         return sendErrorResponse(res, new ApiError(404, "Question not found."));
     }
 
-    // Return the found question
     return sendSuccessResponse(res, 200, question, "Question retrieved successfully.");
 
 });
 
 export const updateSingleQuestion = asyncHandler(async (req: Request, res: Response) => {
-    const { subcategoryId, questionId } = req.params;
+    const { categoryId, questionId } = req.params;
     const updates = req.body;
 
-    if (!subcategoryId && !questionId) {
-        return sendErrorResponse(res, new ApiError(400, "Both SubCategory ID and Question ID are required."));
+    if (!categoryId && !questionId) {
+        return sendErrorResponse(res, new ApiError(400, "Both Category ID and Question ID are required."));
     }
 
     // Find and update the question by subcategoryId and questionId
     const updatedQuestion = await QuestionModel.findOneAndUpdate(
-        { _id: new mongoose.Types.ObjectId(questionId), subCategoryId: new mongoose.Types.ObjectId(subcategoryId), },
+        { _id: new mongoose.Types.ObjectId(questionId), categoryId: new mongoose.Types.ObjectId(categoryId), },
         { $set: updates },
         { new: true, }
     );
@@ -272,4 +247,23 @@ export const updateSingleQuestion = asyncHandler(async (req: Request, res: Respo
     }
 
     return sendSuccessResponse(res, 200, updatedQuestion, "Question updated successfully.");
+});
+
+export const deleteSingleQuestion = asyncHandler(async (req: Request, res: Response) => {
+    const { questionId } = req.params;
+
+    if (!questionId) {
+        return sendErrorResponse(res, new ApiError(400, "Question ID are required."));
+    }
+
+    // Find and update the question by subcategoryId and questionId
+    const deletedQuestion = await QuestionModel.findByIdAndDelete(
+        { _id: new mongoose.Types.ObjectId(questionId), }
+    );
+
+    if (!deletedQuestion) {
+        return sendErrorResponse(res, new ApiError(404, "Question not found."));
+    }
+
+    return sendSuccessResponse(res, 200, {}, "Question deleted successfully.");
 });

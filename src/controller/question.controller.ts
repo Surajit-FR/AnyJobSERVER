@@ -106,9 +106,86 @@ export const fetchQuestionsCategorywise = asyncHandler(async (req: Request, res:
                 owner: category.owner,
                 questions: questions
             }
+
         }
     }
     return sendSuccessResponse(res, 200, finalResult, "Questions retrieved successfully for the given Category.");
+});
+
+export const fetchQuestions = asyncHandler(async (req: Request, res: Response) => {
+    const categoryId = req.query.categoryId; // Get categoryId from query parameters
+
+    const matchCriteria: { isDeleted: boolean; categoryId?: mongoose.Types.ObjectId } = {
+        isDeleted: false
+    };
+
+    // Add categoryId to match criteria if it exists
+    if (categoryId) {
+        matchCriteria.categoryId = new mongoose.Types.ObjectId(categoryId as string);
+    }
+
+    const results = await QuestionModel.aggregate([
+        {
+            $match: matchCriteria // Use the built match criteria
+        },
+        {
+            $lookup: {
+                from: "categories",
+                foreignField: "_id",
+                localField: "categoryId",
+                as: "categoryId"
+            }
+        },
+        {
+            $unwind: {
+                path: "$categoryId",
+                preserveNullAndEmptyArrays: true
+            }
+        },
+        {
+            $project: {
+                isDeleted: 0,
+                __v: 0,
+                'categoryId.isDeleted': 0,
+                'categoryId.__v': 0,
+            }
+        },
+        {
+            $sort: {
+                createdAt: 1
+            }
+        }
+    ]);
+
+    const groupedResults: Record<string, any> = {};
+
+    results.forEach((question: any) => {
+        const categoryKey = question.categoryId._id.toString();
+
+        if (!groupedResults[categoryKey]) {
+            groupedResults[categoryKey] = {
+                _id: question.categoryId._id,
+                name: question.categoryId.name,
+                categoryImage: question.categoryId.categoryImage,
+                owner: question.categoryId.owner,
+                questions: []
+            };
+        }
+
+        groupedResults[categoryKey].questions.push({
+            _id: question._id,
+            question: question.question,
+            options: question.options,
+            derivedQuestions: question.derivedQuestions,
+            createdAt: question.createdAt,
+            updatedAt: question.updatedAt
+        });
+    });
+
+    // Convert groupedResults object into an array
+    const finalResults = Object.values(groupedResults);
+
+    return sendSuccessResponse(res, 200, finalResults, "Questions retrieved successfully for the given Category.");
 });
 
 export const fetchSingleQuestion = asyncHandler(async (req: Request, res: Response) => {

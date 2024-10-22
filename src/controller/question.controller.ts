@@ -182,12 +182,13 @@ export const fetchQuestions = asyncHandler(async (req: Request, res: Response) =
 
 export const fetchSingleQuestion = asyncHandler(async (req: Request, res: Response) => {
     const { categoryId, questionId } = req.params;
+    let finalResult;
 
     if (!categoryId && !questionId) {
         return sendErrorResponse(res, new ApiError(400, "Both CategoryId ID and Question ID are required."));
-    }
+    };
 
-    const question = await QuestionModel.aggregate([
+    const results = await QuestionModel.aggregate([
         {
             $match: {
                 categoryId: new mongoose.Types.ObjectId(categoryId),
@@ -219,11 +220,32 @@ export const fetchSingleQuestion = asyncHandler(async (req: Request, res: Respon
         },
     ])
 
-    if (!question) {
+    if (!results) {
         return sendErrorResponse(res, new ApiError(404, "Question not found."));
-    }
+    };
 
-    return sendSuccessResponse(res, 200, question, "Question retrieved successfully.");
+    if (results.length) {
+        let category = results[0].categoryId;
+        const questions = results.map(question => ({
+            _id: question._id,
+            question: question.question,
+            options: question.options,
+            derivedQuestions: question.derivedQuestions,
+            createdAt: question.createdAt,
+            updatedAt: question.updatedAt
+        }));
+        finalResult = {
+            category: {
+                _id: category._id,
+                name: category.name,
+                categoryImage: category.categoryImage,
+                owner: category.owner,
+                questions: questions
+            }
+
+        }
+    }
+    return sendSuccessResponse(res, 200, finalResult, "Questions retrieved successfully .");
 
 });
 

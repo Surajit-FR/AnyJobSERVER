@@ -50,7 +50,7 @@ export const addQuestions = asyncHandler(async (req: CustomRequest, res: Respons
 
 export const fetchQuestionsCategorywise = asyncHandler(async (req: Request, res: Response) => {
     const { categoryId } = req.params;
-
+    let finalResult;
 
     const results = await QuestionModel.aggregate([
         {
@@ -87,8 +87,28 @@ export const fetchQuestionsCategorywise = asyncHandler(async (req: Request, res:
                 createdAt: 1
             }
         }
-    ])
-    return sendSuccessResponse(res, 200, results, "Questions retrieved successfully for the given Category.");
+    ]);
+    if (results.length) {
+        let category = results[0].categoryId;
+        const questions = results.map(question => ({
+            _id: question._id,
+            question: question.question,
+            options: question.options,
+            derivedQuestions: question.derivedQuestions,
+            createdAt: question.createdAt,
+            updatedAt: question.updatedAt
+        }));
+        finalResult = {
+            category: {
+                _id: category._id,
+                name: category.name,
+                categoryImage: category.categoryImage,
+                owner: category.owner,
+                questions: questions
+            }
+        }
+    }
+    return sendSuccessResponse(res, 200, finalResult, "Questions retrieved successfully for the given Category.");
 });
 
 export const fetchSingleQuestion = asyncHandler(async (req: Request, res: Response) => {

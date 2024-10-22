@@ -4,24 +4,60 @@ import { sendErrorResponse, sendSuccessResponse } from "../utils/response";
 import { asyncHandler } from "../utils/asyncHandler";
 import mongoose from "mongoose";
 import { ApiError } from "../utils/ApisErrors";
+import { CustomRequest } from "../../types/commonType";
+import { IAddQuestionPayloadReq } from "../../types/requests_responseType";
+import { IQuestion } from "../../types/schemaTypes";
 
-export const fetchQuestionsSubCategorywise = asyncHandler(async (req: Request, res: Response) => {
-    const categoryId = req.query.categoryId as string;
-    const subCategoryId = req.params.subCategoryId;
+export const addQuestions = asyncHandler(async (req: CustomRequest, res: Response) => {
+    console.log("----");
 
-    const matchStage: any = {};
+    const { categoryId, questionArray }: IAddQuestionPayloadReq = req.body;
 
-    if (subCategoryId) {
-        matchStage.subCategoryId = new mongoose.Types.ObjectId(subCategoryId);
-    }
+    // Parse questionArray if it's a string
+    const parsedQuestionArray = typeof questionArray === 'string' ? JSON.parse(questionArray) : questionArray;
 
-    if (categoryId) {
-        matchStage.categoryId = new mongoose.Types.ObjectId(categoryId);
-    }
+    const saveQuestions = async (questionData: any, categoryId: mongoose.Types.ObjectId) => {
+        // Convert the options object into a Map for the main question
+        const optionsMap = new Map<string, string>(Object.entries(questionData.options));
+
+        // Process derived questions to convert their options to Map as well
+        const derivedQuestions = questionData.derivedQuestions?.map((derivedQuestion: any) => ({
+            option: derivedQuestion.option,
+            question: derivedQuestion.question,
+            options: new Map<string, string>(Object.entries(derivedQuestion.options)), // Convert derived question options to Map
+            derivedQuestions: derivedQuestion.derivedQuestions || []
+        })) || [];
+
+        // Save the main question along with its derived questions
+        const mainQuestion = await QuestionModel.create({
+            categoryId,
+            question: questionData.question,
+            options: optionsMap, // Use the converted Map here
+            derivedQuestions // Use the processed derived questions
+        });
+        return mainQuestion._id;
+    };
+
+    // Iterate over the questionArray and save each question with nested derived questions
+    const questionIds = await Promise.all(parsedQuestionArray.map((questionData: IQuestion) =>
+        saveQuestions(questionData, categoryId as mongoose.Types.ObjectId)
+    ));
+
+
+
+    return sendSuccessResponse(res, 201, { questionIds }, "Questions added successfully.");
+});
+
+export const fetchQuestionsCategorywise = asyncHandler(async (req: Request, res: Response) => {
+    const { categoryId } = req.params;
+
 
     const results = await QuestionModel.aggregate([
         {
-            $match: matchStage
+            $match: {
+                isDeleted: false,
+                categoryId: new mongoose.Types.ObjectId(categoryId)
+            }
         },
         {
             $lookup: {
@@ -37,32 +73,22 @@ export const fetchQuestionsSubCategorywise = asyncHandler(async (req: Request, r
                 preserveNullAndEmptyArrays: true
             }
         },
-        {
-            $lookup: {
-                from: "subcategories",
-                foreignField: "_id",
-                localField: "subCategoryId",
-                as: "subCategoryId"
-            }
-        },
-        {
-            $unwind: {
-                path: "$subCategoryId",
-                preserveNullAndEmptyArrays: true
-            }
-        },
+
         {
             $project: {
                 isDeleted: 0,
                 __v: 0,
                 'categoryId.isDeleted': 0,
                 'categoryId.__v': 0,
-                'subCategoryId.isDeleted': 0,
-                'subCategoryId.__v': 0
             }
         },
+        {
+            $sort: {
+                createdAt: 1
+            }
+        }
     ])
-    return sendSuccessResponse(res, 200, results, "Questions retrieved successfully for the given Subcategory.");
+    return sendSuccessResponse(res, 200, results, "Questions retrieved successfully for the given Category.");
 });
 
 export const fetchSingleQuestion = asyncHandler(async (req: Request, res: Response) => {

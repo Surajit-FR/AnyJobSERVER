@@ -8,6 +8,7 @@ import { CustomRequest } from "../../types/commonType";
 import { IAddQuestionPayloadReq } from "../../types/requests_responseType";
 import { IQuestion } from "../../types/schemaTypes";
 
+
 export const addQuestions = asyncHandler(async (req: CustomRequest, res: Response) => {
 
     const { categoryId, questionArray }: IAddQuestionPayloadReq = req.body;
@@ -40,69 +41,69 @@ export const addQuestions = asyncHandler(async (req: CustomRequest, res: Respons
     return sendSuccessResponse(res, 201, { questionIds }, "Questions added successfully.");
 });
 
-export const fetchQuestionsCategorywise = asyncHandler(async (req: Request, res: Response) => {
-    const { categoryId } = req.params;
-    let finalResult;
+// export const fetchQuestionsCategorywise = asyncHandler(async (req: Request, res: Response) => {
+//     const { categoryId } = req.params;
+//     let finalResult;
 
-    const results = await QuestionModel.aggregate([
-        {
-            $match: {
-                isDeleted: false,
-                categoryId: new mongoose.Types.ObjectId(categoryId)
-            }
-        },
-        {
-            $lookup: {
-                from: "categories",
-                foreignField: "_id",
-                localField: "categoryId",
-                as: "categoryId"
-            }
-        },
-        {
-            $unwind: {
-                path: "$categoryId",
-                preserveNullAndEmptyArrays: true
-            }
-        },
+//     const results = await QuestionModel.aggregate([
+//         {
+//             $match: {
+//                 isDeleted: false,
+//                 categoryId: new mongoose.Types.ObjectId(categoryId)
+//             }
+//         },
+//         {
+//             $lookup: {
+//                 from: "categories",
+//                 foreignField: "_id",
+//                 localField: "categoryId",
+//                 as: "categoryId"
+//             }
+//         },
+//         {
+//             $unwind: {
+//                 path: "$categoryId",
+//                 preserveNullAndEmptyArrays: true
+//             }
+//         },
 
-        {
-            $project: {
-                isDeleted: 0,
-                __v: 0,
-                'categoryId.isDeleted': 0,
-                'categoryId.__v': 0,
-            }
-        },
-        {
-            $sort: {
-                createdAt: 1
-            }
-        }
-    ]);
-    if (results.length) {
-        let category = results[0].categoryId;
-        const questions = results.map(question => ({
-            _id: question._id,
-            question: question.question,
-            options: question.options,
-            derivedQuestions: question.derivedQuestions,
-            createdAt: question.createdAt,
-            updatedAt: question.updatedAt
-        }));
-        finalResult = {
-            category: {
-                _id: category._id,
-                name: category.name,
-                categoryImage: category.categoryImage,
-                owner: category.owner,
-                questions: questions
-            }
+//         {
+//             $project: {
+//                 isDeleted: 0,
+//                 __v: 0,
+//                 'categoryId.isDeleted': 0,
+//                 'categoryId.__v': 0,
+//             }
+//         },
+//         {
+//             $sort: {
+//                 createdAt: 1
+//             }
+//         }
+//     ]);
+//     if (results.length) {
+//         let category = results[0].categoryId;
+//         const questions = results.map(question => ({
+//             _id: question._id,
+//             question: question.question,
+//             options: question.options,
+//             derivedQuestions: question.derivedQuestions,
+//             createdAt: question.createdAt,
+//             updatedAt: question.updatedAt
+//         }));
+//         finalResult = {
+//             category: {
+//                 _id: category._id,
+//                 name: category.name,
+//                 categoryImage: category.categoryImage,
+//                 owner: category.owner,
+//                 questions: questions
+//             }
 
-        }
-    }
-    return sendSuccessResponse(res, 200, finalResult, "Questions retrieved successfully for the given Category.");
-});
+//         }
+//     }
+//     return sendSuccessResponse(res, 200, finalResult, "Questions retrieved successfully for the given Category.");
+// });
 
 export const fetchQuestions = asyncHandler(async (req: Request, res: Response) => {
     const categoryId = req.query.categoryId; // Get categoryId from query parameters
@@ -235,14 +236,11 @@ export const fetchSingleQuestion = asyncHandler(async (req: Request, res: Respon
             updatedAt: question.updatedAt
         }));
         finalResult = {
-            category: {
-                _id: category._id,
-                name: category.name,
-                categoryImage: category.categoryImage,
-                owner: category.owner,
-                questions: questions
-            }
-
+            _id: category._id,
+            name: category.name,
+            categoryImage: category.categoryImage,
+            owner: category.owner,
+            questions: questions
         }
     }
     return sendSuccessResponse(res, 200, finalResult, "Questions retrieved successfully .");
@@ -262,7 +260,7 @@ export const updateSingleQuestion = asyncHandler(async (req: Request, res: Respo
         { _id: new mongoose.Types.ObjectId(questionId), categoryId: new mongoose.Types.ObjectId(categoryId), },
         { $set: updates },
         { new: true, }
-    );
+    ).select('-isDeleted -__v');
 
     if (!updatedQuestion) {
         return sendErrorResponse(res, new ApiError(404, "Question not found."));

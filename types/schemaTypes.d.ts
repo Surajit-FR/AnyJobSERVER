@@ -106,6 +106,7 @@ export interface IServiceSchema extends Document {
     otherInfo: object;
     userId: ObjectId;
     answerArray: Array<any>;
+    requestProgress:string;
     isDeleted: boolean;
     createdAt?: Date;
     updatedAt?: Date;

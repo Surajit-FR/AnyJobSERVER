@@ -13,7 +13,6 @@ import { IAddServicePayloadReq } from "../../types/requests_responseType";
 export const addService = asyncHandler(async (req: CustomRequest, res: Response) => {
     const {
         categoryId,
-        subCategoryId,
         serviceStartDate,
         serviceShifftId,
         SelectedShiftTime,
@@ -24,12 +23,11 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         incentiveAmount,
         userId,
         answerArray // Expecting answerArray instead of answers
-    }: IAddServicePayloadReq = req.body;  
+    }: IAddServicePayloadReq = req.body;
 
     // Prepare the new service object
     const newService = await ServiceModel.create({
         categoryId,
-        subCategoryId,
         serviceShifftId,
         SelectedShiftTime,
         serviceStartDate,
@@ -47,6 +45,7 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
     };
 
     return sendSuccessResponse(res, 201, newService, "Service Request added Successfully");
+
 });
 
 //fetch service request before any service provider accept the request.
@@ -126,8 +125,8 @@ export const getPendingServiceRequest = asyncHandler(async (req: Request, res: R
 // updateService controller
 export const updateServiceRequest = asyncHandler(async (req: Request, res: Response) => {
     const { serviceId } = req.params;
-    const { isApproved, isReqAcceptedByServiceProvider }: { isApproved: Boolean, isReqAcceptedByServiceProvider: Boolean } = req.body;
-    console.log(req.params);
+    const { isApproved }: { isApproved: Boolean } = req.body;
+    // console.log(req.params);
 
     if (!serviceId) {
         return sendErrorResponse(res, new ApiError(400, "Service ID is required."));
@@ -138,7 +137,6 @@ export const updateServiceRequest = asyncHandler(async (req: Request, res: Respo
         {
             $set: {
                 isApproved,
-                isReqAcceptedByServiceProvider
             }
         }, { new: true }
     );
@@ -149,6 +147,38 @@ export const updateServiceRequest = asyncHandler(async (req: Request, res: Respo
 
     return sendSuccessResponse(res, 200, updatedService, "Service Request updated Successfully");
 });
+
+export const acceptServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const { serviceId } = req.params;
+    const { isReqAcceptedByServiceProvider }: { isReqAcceptedByServiceProvider: boolean } = req.body;
+
+    if (!serviceId) {
+        return sendErrorResponse(res, new ApiError(400, "Service ID is required."));
+    }
+
+    if (isReqAcceptedByServiceProvider) {
+        const updatedService = await ServiceModel.findByIdAndUpdate(
+            { _id: new mongoose.Types.ObjectId(serviceId) },
+            {
+                $set: {
+                    isReqAcceptedByServiceProvider,
+                    serviceProviderId: req.user?._id,
+                    requestProgress: "Ongoing"
+                }
+            },
+            { new: true }
+        );
+
+        if (!updatedService) {
+            return sendErrorResponse(res, new ApiError(404, "Service not found for updating."));
+        }
+
+        return sendSuccessResponse(res, 200, updatedService, "Service Request accepted successfully.");
+    } else {
+        return sendErrorResponse(res, new ApiError(400, "Service Request rejected."));
+    }
+});
+
 
 export const deleteService = asyncHandler(async (req: Request, res: Response) => {
     const { serviceId } = req.params;

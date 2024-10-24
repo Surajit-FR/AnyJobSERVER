@@ -6,7 +6,8 @@ import {
     updateServiceRequest,
     deleteService,
     fetchServiceRequest,
-    acceptServiceRequest
+    acceptServiceRequest,
+    fetchSingleServiceRequest
 } from "../controller/service.controller";
 
 const router: Router = express.Router();
@@ -19,6 +20,7 @@ router.route('/get-pending-service').get(getPendingServiceRequest);
 router.route('/nearby-services-request').get(verifyUserType(['ServiceProvider']), fetchServiceRequest);
 
 router.route("/c/:serviceId")
+    .get(verifyUserType(['SuperAdmin',"ServiceProvider","Customer"]), fetchSingleServiceRequest)
     .delete(verifyUserType(['SuperAdmin']), deleteService)
     .put(verifyUserType(['SuperAdmin', 'ServiceProvider']), updateServiceRequest)
     .patch(verifyUserType(["ServiceProvider"]), acceptServiceRequest);

@@ -212,6 +212,7 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
     const maxZipcode = userZipcode + 10;
 
     const serviceRequests = await ServiceModel.find({
+        isReqAcceptedByServiceProvider: false,
         serviceZipCode: {
             $gte: minZipcode,
             $lte: maxZipcode
@@ -220,4 +221,47 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
     });
 
     return sendSuccessResponse(res, 200, serviceRequests, 'Service requests fetched successfully');
-}); 
+});
+
+export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: Response) => {
+    const { serviceId } = req.params;
+    console.log(req.params);    
+
+    if (!serviceId) {
+        return sendErrorResponse(res, new ApiError(400, "Service request ID is required."));
+    };
+
+    const serviceRequestToFetch = await ServiceModel.aggregate([
+        {
+            $match:{
+                isDeleted:false,
+                _id:new mongoose.Types.ObjectId(serviceId)
+            }
+        }
+    ]);  
+
+    return sendSuccessResponse(res, 200, serviceRequestToFetch, "Service request retrieved successfully.");
+
+});
+
+// Function to fetch a single service by serviceId
+export const fetchAssociatedCustomer = async (serviceId: string) => {
+    if (!serviceId) {
+        throw new Error("Service request ID is required.");
+    }
+
+    const serviceRequest = await ServiceModel.aggregate([
+        {
+            $match: {
+                isDeleted: false,
+                _id: new mongoose.Types.ObjectId(serviceId),
+            },
+        },
+    ]);
+
+    if (!serviceRequest || serviceRequest.length === 0) {
+        throw new Error("Service request not found.");
+    }
+
+    return serviceRequest[0].userId;
+};

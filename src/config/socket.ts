@@ -1,7 +1,7 @@
 import { Server as HttpServer } from "http";
 import { Server, Socket } from "socket.io";
 import { socketAuthMiddleware } from "../middlewares/auth/socketAuth";
-import { updateServiceRequest } from "../controller/service.controller";
+import { updateServiceRequest, fetchAssociatedCustomer } from "../controller/service.controller";
 
 
 // Function to initialize Socket.io
@@ -15,22 +15,56 @@ export const initSocket = (server: HttpServer) => {
     // Use the JWT authentication middleware for all socket connections
     io.use(socketAuthMiddleware);
 
+    // Store connected customers
+    const connectedCustomers: { [key: string]: string } = {};
+
     io.on("connection", (socket: Socket) => {
         const userId = socket.data.userId;
         // console.log("socket=>", socket.handshake);
+        console.log(`A user with userId ${userId} connected on socket ${socket.id}`);
 
-
-        console.log(`Service provider with userId ${userId} connected on socket ${socket.id}`);
-
-        socket.on("acceptServiceRequest", (requestId: string) => {
+        socket.on("acceptServiceRequest", async (requestId: string) => {
             console.log(`Service provider with _id ${userId} accepted the request ${requestId}`);
             //here the logic related with update service
-            
             io.emit("requestInactive", requestId);
+
+            //execute get single service request to get  associated userId
+            const customerId = await fetchAssociatedCustomer(requestId);
+
+            
+
+            // Notify the customer that the service provider is on the way
+            console.log(connectedCustomers);
+            if (customerId && connectedCustomers[customerId]) {
+                io.to(connectedCustomers[customerId]).emit("serviceProviderAccepted", {
+                    message: `A user with userId ${userId} is on the way`,
+                    requestId,
+                });
+            };
+
+            // Handle service provider's location updates and send them to the customer
+            socket.on("locationUpdate", async (location: { latitude: number; longitude: number }) => {
+
+                if (customerId && connectedCustomers[customerId]) {
+                    io.to(connectedCustomers[customerId]).emit("serviceProviderLocationUpdate", {
+                        latitude: location.latitude,
+                        longitude: location.longitude,
+                    });
+                }
+            });
         });
 
         socket.on("disconnect", () => {
-            console.log(`Service provider with _id ${userId} disconnected`);
+            console.log(`User with socket ID ${socket.id} disconnected`);
+
+            // Remove customer from connected list if they disconnect
+            for (const customerId in connectedCustomers) {
+                if (connectedCustomers[customerId] === socket.id) {
+                    delete connectedCustomers[customerId];
+                    console.log(`Customer ${customerId} disconnected`);
+                    break;
+                }
+            }
         });
     });
 

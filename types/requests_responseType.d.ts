@@ -59,7 +59,6 @@ export interface IFetchQuestionCatSubCatWiseParams {
 
 export interface IAddServicePayloadReq {
     categoryId: ObjectId,
-    subCategoryId: ObjectId,
     serviceStartDate: Date,
     serviceShifftId: ObjectId,
     SelectedShiftTime: object,

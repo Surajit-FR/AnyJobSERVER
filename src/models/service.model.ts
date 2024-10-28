@@ -79,6 +79,10 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
         type: Boolean,
         default: false
     },
+    serviceProviderId:{
+        type: mongoose.Schema.Types.ObjectId,
+        default:null
+    },
     // Answer array to store answers and derived answers
     answerArray: [answerSchema],
     serviceProductImage: {
@@ -99,6 +103,11 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
     userId: {
         type: Schema.Types.ObjectId,
         ref: "user"
+    },
+    requestProgress: {
+        type: String,
+        enum: ["NotStarted", "Ongoing", "Completed"],
+        default:"NotStarted"
     },
     isDeleted: {
         type: Boolean,

@@ -22,7 +22,8 @@ router.route('/q/:categoryId/:questionId')
     .get(fetchSingleQuestion)
     .patch(verifyUserType(["SuperAdmin"]), updateSingleQuestion)
 
-router.route('/:questionId').delete(verifyUserType(["SuperAdmin"]), deleteSingleQuestion);
+router.route('/q/:questionId')
+    .delete(verifyUserType(["SuperAdmin"]), deleteSingleQuestion);
 
 
 

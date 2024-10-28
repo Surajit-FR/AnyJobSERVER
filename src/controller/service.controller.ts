@@ -148,36 +148,52 @@ export const updateServiceRequest = asyncHandler(async (req: Request, res: Respo
     return sendSuccessResponse(res, 200, updatedService, "Service Request updated Successfully");
 });
 
-export const acceptServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {
+export const handleServiceRequestState  = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { serviceId } = req.params;
-    const { isReqAcceptedByServiceProvider }: { isReqAcceptedByServiceProvider: boolean } = req.body;
+    const { isReqAcceptedByServiceProvider, requestProgress }: { isReqAcceptedByServiceProvider: boolean, requestProgress: string } = req.body;
 
     if (!serviceId) {
         return sendErrorResponse(res, new ApiError(400, "Service ID is required."));
-    }
+    };
+
+    // Find the current service request details
+    const serviceRequest = await ServiceModel.findById(serviceId);
+
+    if (!serviceRequest) {
+        return sendErrorResponse(res, new ApiError(404, "Service not found."));
+    };
+
+    // Initialize the update object
+    const updateData: any = { isReqAcceptedByServiceProvider };
 
     if (isReqAcceptedByServiceProvider) {
-        const updatedService = await ServiceModel.findByIdAndUpdate(
-            { _id: new mongoose.Types.ObjectId(serviceId) },
-            {
-                $set: {
-                    isReqAcceptedByServiceProvider,
-                    serviceProviderId: req.user?._id,
-                    requestProgress: "Ongoing"
-                }
-            },
-            { new: true }
-        );
-
-        if (!updatedService) {
-            return sendErrorResponse(res, new ApiError(404, "Service not found for updating."));
+        if (!serviceRequest.isReqAcceptedByServiceProvider) {
+            updateData.requestProgress = "Pending";
+            updateData.serviceProviderId = req.user?._id;
+        } else if (serviceRequest.requestProgress === "Pending" && requestProgress === "Started") {
+            updateData.requestProgress = "Started";
+        } else if (serviceRequest.requestProgress === "Started" && requestProgress === "Completed") {
+            updateData.requestProgress = "Completed";
+        }else if ( requestProgress === "Cancelled") {
+            updateData.requestProgress = "Cancelled";
+            updateData.isReqAcceptedByServiceProvider = false;
+            
         }
+    };
 
-        return sendSuccessResponse(res, 200, updatedService, "Service Request accepted successfully.");
-    } else {
-        return sendErrorResponse(res, new ApiError(400, "Service Request rejected."));
-    }
+    const updatedService = await ServiceModel.findByIdAndUpdate(
+        serviceId,
+        { $set: updateData },
+        { new: true }
+    );
+
+    if (!updatedService) {
+        return sendErrorResponse(res, new ApiError(404, "Service not found for updating."));
+    };
+
+    return sendSuccessResponse(res, 200, updatedService, "Service Request status updated successfully.");
 });
+
 
 
 export const deleteService = asyncHandler(async (req: Request, res: Response) => {
@@ -225,7 +241,7 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
 
 export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: Response) => {
     const { serviceId } = req.params;
-    console.log(req.params);    
+    console.log(req.params);
 
     if (!serviceId) {
         return sendErrorResponse(res, new ApiError(400, "Service request ID is required."));
@@ -233,12 +249,12 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
 
     const serviceRequestToFetch = await ServiceModel.aggregate([
         {
-            $match:{
-                isDeleted:false,
-                _id:new mongoose.Types.ObjectId(serviceId)
+            $match: {
+                isDeleted: false,
+                _id: new mongoose.Types.ObjectId(serviceId)
             }
         }
-    ]);  
+    ]);
 
     return sendSuccessResponse(res, 200, serviceRequestToFetch, "Service request retrieved successfully.");
 

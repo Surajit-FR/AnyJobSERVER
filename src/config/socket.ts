@@ -1,7 +1,7 @@
 import { Server as HttpServer } from "http";
 import { Server, Socket } from "socket.io";
 import { socketAuthMiddleware } from "../middlewares/auth/socketAuth";
-import { updateServiceRequest, fetchAssociatedCustomer } from "../controller/service.controller";
+import { handleServiceRequestState, fetchAssociatedCustomer } from "../controller/service.controller";
 
 
 // Function to initialize Socket.io

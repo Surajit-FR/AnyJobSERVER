@@ -19,30 +19,32 @@ const generateOTP = () => {
 };
 
 export const sendOTP = asyncHandler(async (req: Request, res: Response) => {
-    const { phoneNumber } = req.body;
+    const { phoneNumber, purpose } = req.body;
+    let expiryDuration = 5 * 60 * 1000
+    if (purpose === "service") {
+        expiryDuration = 10 * 1000 //in milli seconds
+        // expiryDuration = 24 * 60 * 60 * 1000 //in milli seconds
+    }
+
 
     const user = await UserModel.findOne({ phone: phoneNumber });
-
     if (!user) {
         return sendErrorResponse(res, new ApiError(400, "User does not exist"));
     }
 
     const userId = user._id;
-
     const otp = generateOTP();
-    const expiryDuration = 5 * 60 * 1000; // 5 minutes
-    const expiredAt = new Date(Date.now() + expiryDuration);
+    const expiredAt = new Date(Date.now() + expiryDuration); // Set expiration time
     const formattedPhoneNumber = `+91${phoneNumber}`;
 
     const otpEntry = new OTPModel({
-        userId: userId,
+        userId,
         phoneNumber: formattedPhoneNumber,
-        otp: otp,
+        otp,
         expiredAt: expiredAt,
     });
 
     await otpEntry.save();
-
 
     const message = await client.messages.create({
         body: `Your OTP code is ${otp}`,
@@ -50,10 +52,9 @@ export const sendOTP = asyncHandler(async (req: Request, res: Response) => {
         to: formattedPhoneNumber,
     });
 
-    // console.log('OTP sent:', message);
-
     return sendSuccessResponse(res, 201, message, "OTP sent successfully");
 });
+
 
 export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
     const { phoneNumber, otp } = req.body;

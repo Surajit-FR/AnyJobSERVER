@@ -6,19 +6,23 @@ const otpSchema: Schema<IOTPSchema> = new Schema({
         type: mongoose.Schema.Types.ObjectId,
         required: true,
     },
-    phoneNumber:{
-        type:String,
-        required:true
+    phoneNumber: {
+        type: String,
+        required: true
     },
     otp: {
         type: String,
-        unique:true,
+        unique: true,
         required: true,
-    },   
+    },
     expiredAt: {
         type: Date,
         required: true,
-        index: { expires: '5m' }
+        index: { expires: 0 }
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now,
     },
 
 }, { timestamps: true });

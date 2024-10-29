@@ -163,11 +163,11 @@ export interface IShiftSchema extends Document {
 };
 
 export interface IOTPSchema extends Document {
-<<<<<<< HEAD
     _id: ObjectId;
     userId: ObjectId;
     phoneNumber: string;
     otp: string;
+    secret: string;
     createdAt?: Date;
     expiredAt: Date;
     updatedAt?: Date;
@@ -179,13 +179,6 @@ export interface IRatingSchema extends Document {
     ratedTo: ObjectId;
     rating: number;
     isDeleted: boolean;
-=======
-    _id:ObjectId;
-    userId:ObjectId;
-    phoneNumber:string;
-    otp:string;
-    secret:string;
->>>>>>> 10caeffbcbdc3683412d47fd53b871669b6f3e73
     createdAt?: Date;
     updatedAt?: Date;
 };

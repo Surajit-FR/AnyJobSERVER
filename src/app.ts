@@ -30,6 +30,7 @@ import serviceRouter from './routes/service.routes';
 import questionRouter from './routes/question.routes';
 import shiftRouter from './routes/shift.routes';
 import otpRouter from './routes/otp.routes';
+import ratingRouter from './routes/user/rating.routes';
 
 //Admin routes
 app.use("/api/v1/healthcheck", healthcheckRouter);
@@ -43,6 +44,7 @@ app.use('/api/v1/shift', shiftRouter);
 // Customer routes
 app.use('/api/v1/customer', customerRouter);
 app.use('/api/v1/otp', otpRouter);
+app.use('/api/v1/rating', ratingRouter);
 
 app.get('/ping', (req: Request, res: Response) => {
     res.send("Hi!...I am server, Happy to see you boss...");

@@ -15,6 +15,10 @@ const otpSchema: Schema<IOTPSchema> = new Schema({
         unique: true,
         required: true,
     },
+    secret: {
+        type: String,
+        required: true
+    },
     expiredAt: {
         type: Date,
         required: true,

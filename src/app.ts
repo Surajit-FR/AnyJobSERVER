@@ -30,7 +30,7 @@ import serviceRouter from './routes/service.routes';
 import questionRouter from './routes/question.routes';
 import shiftRouter from './routes/shift.routes';
 import otpRouter from './routes/otp.routes';
-import ratingRouter from './routes/user/rating.routes';
+import ratingRouter from './routes/rating.routes';
 
 //Admin routes
 app.use("/api/v1/healthcheck", healthcheckRouter);

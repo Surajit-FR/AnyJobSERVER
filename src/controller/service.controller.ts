@@ -9,7 +9,7 @@ import mongoose, { ObjectId } from "mongoose";
 import { IAddServicePayloadReq } from "../../types/requests_responseType";
 
 
-
+// addService controller
 export const addService = asyncHandler(async (req: CustomRequest, res: Response) => {
     const {
         categoryId,
@@ -21,9 +21,27 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         serviceLongitude,
         isIncentiveGiven,
         incentiveAmount,
-        userId,
+        isTipGiven,
+        tipAmount,
         answerArray // Expecting answerArray instead of answers
     }: IAddServicePayloadReq = req.body;
+
+    // Validate required fields
+    if (!categoryId) return sendErrorResponse(res, new ApiError(400, "Category ID is required."));
+    if (!serviceStartDate) return sendErrorResponse(res, new ApiError(400, "Service start date is required."));
+    if (!serviceShifftId) return sendErrorResponse(res, new ApiError(400, "Service shift ID is required."));
+    if (!SelectedShiftTime) return sendErrorResponse(res, new ApiError(400, "Selected shift time is required."));
+    if (!serviceZipCode) return sendErrorResponse(res, new ApiError(400, "Service ZIP code is required."));
+    if (!serviceLatitude || !serviceLongitude) return sendErrorResponse(res, new ApiError(400, "Service location is required."));
+    if (!answerArray || !Array.isArray(answerArray)) return sendErrorResponse(res, new ApiError(400, "Answer array is required and must be an array."));
+
+    // Conditional checks for incentive and tip amounts
+    if (isIncentiveGiven && (incentiveAmount === undefined || incentiveAmount <= 0)) {
+        return sendErrorResponse(res, new ApiError(400, "Incentive amount must be provided and more than zero if incentive is given."));
+    }
+    if (isTipGiven && (tipAmount === undefined || tipAmount <= 0)) {
+        return sendErrorResponse(res, new ApiError(400, "Tip amount must be provided and more than zero if tip is given."));
+    }
 
     // Prepare the new service object
     const newService = await ServiceModel.create({
@@ -36,6 +54,8 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         serviceLongitude,
         isIncentiveGiven,
         incentiveAmount,
+        isTipGiven,
+        tipAmount,
         answerArray,
         userId: req.user?._id
     });
@@ -45,10 +65,9 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
     };
 
     return sendSuccessResponse(res, 201, newService, "Service Request added Successfully");
-
 });
 
-//fetch service request before any service provider accept the request.
+// getPendingServiceRequest controller
 export const getPendingServiceRequest = asyncHandler(async (req: Request, res: Response) => {
     const results = await ServiceModel.aggregate([
         {
@@ -69,20 +88,6 @@ export const getPendingServiceRequest = asyncHandler(async (req: Request, res: R
             $unwind: {
                 // preserveNullAndEmptyArrays: true,
                 path: "$categoryId"
-            }
-        },
-        {
-            $lookup: {
-                from: "subcategories",
-                foreignField: "_id",
-                localField: "subCategoryId",
-                as: "subCategoryId"
-            }
-        },
-        {
-            $unwind: {
-                preserveNullAndEmptyArrays: true,
-                path: "$subCategoryId"
             }
         },
         {
@@ -148,7 +153,8 @@ export const updateServiceRequest = asyncHandler(async (req: Request, res: Respo
     return sendSuccessResponse(res, 200, updatedService, "Service Request updated Successfully");
 });
 
-export const handleServiceRequestState  = asyncHandler(async (req: CustomRequest, res: Response) => {
+// handleServiceRequestState controller
+export const handleServiceRequestState = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { serviceId } = req.params;
     const { isReqAcceptedByServiceProvider, requestProgress }: { isReqAcceptedByServiceProvider: boolean, requestProgress: string } = req.body;
 
@@ -174,10 +180,10 @@ export const handleServiceRequestState  = asyncHandler(async (req: CustomRequest
             updateData.requestProgress = "Started";
         } else if (serviceRequest.requestProgress === "Started" && requestProgress === "Completed") {
             updateData.requestProgress = "Completed";
-        }else if ( requestProgress === "Cancelled") {
+        } else if (requestProgress === "Cancelled") {
             updateData.requestProgress = "Cancelled";
             updateData.isReqAcceptedByServiceProvider = false;
-            
+
         }
     };
 
@@ -194,8 +200,7 @@ export const handleServiceRequestState  = asyncHandler(async (req: CustomRequest
     return sendSuccessResponse(res, 200, updatedService, "Service Request status updated successfully.");
 });
 
-
-
+// deleteService controller
 export const deleteService = asyncHandler(async (req: Request, res: Response) => {
     const { serviceId } = req.params;
     if (!serviceId) {
@@ -212,7 +217,7 @@ export const deleteService = asyncHandler(async (req: Request, res: Response) =>
     return sendSuccessResponse(res, 200, {}, "Service deleted successfully");
 });
 
-// Fetch Service Requests within zipcode range
+// fetchServiceRequest controller
 export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {
     const userId = req.user?._id as string;
     console.log(userId);
@@ -239,6 +244,7 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
     return sendSuccessResponse(res, 200, serviceRequests, 'Service requests fetched successfully');
 });
 
+// fetchSingleServiceRequest controller
 export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: Response) => {
     const { serviceId } = req.params;
     console.log(req.params);

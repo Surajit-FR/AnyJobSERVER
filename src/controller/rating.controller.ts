@@ -4,10 +4,12 @@ import { asyncHandler } from "../utils/asyncHandler";
 import RatingModel from "../models/rating.model";
 import { sendErrorResponse, sendSuccessResponse } from "../utils/response";
 import { ApiError } from "../utils/ApisErrors";
+import mongoose from "mongoose";
+
 
 // addRating controller
 export const addRating = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const { rating, ratedTo } = req.body;
+    const { rating, ratedTo, comments } = req.body;
 
     // Validate required fields
     if (!rating || !ratedTo) {
@@ -19,10 +21,30 @@ export const addRating = asyncHandler(async (req: CustomRequest, res: Response) 
         ratedBy: req.user?._id,
         ratedTo,
         rating,
+        comments,
     });
 
     // Save the rating to the database
     const savedRating = await newrating.save();
 
     return sendSuccessResponse(res, 201, savedRating, "Rating submitted successfully");
+});
+
+// deleteRating controller
+export const deleteRating = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const { ratingId } = req.params;
+
+    // Validate required fields
+    if (!ratingId) {
+        return sendErrorResponse(res, new ApiError(400, "Rating Id is required"));
+    };
+    const deletedRating = await RatingModel.findByIdAndDelete({
+        _id: new mongoose.Types.ObjectId(ratingId),
+    });
+
+    if (!deletedRating) {
+        return sendErrorResponse(res, new ApiError(404, "Rating not found."));
+    }
+
+    return sendSuccessResponse(res, 201, {}, "Rating deleted successfully");
 });

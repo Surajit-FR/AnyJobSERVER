@@ -7,7 +7,8 @@ import { sendErrorResponse, sendSuccessResponse } from "../utils/response";
 import ShiftModel from "../models/shift.model";
 import { IShiftTimeSchema } from "../../types/schemaTypes";
 
-//addShift controller
+
+// addShift controller
 export const addShift = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { shiftName, shiftTimes }: { shiftName: String, shiftTimes: IShiftTimeSchema } = req.body;
 
@@ -37,6 +38,7 @@ export const addShift = asyncHandler(async (req: CustomRequest, res: Response) =
 
 })
 
+// fetchShiftbyId controller
 export const fetchShiftbyId = asyncHandler(async (req: Request, res: Response) => {
 
     const { shiftId } = req.params;
@@ -60,6 +62,7 @@ export const fetchShiftbyId = asyncHandler(async (req: Request, res: Response) =
 
 });
 
+// fetchShifs controller
 export const fetchShifs = asyncHandler(async (req: CustomRequest, res: Response) => {
 
     const results = await ShiftModel.find({ isDeleted: false }).select('-__v -isDeleted');
@@ -71,7 +74,7 @@ export const fetchShifs = asyncHandler(async (req: CustomRequest, res: Response)
 
 });
 
-// Update Shift Controller
+// updateShift Controller
 export const updateShift = asyncHandler(async (req: Request, res: Response) => {
     const { shiftId } = req.params;
     const { shiftName, shiftTimes }: { shiftName: string, shiftTimes: Array<IShiftTimeSchema> } = req.body;
@@ -116,6 +119,7 @@ export const updateShift = asyncHandler(async (req: Request, res: Response) => {
     return sendSuccessResponse(res, 200, updatedShift, "Shift updated Successfully");
 });
 
+// deleteShift controller
 export const deleteShift = asyncHandler(async (req: Request, res: Response) => {
     const { shiftId } = req.params;
 

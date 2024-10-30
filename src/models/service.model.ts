@@ -70,6 +70,15 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
         default: 0,
         min: 10
     },
+    isTipGiven: {
+        type: Boolean,
+        default: false
+    },
+    tipAmount: {
+        type: Number,
+        default: 0,
+        min: 10
+    },
     isApproved: {
         type: String,
         enum: ["Pending", "Approved", "Rejected"],

@@ -99,6 +99,8 @@ export interface IServiceSchema extends Document {
     serviceLongitude: number;
     isIncentiveGiven: boolean;
     incentiveAmount: number;
+    isTipGiven: boolean;
+    tipAmount: number;
     isApproved: string;
     isReqAcceptedByServiceProvider: boolean;
     serviceProviderId: ObjectId;
@@ -178,6 +180,7 @@ export interface IRatingSchema extends Document {
     ratedBy: ObjectId;
     ratedTo: ObjectId;
     rating: number;
+    comments: string;
     isDeleted: boolean;
     createdAt?: Date;
     updatedAt?: Date;

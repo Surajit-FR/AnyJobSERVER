@@ -16,6 +16,9 @@ const RatingSchema: Schema<IRatingSchema> = new Schema({
         type: Number,
         required: [true, "Some rating must be needed!"]
     },
+    comments: {
+        type: String,
+    },
     isDeleted: {
         type: Boolean,
         default: false

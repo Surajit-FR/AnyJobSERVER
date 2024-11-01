@@ -1,13 +1,7 @@
 import mongoose, { Schema, Model } from "mongoose";
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { IUser,IAddressType,IAdditionalUserInfo } from "../../types/schemaTypes";
-import { emit } from "process";
-import { string } from "joi";
-
-
-
-
+import { IUser } from "../../types/schemaTypes";
 
 
 const UserSchema: Schema<IUser> = new Schema({

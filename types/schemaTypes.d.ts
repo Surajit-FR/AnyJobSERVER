@@ -185,3 +185,11 @@ export interface IRatingSchema extends Document {
     createdAt?: Date;
     updatedAt?: Date;
 };
+export interface ITeamSchema extends Document {
+    _id: ObjectId;
+    serviceProviderId: ObjectId;
+    fieldAgentIds: Array;
+    isDeleted: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
+};

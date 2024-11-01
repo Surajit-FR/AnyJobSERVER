@@ -1,108 +1,68 @@
-import fs from 'fs';
 import { Request, Response } from "express";
 import UserModel from "../../models/user.model";
 import { ApiError } from "../../utils/ApisErrors";
-import { ICredentials, ILoginCredentials, IRegisterCredentials } from "../../../types/requests_responseType";
-import { sendSuccessResponse, sendErrorResponse } from "../../utils/response";
+import { addUser } from "../../utils/auth";
+import { IRegisterCredentials } from "../../../types/requests_responseType";
+import { sendErrorResponse } from "../../utils/response";
 import { generateAccessAndRefreshToken } from "../../utils/createTokens";
 import { CustomRequest } from "../../../types/commonType";
 import { ApiResponse } from "../../utils/ApiResponse";
-import { uploadOnCloudinary } from "../../utils/cloudinary";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { IUser } from "../../../types/schemaTypes";
 import { GoogleAuth } from "../../utils/socialAuth"
 import jwt, { JwtPayload } from 'jsonwebtoken';
+import TeamModel from '../../models/teams.model';
 
+
+export const addAssociate = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const userData: IRegisterCredentials = req.body;
+
+    const savedAgent = await addUser(userData);
+
+    if (userData.userType === "FieldAgent") {
+        const serviceProviderId = req.user?._id;
+
+        const team = await TeamModel.findOneAndUpdate(
+            { serviceProviderId },
+            { $push: { fieldAgentIds: savedAgent._id } },
+            { new: true, upsert: true }
+        );
+
+        if (!team) {
+            return sendErrorResponse(res, new ApiError(400, "ServiceProvider team not found"));
+        }
+    }
+
+    return res.status(201).json({ user: savedAgent, message: "FieldAgent added successfully" });
+});
 
 //register user controller
 export const registerUser = asyncHandler(async (req: Request, res: Response) => {
-    const { firstName, lastName, email, password, userType }: IRegisterCredentials = req.body;
-    // console.log("req.body==>",req.body);
-    // return;
+    const userData: IRegisterCredentials = req.body;
 
+    // Register the user using addUser utility function
+    const savedUser = await addUser(userData);
 
-    // Validate fields (Joi validation is preferred here)
-    if ([firstName, lastName, email, password, userType].some((field) => field?.trim() === "")) {
-        return sendErrorResponse(res, new ApiError(400, "All fields are required"));
+    // If the user is a ServiceProvider, create a team for them
+    if (userData.userType === 'ServiceProvider') {
+        const newTeam = new TeamModel({
+            serviceProviderId: savedUser._id,
+            fieldAgents: []
+        });
+        const savedTeam = await newTeam.save();
+        if (!savedTeam) {
+            return sendErrorResponse(res, new ApiError(400, "ServiceProvider team not created"));
+        }
     }
 
-    // Check for duplicate user
-    const existingUser = await UserModel.findOne({ email });
-    if (existingUser) {
-        const files = req.files as { [key: string]: Express.Multer.File[] } | undefined;
+    // Generate tokens for the user
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, savedUser._id);
 
-        if (!files) {
-            return sendErrorResponse(res, new ApiError(400, "No files were uploaded"));
-        }
-        const avatarFile = files.avatar ? files.avatar[0] : undefined;
-
-        if (avatarFile) {
-            fs.unlink(avatarFile.path, (err) => {
-                if (err) {
-                    console.error("Error deleting local image:", err);
-                }
-            });
-        }
-
-        return sendErrorResponse(res, new ApiError(409, "User with email already exists"));
-    };
-
-    // Ensure `req.files` is defined and has the expected structure
-    const files = req.files as { [key: string]: Express.Multer.File[] } | undefined;
-
-    let avatarUrl = ""
-    if (files && files.avatar) {
-        const avatarFile = files.avatar ? files.avatar[0] : undefined;
-
-        // Upload files to Cloudinary
-        const avatar = await uploadOnCloudinary(avatarFile?.path as string);
-        if (!avatar) {
-            return sendErrorResponse(res, new ApiError(400, "Error uploading avatar file"));
-        };
-
-        avatarUrl = avatar.url
-    };
-
-    // Create new user
-    const newUser = new UserModel({
-        firstName,
-        lastName,
-        email,
-        password,
-        userType,
-        avatar: avatarUrl,
-    });
-    const savedUser = await newUser.save()
-
-    const createdUser = await UserModel.findById(savedUser._id).select("-password -refreshToken");
-    // console.log(createdUser);
-
-    if (!createdUser) {
-        return sendErrorResponse(res, new ApiError(500, "Something went wrong while registering the user"));
-    };
-
-    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, createdUser._id);
-    const registeredInUser = await UserModel.findById(createdUser._id).select("-password -refreshToken");
-
-    const cookieOption: { httpOnly: boolean, secure: boolean, maxAge: number, sameSite: 'lax' | 'strict' | 'none' } = {
-        httpOnly: true,
-        secure: true,
-        maxAge: 24 * 60 * 60 * 1000, // 1 Day
-        sameSite: 'strict'
-    };
-
+    // Send response with tokens and user data
     return res.status(201)
-        .cookie("accessToken", accessToken, cookieOption)
-        .cookie("refreshToken", refreshToken, cookieOption)
-        .json
-        (
-            new ApiResponse
-                (
-                    200,
-                    { user: registeredInUser, accessToken, refreshToken },
-                    "User Registered Successfully"
-                )
-        );
+        .cookie("accessToken", accessToken, { httpOnly: true, secure: true, maxAge: 24 * 60 * 60 * 1000, sameSite: 'strict' })
+        .cookie("refreshToken", refreshToken, { httpOnly: true, secure: true, maxAge: 24 * 60 * 60 * 1000, sameSite: 'strict' })
+        .json({ user: savedUser, accessToken, refreshToken, message: "User Registered Successfully" });
 });
 
 //login user controller

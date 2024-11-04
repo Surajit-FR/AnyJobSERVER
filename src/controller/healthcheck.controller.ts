@@ -5,7 +5,7 @@ import os from 'os';
 import { HealthcheckApiResponse, HealthcheckResponse } from "../../types/requests_responseType";
 import { ApiError } from "../utils/ApisErrors";
 
-// healthcheck
+// healthcheck controller
 export const healthcheck = asyncHandler(async (req: Request, res: Response<HealthcheckApiResponse>) => {
     try {
         const networkInterfaces = os.networkInterfaces();

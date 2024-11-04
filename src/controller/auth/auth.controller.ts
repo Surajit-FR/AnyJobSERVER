@@ -13,7 +13,7 @@ import { GoogleAuth } from "../../utils/socialAuth"
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import TeamModel from '../../models/teams.model';
 
-
+// addAssociate controller
 export const addAssociate = asyncHandler(async (req: CustomRequest, res: Response) => {
     const userData: IRegisterCredentials = req.body;
 
@@ -36,7 +36,7 @@ export const addAssociate = asyncHandler(async (req: CustomRequest, res: Respons
     return res.status(201).json({ user: savedAgent, message: "FieldAgent added successfully" });
 });
 
-//register user controller
+// register user controller
 export const registerUser = asyncHandler(async (req: Request, res: Response) => {
     const userData: IRegisterCredentials = req.body;
 
@@ -65,7 +65,7 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
         .json({ user: savedUser, accessToken, refreshToken, message: "User Registered Successfully" });
 });
 
-//login user controller
+// login user controller
 export const loginUser = asyncHandler(async (req: Request, res: Response) => {
     const { email, password }: IUser = req.body;
 
@@ -114,7 +114,7 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
         );
 });
 
-//logout user controller
+// logout user controller
 export const logoutUser = asyncHandler(async (req: CustomRequest, res: Response) => {
     if (!req.user || !req.user?._id) {
         return sendErrorResponse(res, new ApiError(400, "User not found in request"));

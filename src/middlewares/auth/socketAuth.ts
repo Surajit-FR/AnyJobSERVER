@@ -1,11 +1,12 @@
 import { Socket, ExtendedError } from 'socket.io';
 import jwt from 'jsonwebtoken';
+import UserModel from '../../models/user.model';
+import { log } from 'console';
 
 
 // Middleware function to verify JWT token for socket connections
 export const socketAuthMiddleware = (socket: Socket, next: (err?: ExtendedError) => void) => {
     const JWT_SECRET = process.env.REFRESH_TOKEN_SECRET;
-    // console.log({ JWT_SECRET });
     const token = socket.handshake.headers.accesstoken;
 
     if (!token) {
@@ -13,13 +14,18 @@ export const socketAuthMiddleware = (socket: Socket, next: (err?: ExtendedError)
     }
 
     // Verify the token
-    jwt.verify(token as string, JWT_SECRET as string, (err, decoded) => {
+    jwt.verify(token as string, JWT_SECRET as string, async (err, decoded) => {
         if (err) {
-            // console.log({ JWT_SECRET });
+            console.log({ JWT_SECRET });
             return next(new Error("Authentication error: Invalid token"));
         }
-        socket.data.userId = (decoded as any)._id; 
-        // console.log(socket.data.userId);
+        const connectedUser = await UserModel.findById((decoded as any) ._id).select("-password -refreshToken");
+        if (!connectedUser) {
+            console.log("---");            
+            return next(new Error("Authentication error: User not found"));
+        }
+        socket.data.userId = connectedUser ._id; 
+        socket.data.userType = connectedUser.userType;
 
         next(); 
     });

@@ -9,6 +9,7 @@ import { IAddQuestionPayloadReq } from "../../types/requests_responseType";
 import { IQuestion } from "../../types/schemaTypes";
 
 
+// addQuestions controller
 export const addQuestions = asyncHandler(async (req: CustomRequest, res: Response) => {
 
     const { categoryId, questionArray }: IAddQuestionPayloadReq = req.body;
@@ -105,6 +106,7 @@ export const addQuestions = asyncHandler(async (req: CustomRequest, res: Respons
 //     return sendSuccessResponse(res, 200, finalResult, "Questions retrieved successfully for the given Category.");
 // });
 
+// fetchQuestions controller
 export const fetchQuestions = asyncHandler(async (req: Request, res: Response) => {
     const categoryId = req.query.categoryId; // Get categoryId from query parameters
 
@@ -181,6 +183,7 @@ export const fetchQuestions = asyncHandler(async (req: Request, res: Response) =
     return sendSuccessResponse(res, 200, finalResults, "Questions retrieved successfully.");
 });
 
+// fetchSingleQuestion controller
 export const fetchSingleQuestion = asyncHandler(async (req: Request, res: Response) => {
     const { categoryId, questionId } = req.params;
     let finalResult;
@@ -247,6 +250,7 @@ export const fetchSingleQuestion = asyncHandler(async (req: Request, res: Respon
 
 });
 
+// updateSingleQuestion controller
 export const updateSingleQuestion = asyncHandler(async (req: Request, res: Response) => {
     const { categoryId, questionId } = req.params;
     const updates = req.body;
@@ -269,6 +273,7 @@ export const updateSingleQuestion = asyncHandler(async (req: Request, res: Respo
     return sendSuccessResponse(res, 200, updatedQuestion, "Question updated successfully.");
 });
 
+// deleteSingleQuestion controller
 export const deleteSingleQuestion = asyncHandler(async (req: Request, res: Response) => {
     const { questionId } = req.params;
 

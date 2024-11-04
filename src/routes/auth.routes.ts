@@ -7,11 +7,12 @@ import {
     logoutUser,
     loginUser,
     registerUser,
-    AuthUserSocial,    
+    AuthUserSocial,
+    addAssociate
 } from "../controller/auth/auth.controller";
 import { upload } from "../middlewares/multer.middleware";
 import { VerifyJWTToken } from "../middlewares/auth/userAuth";
-import {HandleSocialAuthError} from '../middlewares/auth/socialAuth';
+import { HandleSocialAuthError } from '../middlewares/auth/socialAuth';
 import { rateLimiter } from '../middlewares/rateLimiter.middleware';
 
 
@@ -29,7 +30,7 @@ router.route('/signup').post(
 );
 
 // Auth user (social)
-router.post('/user/social',rateLimiter, [ HandleSocialAuthError], AuthUserSocial);
+router.post('/user/social', rateLimiter, [HandleSocialAuthError], AuthUserSocial);
 
 //login or sign-in route
 router.route('/signin').post(
@@ -43,6 +44,11 @@ router.route('/logout').post(
     rateLimiter,
     [VerifyJWTToken],
     logoutUser
+);
+router.route('/add-associate').post(
+    rateLimiter,
+    [VerifyJWTToken],
+    addAssociate
 );
 
 // Refresh token routes

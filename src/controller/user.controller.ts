@@ -191,11 +191,9 @@ export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Re
 export const getServiceProviderList = asyncHandler(async (req: Request, res: Response) => {
     const { page = 1, limit = 10, query = '', sortBy = 'createdAt', sortType = 'desc' } = req.query;
 
-    // Convert `page` and `limit` to numbers, if not provided, default values are used
     const pageNumber = parseInt(page as string, 10);
     const limitNumber = parseInt(limit as string, 10);
 
-    // Handle search query
     const searchQuery = query
         ? {
             $or: [
@@ -206,18 +204,15 @@ export const getServiceProviderList = asyncHandler(async (req: Request, res: Res
         }
         : {};
 
-    // Build the match criteria
     const matchCriteria = {
         isDeleted: false,
         userType: "ServiceProvider",
         ...searchQuery
     };
 
-    // Handle sorting, default sorting is by createdAt in descending order
     const sortCriteria: any = {};
     sortCriteria[sortBy as string] = sortType === 'desc' ? -1 : 1;
 
-    // Get the data using aggregation
     const results = await UserModel.aggregate([
         { $match: matchCriteria },
         {
@@ -237,7 +232,30 @@ export const getServiceProviderList = asyncHandler(async (req: Request, res: Res
             }
         },
         {
+            $lookup: {
+                from: "teams",
+                localField: "_id",
+                foreignField: "serviceProviderId",
+                as: "teams"
+            }
+        },
+        {
+            $unwind: {
+                path: "$teams",
+                preserveNullAndEmptyArrays: true
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "teams.fieldAgentIds",
+                foreignField: "_id",
+                as: "fieldAgents"
+            }
+        },
+        {
             $project: {
+                teams: 0,
                 __v: 0,
                 isDeleted: 0,
                 refreshToken: 0,
@@ -246,6 +264,10 @@ export const getServiceProviderList = asyncHandler(async (req: Request, res: Res
                 'additionalInfo.isDeleted': 0,
                 'userAddress.__v': 0,
                 'userAddress.isDeleted': 0,
+                'fieldAgents.password': 0,
+                'fieldAgents.refreshToken': 0,
+                'fieldAgents.isDeleted': 0,
+                'fieldAgents.__v': 0
             }
         },
         { $sort: sortCriteria },
@@ -253,10 +275,8 @@ export const getServiceProviderList = asyncHandler(async (req: Request, res: Res
         { $limit: limitNumber }
     ]);
 
-    // Count total records for pagination
     const totalRecords = await UserModel.countDocuments(matchCriteria);
 
-    // Send the response
     return sendSuccessResponse(res, 200, {
         serviceProviders: results,
         pagination: {

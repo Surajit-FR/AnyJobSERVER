@@ -70,6 +70,15 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
         default: 0,
         min: 10
     },
+    isTipGiven: {
+        type: Boolean,
+        default: false
+    },
+    tipAmount: {
+        type: Number,
+        default: 0,
+        min: 10
+    },
     isApproved: {
         type: String,
         enum: ["Pending", "Approved", "Rejected"],
@@ -79,9 +88,9 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
         type: Boolean,
         default: false
     },
-    serviceProviderId:{
+    serviceProviderId: {
         type: mongoose.Schema.Types.ObjectId,
-        default:null
+        default: null
     },
     // Answer array to store answers and derived answers
     answerArray: [answerSchema],
@@ -106,8 +115,8 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
     },
     requestProgress: {
         type: String,
-        enum: ["NotStarted", "Ongoing", "Completed"],
-        default:"NotStarted"
+        enum: ["NotStarted", "Pending", "Ongoing", "Completed", "Cancelled"],
+        default: "NotStarted"
     },
     isDeleted: {
         type: Boolean,

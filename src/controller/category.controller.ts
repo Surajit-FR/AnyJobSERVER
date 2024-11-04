@@ -10,6 +10,8 @@ import QuestionModel from "../models/question.model";
 import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary";
 import { IAddCategoryPayloadReq } from "../../types/requests_responseType";
 import fs from 'fs';
+
+
 // addCategory controller
 export const addCategory = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { name }: IAddCategoryPayloadReq = req.body;

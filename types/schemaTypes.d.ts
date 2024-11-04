@@ -8,11 +8,11 @@ export interface IUser extends Document {
     email: string;
     phone: string;
     dob: Date;
-    oldPassword:string;
+    oldPassword: string;
     password: string;
     avatar: string;
-    coverImage:string;
-    isVerified:boolean;
+    coverImage: string;
+    isVerified: boolean;
     userType: string;
     refreshToken?: string;
     isPasswordCorrect(password: string): Promise<boolean>;
@@ -25,24 +25,24 @@ export interface IUser extends Document {
 
 export interface IAdditionalUserInfo extends Document {
     _id: string | ObjectId;
-    userId:ObjectId;
+    userId: ObjectId;
     companyName: string;
     companyIntroduction: string;
-    DOB:Date;
+    DOB: Date;
     driverLicense: string;
     driverLicenseImage: string;
     EIN: string;
-    socialSecurity:string;
+    socialSecurity: string;
     companyLicense: string;
     companyLicenseImage: string;
-    insurancePolicy:number;
-    licenseProofImage:string;
-    businessLicenseImage:string;
-    businessImage:string;
+    insurancePolicy: number;
+    licenseProofImage: string;
+    businessLicenseImage: string;
+    businessImage: string;
     businessName: string;
     isReadAggrement: boolean;
-    isAnyArrivalFee?:boolean;
-    arrivalFee:number;
+    isAnyArrivalFee?: boolean;
+    arrivalFee: number;
     isDeleted?: boolean;
     createdAt?: Date;
     updatedAt?: Date;
@@ -50,17 +50,17 @@ export interface IAdditionalUserInfo extends Document {
 
 export interface IAddressType extends Document {
     _id: string | ObjectId;
-    userId:ObjectId;
+    userId: ObjectId;
     street: string;
     city: string;
     state: string;
     country: string;
     zipCode: number;
-    apartmentNumber?: string; 
-    landmark?: string;        
-    latitude: number;        
-    longitude: number;       
-    isPrimary?: boolean;      
+    apartmentNumber?: string;
+    landmark?: string;
+    latitude: number;
+    longitude: number;
+    isPrimary?: boolean;
     createdAt: Date;
     updatedAt: Date;
 };
@@ -69,20 +69,20 @@ export interface ICategorySchema extends Document {
     _id: ObjectId;
     name: string;
     categoryImage: string;
-    owner:ObjectId;
+    owner: ObjectId;
     isDeleted: boolean;
     createdAt?: Date;
     updatedAt?: Date;
 };
 
 export interface ISubCategorySchema extends Document {
-    _id:ObjectId;
-    categoryId:ObjectId;
-    name:string;
-    subCategoryImage:string;
-    questionArray:Array<any>;
-    owner:ObjectId;
-    isDeleted:boolean;
+    _id: ObjectId;
+    categoryId: ObjectId;
+    name: string;
+    subCategoryImage: string;
+    questionArray: Array<any>;
+    owner: ObjectId;
+    isDeleted: boolean;
     createdAt?: Date;
     updatedAt?: Date;
 };
@@ -99,14 +99,16 @@ export interface IServiceSchema extends Document {
     serviceLongitude: number;
     isIncentiveGiven: boolean;
     incentiveAmount: number;
+    isTipGiven: boolean;
+    tipAmount: number;
     isApproved: string;
-    isReqAcceptedByServiceProvider:boolean;
-    serviceProviderId:ObjectId;
+    isReqAcceptedByServiceProvider: boolean;
+    serviceProviderId: ObjectId;
     serviceProductImage: string;
     otherInfo: object;
     userId: ObjectId;
     answerArray: Array<any>;
-    requestProgress:string;
+    requestProgress: string;
     isDeleted: boolean;
     createdAt?: Date;
     updatedAt?: Date;
@@ -126,7 +128,7 @@ export interface IQuestion {
     question: string;
     options: Map<string, string>;
     derivedQuestions: IDerivedQuestion[]; // Derived questions are stored here
-    isDeleted:boolean,
+    isDeleted: boolean,
     createdAt?: Date;
     updatedAt?: Date;
 
@@ -163,11 +165,31 @@ export interface IShiftSchema extends Document {
 };
 
 export interface IOTPSchema extends Document {
-    _id:ObjectId;
-    userId:ObjectId;
-    phoneNumber:string;
-    otp:string;
+    _id: ObjectId;
+    userId: ObjectId;
+    phoneNumber: string;
+    otp: string;
+    secret: string;
     createdAt?: Date;
-    expiredAt:Date;
+    expiredAt: Date;
+    updatedAt?: Date;
+};
+
+export interface IRatingSchema extends Document {
+    _id: ObjectId;
+    ratedBy: ObjectId;
+    ratedTo: ObjectId;
+    rating: number;
+    comments: string;
+    isDeleted: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
+};
+export interface ITeamSchema extends Document {
+    _id: ObjectId;
+    serviceProviderId: ObjectId;
+    fieldAgentIds: Array;
+    isDeleted: boolean;
+    createdAt?: Date;
     updatedAt?: Date;
 };

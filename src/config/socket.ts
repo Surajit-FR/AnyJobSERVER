@@ -1,7 +1,7 @@
 import { Server as HttpServer } from "http";
 import { Server, Socket } from "socket.io";
 import { socketAuthMiddleware } from "../middlewares/auth/socketAuth";
-import { updateServiceRequest, fetchAssociatedCustomer } from "../controller/service.controller";
+import { handleServiceRequestState, fetchAssociatedCustomer } from "../controller/service.controller";
 
 
 // Function to initialize Socket.io
@@ -20,8 +20,12 @@ export const initSocket = (server: HttpServer) => {
 
     io.on("connection", (socket: Socket) => {
         const userId = socket.data.userId;
-        // console.log("socket=>", socket.handshake);
-        console.log(`A user with userId ${userId} connected on socket ${socket.id}`);
+        const usertype = socket.data.userType;
+        console.log(`A ${usertype} with userId ${userId} connected on socket ${socket.id}`);
+
+        if (usertype === "Customer") {
+            connectedCustomers[userId] = socket.id;
+        }
 
         socket.on("acceptServiceRequest", async (requestId: string) => {
             console.log(`Service provider with _id ${userId} accepted the request ${requestId}`);
@@ -37,7 +41,7 @@ export const initSocket = (server: HttpServer) => {
             console.log(connectedCustomers);
             if (customerId && connectedCustomers[customerId]) {
                 io.to(connectedCustomers[customerId]).emit("serviceProviderAccepted", {
-                    message: `A user with userId ${userId} is on the way`,
+                    message: `A service provider with userId ${userId} is on the way`,
                     requestId,
                 });
             };
@@ -46,10 +50,12 @@ export const initSocket = (server: HttpServer) => {
             socket.on("locationUpdate", async (location: { latitude: number; longitude: number }) => {
 
                 if (customerId && connectedCustomers[customerId]) {
-                    io.to(connectedCustomers[customerId]).emit("serviceProviderLocationUpdate", {
+                    io.to(connectedCustomers[customerId]).emit("serviceProviderLocationUpdate", {                          
                         latitude: location.latitude,
                         longitude: location.longitude,
                     });
+                    console.log("Service provider location update =>");
+                    
                 }
             });
         });

@@ -10,6 +10,7 @@ export interface IRegisterCredentials extends ICredentials {
     firstName: string;
     lastName: string;
     userType: string;
+    phone:string;
 };
 
 export interface IAddCategoryPayloadReq {
@@ -49,7 +50,7 @@ export interface IQuestion {
     question: string;
     options: Map<string, string>;
     derivedQuestions: IDerivedQuestion[]; // Derived questions are stored here
-    isDeleted:boolean
+    isDeleted: boolean
 };
 
 export interface IFetchQuestionCatSubCatWiseParams {
@@ -62,11 +63,13 @@ export interface IAddServicePayloadReq {
     serviceStartDate: Date,
     serviceShifftId: ObjectId,
     SelectedShiftTime: object,
-    serviceZipCode: Number,
-    serviceLatitude: Number,
-    serviceLongitude: Number,
-    isIncentiveGiven: Boolean,
-    incentiveAmount: Number,
+    serviceZipCode: number,
+    serviceLatitude: number,
+    serviceLongitude: number,
+    isIncentiveGiven: boolean,
+    incentiveAmount: number,
+    isTipGiven: boolean,
+    tipAmount: number,
     userId: ObjectId,
     answerArray: IQuestion
 };

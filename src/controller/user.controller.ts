@@ -8,7 +8,7 @@ import { sendSuccessResponse, sendErrorResponse } from "../utils/response";
 import { CustomRequest } from "../../types/commonType";
 import { uploadOnCloudinary } from "../utils/cloudinary";
 import { asyncHandler } from "../utils/asyncHandler";
-import mongoose, { mongo } from 'mongoose';
+import mongoose from 'mongoose';
 
 
 // get loggedin user
@@ -311,7 +311,6 @@ export const getRegisteredCustomerList = asyncHandler(async (req: Request, res: 
     };
 
     const matchCriteria = {
-        isDeleted: false,
         userType: "Customer",
         ...searchFilter
     };
@@ -324,26 +323,17 @@ export const getRegisteredCustomerList = asyncHandler(async (req: Request, res: 
 
     // Fetch the filtered and paginated results
     const customers = await UserModel.aggregate([
-        {
-            $match: matchCriteria
-        },
+        { $match: matchCriteria },
         {
             $project: {
                 __v: 0,
-                isDeleted: 0,
                 refreshToken: 0,
                 password: 0,
             }
         },
-        {
-            $sort: { [sortField]: sortDirection }
-        },
-        {
-            $skip: (pageNumber - 1) * pageSize
-        },
-        {
-            $limit: pageSize
-        }
+        { $sort: { [sortField]: sortDirection } },
+        { $skip: (pageNumber - 1) * pageSize },
+        { $limit: pageSize }
     ]);
 
     return sendSuccessResponse(res, 200, {
@@ -455,6 +445,7 @@ export const getSingleUser = asyncHandler(async (req: Request, res: Response) =>
         "User retrieved successfully.");
 });
 
+// verifyServiceProvider controller
 export const verifyServiceProvider = asyncHandler(async (req: Request, res: Response) => {
     const { serviceProviderId } = req.params;
     const { isVerified }: { isVerified: boolean } = req.body;
@@ -471,7 +462,8 @@ export const verifyServiceProvider = asyncHandler(async (req: Request, res: Resp
         serviceProviderId,
         { $set: { isVerified } },
         { new: true }
-    );
+    ).select('-password -refreshToken -__V');
+
     if (!results) {
         return sendErrorResponse(res, new ApiError(404, "Service Provider not found."));
     }
@@ -480,5 +472,32 @@ export const verifyServiceProvider = asyncHandler(async (req: Request, res: Resp
         ? "Service Provider profile verified successfully."
         : "Service Provider profile made unverified.";
 
-    return sendSuccessResponse(res, 200, results, message);
+    return sendSuccessResponse(res, 200, {}, message);
+});
+
+// banUser controller
+export const banUser = asyncHandler(async (req: Request, res: Response) => {
+    const { userId } = req.params;
+    const { isDeleted }: { isDeleted: boolean } = req.body;
+
+    if (!userId) {
+        return sendErrorResponse(res, new ApiError(400, "User ID is required."));
+    };
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return sendErrorResponse(res, new ApiError(400, "Invalid User ID."));
+    };
+
+    const results = await UserModel.findByIdAndUpdate(
+        userId,
+        { $set: { isDeleted } },
+        { new: true }
+    ).select('-password -refreshToken -__V');
+
+    if (!results) {
+        return sendErrorResponse(res, new ApiError(404, "User not found."));
+    };
+
+    const message = isDeleted ? "User profile made banned." : "User profile made unbanned.";
+    return sendSuccessResponse(res, 200, {}, message);
 });

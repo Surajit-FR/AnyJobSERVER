@@ -33,5 +33,5 @@ const shiftSchema: Schema<IShiftSchema> = new Schema({
 }, { timestamps: true });
 
 // Create the Shift model
-const ShiftModel: Model<IShiftSchema> = mongoose.model<IShiftSchema>('Shift', shiftSchema);
+const ShiftModel: Model<IShiftSchema> = mongoose.model<IShiftSchema>('shift', shiftSchema);
 export default ShiftModel;

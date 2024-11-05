@@ -67,6 +67,53 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
     return sendSuccessResponse(res, 201, newService, "Service Request added Successfully");
 });
 
+// getServiceRequestList controller
+export const getServiceRequestList = asyncHandler(async (req: Request, res: Response) => {
+    const { page = "1", limit = "10", query = '', sortBy = 'createdAt', sortType = 'desc' } = req.query;
+
+    const pageNumber = parseInt(page as string, 10) || 1;
+    const limitNumber = parseInt(limit as string, 10) || 10;
+    const skip = (pageNumber - 1) * limitNumber;
+
+    const searchQuery = query
+        ? {
+            $or: [
+                { firstName: { $regex: query, $options: "i" } },
+                { lastName: { $regex: query, $options: "i" } },
+                { email: { $regex: query, $options: "i" } }
+            ]
+        }
+        : {};
+
+    // Explicitly cast sortBy and sortType to string
+    const validSortBy = (sortBy as string) || 'createdAt';
+    const validSortType = (sortType as string).toLowerCase() === 'desc' ? -1 : 1;
+
+    const sortCriteria: any = {};
+    sortCriteria[validSortBy] = validSortType;
+
+    const results = await ServiceModel.find(searchQuery)
+        .populate({
+            path: 'userId',
+            select: 'firstName lastName email phone'
+        })
+        .sort(sortCriteria)
+        .skip(skip)
+        .limit(limitNumber)
+        .select('-isDeleted -createdAt -updatedAt -__v');
+
+    const totalRecords = await ServiceModel.countDocuments(searchQuery);
+
+    return sendSuccessResponse(res, 200, {
+        serviceRequests: results,
+        pagination: {
+            total: totalRecords,
+            page: pageNumber,
+            limit: limitNumber
+        }
+    }, "All Service requests retrieved successfully.");
+});
+
 // getPendingServiceRequest controller
 export const getPendingServiceRequest = asyncHandler(async (req: Request, res: Response) => {
     const results = await ServiceModel.aggregate([

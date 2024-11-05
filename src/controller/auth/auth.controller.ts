@@ -86,6 +86,10 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
         return sendErrorResponse(res, new ApiError(403, "Invalid user credentials"));
     };
 
+    if (user.isDeleted) {
+        return sendErrorResponse(res, new ApiError(403, "Your account is banned from a AnyJob."));
+    };
+
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, user._id);
     const loggedInUser = await UserModel.findById(user._id).select("-password -refreshToken");
 

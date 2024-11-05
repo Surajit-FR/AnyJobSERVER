@@ -30,6 +30,7 @@ export const VerifyJWTToken = asyncHandler(async (req: CustomRequest, res: Respo
     }
 });
 
+// verifyUserType
 export const verifyUserType = (requiredUserTypes: string[] | null = null) => {
     return asyncHandler(async (req: CustomRequest, res: Response, next: NextFunction) => {
         if (!req.user) {

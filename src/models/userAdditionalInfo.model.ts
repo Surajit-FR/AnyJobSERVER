@@ -24,5 +24,5 @@ const AdditionalUserInfoSchema: Schema<IAdditionalUserInfo> = new Schema({
     isDeleted: { type: Boolean, default: false }
 }, { timestamps: true });
 
-const AdditionalInfoModel: Model<IAdditionalUserInfo> = mongoose.model<IAdditionalUserInfo>("AdditionalInfo", AdditionalUserInfoSchema);
+const AdditionalInfoModel: Model<IAdditionalUserInfo> = mongoose.model<IAdditionalUserInfo>("additionalInfo", AdditionalUserInfoSchema);
 export default AdditionalInfoModel;

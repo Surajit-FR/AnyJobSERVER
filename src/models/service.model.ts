@@ -126,5 +126,5 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
 }, { timestamps: true });
 
 
-const ServiceModel: Model<IServiceSchema> = mongoose.model<IServiceSchema>('Service', ServiceSchema);
+const ServiceModel: Model<IServiceSchema> = mongoose.model<IServiceSchema>('service', ServiceSchema);
 export default ServiceModel;

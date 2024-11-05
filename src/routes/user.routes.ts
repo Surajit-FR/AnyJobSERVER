@@ -9,7 +9,8 @@ import {
     getRegisteredCustomerList,
     getUsers,
     verifyServiceProvider,
-    getSingleUser
+    getSingleUser,
+    banUser,
 } from "../controller/user.controller";
 
 
@@ -46,10 +47,9 @@ router.route('/get-registered-customers').get(getRegisteredCustomerList);
 //fetch users List
 router.route('/get-users').get(getUsers);
 
-//fetch single user
-router.route('/:userId').get(getSingleUser);
-
-
+router.route('/u/:userId')
+    .get(getSingleUser)
+    .patch(verifyUserType(["SuperAdmin"]), banUser);
 
 router.route('/verify/:serviceProviderId').patch(
     verifyUserType(["SuperAdmin"]),

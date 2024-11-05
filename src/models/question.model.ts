@@ -26,7 +26,7 @@ const questionSchema = new Schema<IQuestion>({
   isDeleted: { type: Boolean, default: false }
 }, { timestamps: true });
 
-const QuestionModel: Model<IQuestion> = model<IQuestion>('Question', questionSchema);
+const QuestionModel: Model<IQuestion> = model<IQuestion>('question', questionSchema);
 export default QuestionModel;
 
 

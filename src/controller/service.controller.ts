@@ -80,7 +80,8 @@ export const getServiceRequestList = asyncHandler(async (req: Request, res: Resp
             $or: [
                 { firstName: { $regex: query, $options: "i" } },
                 { lastName: { $regex: query, $options: "i" } },
-                { email: { $regex: query, $options: "i" } }
+                { requestProgress: { $regex: query, $options: "i" } },
+                { email: { $regex: query, $options: "i" } },
             ]
         }
         : {};

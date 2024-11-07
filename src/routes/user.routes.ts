@@ -11,6 +11,7 @@ import {
     verifyServiceProvider,
     getSingleUser,
     banUser,
+    fetchAssociates
 } from "../controller/user.controller";
 
 
@@ -46,6 +47,10 @@ router.route('/get-registered-customers').get(getRegisteredCustomerList);
 
 //fetch users List
 router.route('/get-users').get(getUsers);
+
+//fetch associate List
+router.route('/get-associates/:serviceProviderId').get(fetchAssociates);
+
 
 router.route('/u/:userId')
     .get(getSingleUser)

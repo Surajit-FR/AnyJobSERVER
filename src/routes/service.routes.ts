@@ -8,7 +8,8 @@ import {
     deleteService,
     fetchServiceRequest,
     handleServiceRequestState,
-    fetchSingleServiceRequest
+    fetchSingleServiceRequest,
+    getServiceRequestByStatus
 } from "../controller/service.controller";
 
 const router: Router = express.Router();
@@ -20,6 +21,9 @@ router.route('/')
 
 router.route('/get-pending-service')
     .get(getPendingServiceRequest);
+
+router.route('/get-service-request')
+    .get(getServiceRequestByStatus);
 
 router.route('/nearby-services-request')
     .get(verifyUserType(['ServiceProvider']), fetchServiceRequest);

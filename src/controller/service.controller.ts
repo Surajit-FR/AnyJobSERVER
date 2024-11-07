@@ -335,3 +335,62 @@ export const fetchAssociatedCustomer = async (serviceId: string) => {
 
     return serviceRequest[0].userId;
 };
+
+export const getServiceRequestByStatus = asyncHandler(async (req: Request, res: Response) => {
+    const { requestProgress } = req.body;
+    const results = await ServiceModel.aggregate([
+        {
+            $match: {
+                requestProgress: requestProgress,
+            }
+        },
+        {
+            $lookup: {
+                from: "categories",
+                foreignField: "_id",
+                localField: "categoryId",
+                as: "categoryId"
+            }
+        },
+        // {
+        //     $unwind: {
+        //         // preserveNullAndEmptyArrays: true,
+        //         path: "$categoryId"
+        //     }
+        // },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "userId",
+                as: "userId"
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$userId"
+            }
+        },
+        {
+            $project: {
+                isDeleted: 0,
+                __v: 0,
+                'userId.password': 0,
+                'userId.refreshToken': 0,
+                'userId.isDeleted': 0,
+                'userId.__v': 0,
+                'userId.signupType': 0,
+                'subCategoryId.isDeleted': 0,
+                'subCategoryId.__v': 0,
+                // 'categoryId.isDeleted': 0,
+                // 'categoryId.__v': 0,
+            }
+        },
+        { $sort: { createdAt: -1 } },
+    ]);
+
+    const totalRequest = results.length;
+
+    return sendSuccessResponse(res, 200, { results, totalRequest: totalRequest }, "Service request retrieved successfully.");
+});

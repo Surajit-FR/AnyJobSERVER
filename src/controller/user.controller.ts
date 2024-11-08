@@ -3,6 +3,7 @@ import { Request, Response } from "express";
 import UserModel from "../models/user.model";
 import addressModel from "../models/address.model";
 import additionalInfoModel from "../models/userAdditionalInfo.model";
+import TeamModel from '../models/teams.model';
 import { ApiError } from "../utils/ApisErrors";
 import { sendSuccessResponse, sendErrorResponse } from "../utils/response";
 import { CustomRequest } from "../../types/commonType";
@@ -254,6 +255,11 @@ export const getServiceProviderList = asyncHandler(async (req: Request, res: Res
             }
         },
         {
+            $addFields: {
+                fieldAgentCount: { $size: "$fieldAgents" }
+            }
+        },
+        {
             $project: {
                 teams: 0,
                 __v: 0,
@@ -267,7 +273,7 @@ export const getServiceProviderList = asyncHandler(async (req: Request, res: Res
                 'fieldAgents.password': 0,
                 'fieldAgents.refreshToken': 0,
                 'fieldAgents.isDeleted': 0,
-                'fieldAgents.__v': 0
+                'fieldAgents.__v': 0,
             }
         },
         { $sort: sortCriteria },
@@ -501,3 +507,53 @@ export const banUser = asyncHandler(async (req: Request, res: Response) => {
     const message = isDeleted ? "User profile made banned." : "User profile made unbanned.";
     return sendSuccessResponse(res, 200, {}, message);
 });
+
+export const fetchAssociates = asyncHandler(async (req: Request, res: Response) => {
+
+    const { serviceProviderId } = req.params;
+    if (!serviceProviderId) {
+        return sendErrorResponse(res, new ApiError(400, "Service provider ID is required."));
+    };
+
+    if (!mongoose.Types.ObjectId.isValid(serviceProviderId)) {
+        return sendErrorResponse(res, new ApiError(400, "Invalid Service provider ID."));
+    };
+
+    const results = await TeamModel.aggregate([
+        {
+            $match: {
+                isDeleted: false,
+                serviceProviderId: new mongoose.Types.ObjectId(serviceProviderId)
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "fieldAgentIds",
+                foreignField: "_id",
+                as: "fieldAgents"
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                serviceProviderId: 1,
+                fieldAgents: {
+                    _id: 1,
+                    firstName: 1,
+                    lastName: 1,
+                    email: 1,
+                    phone: 1,
+                    userType: 1
+                }
+            }
+        }
+    ]);
+
+    if (!results) {
+        return sendErrorResponse(res, new ApiError(404, "User not found."));
+    };
+
+    return sendSuccessResponse(res, 200, results, "Field Agent list retrieved successfully.");
+});
+

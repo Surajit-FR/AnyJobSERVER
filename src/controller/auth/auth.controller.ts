@@ -13,6 +13,14 @@ import { GoogleAuth } from "../../utils/socialAuth"
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import TeamModel from '../../models/teams.model';
 
+// Set cookieOption
+const cookieOption: { httpOnly: boolean, secure: boolean, maxAge: number, sameSite: 'lax' | 'strict' | 'none' } = {
+    httpOnly: true,
+    secure: true,
+    maxAge: 24 * 60 * 60 * 1000, // 1 Day
+    sameSite: 'strict'
+};
+
 // addAssociate controller
 export const addAssociate = asyncHandler(async (req: CustomRequest, res: Response) => {
     const userData: IRegisterCredentials = req.body;
@@ -57,12 +65,20 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
 
     // Generate tokens for the user
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, savedUser._id);
+    const registeredUser = await UserModel.findById(savedUser._id).select("-password -refreshToken");
 
-    // Send response with tokens and user data
-    return res.status(201)
-        .cookie("accessToken", accessToken, { httpOnly: true, secure: true, maxAge: 24 * 60 * 60 * 1000, sameSite: 'strict' })
-        .cookie("refreshToken", refreshToken, { httpOnly: true, secure: true, maxAge: 24 * 60 * 60 * 1000, sameSite: 'strict' })
-        .json({ user: savedUser, accessToken, refreshToken, message: "User Registered Successfully" });
+    return res.status(200)
+        .cookie("accessToken", accessToken, cookieOption)
+        .cookie("refreshToken", refreshToken, cookieOption)
+        .json
+        (
+            new ApiResponse
+                (
+                    200,
+                    { user: registeredUser, accessToken, refreshToken },
+                    "User registered successfully"
+                )
+        );
 });
 
 // login user controller
@@ -92,13 +108,6 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, user._id);
     const loggedInUser = await UserModel.findById(user._id).select("-password -refreshToken");
-
-    const cookieOption: { httpOnly: boolean, secure: boolean, maxAge: number, sameSite: 'lax' | 'strict' | 'none' } = {
-        httpOnly: true,
-        secure: true,
-        maxAge: 24 * 60 * 60 * 1000, // 1 Day
-        sameSite: 'strict'
-    };
 
     if (user.userType === "ServiceProvider" && !user.isVerified) {
         return sendErrorResponse(res, new ApiError(403, "Your account verification is under process. Please wait for confirmation.", [], userId));

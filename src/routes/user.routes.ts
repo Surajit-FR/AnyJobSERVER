@@ -11,7 +11,8 @@ import {
     verifyServiceProvider,
     getSingleUser,
     banUser,
-    fetchAssociates
+    fetchAssociates,
+    assignTeamLead
 } from "../controller/user.controller";
 
 
@@ -59,6 +60,12 @@ router.route('/u/:userId')
 router.route('/verify/:serviceProviderId').patch(
     verifyUserType(["SuperAdmin"]),
     verifyServiceProvider
+);
+
+router.route('/assign-teamlead').post(
+    [VerifyJWTToken],
+    verifyUserType(["ServiceProvider"]),
+    assignTeamLead
 );
 
 export default router;

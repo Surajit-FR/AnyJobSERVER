@@ -50,7 +50,7 @@ router.route('/get-registered-customers').get(getRegisteredCustomerList);
 router.route('/get-users').get(getUsers);
 
 //fetch associate List
-router.route('/get-associates/:serviceProviderId').get(fetchAssociates);
+router.route('/get-associates/:serviceProviderId').get(verifyUserType(["SuperAdmin", "ServiceProvider"]), fetchAssociates);
 
 
 router.route('/u/:userId')

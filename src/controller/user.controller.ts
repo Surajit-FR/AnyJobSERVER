@@ -532,19 +532,19 @@ export const fetchAssociates = asyncHandler(async (req: Request, res: Response) 
                 foreignField: "_id",
                 as: "teamMembers"
             }
-        },       
+        },
         {
             $project: {
                 _id: 1,
                 serviceProviderId: 1,
-                teamMembers:{
+                teamMembers: {
                     _id: 1,
                     firstName: 1,
                     lastName: 1,
                     email: 1,
                     phone: 1,
                     userType: 1
-                }               
+                }
             }
         }
     ]);
@@ -566,12 +566,18 @@ export const assignTeamLead = asyncHandler(async (req: CustomRequest, res: Respo
             serviceProviderId,
             fieldAgentIds: { $in: fieldAgentId }
         });
-        console.log({ team });
+        // console.log({ team });
 
 
         if (!team) {
             return res.status(404).json({ message: "Field agent not found in the service provider's team." });
         }
+
+        // Check if the field agent is already a teamlead
+        const fieldAgent = await UserModel.findById(fieldAgentId);
+        if (fieldAgent?.userType === "teamlead") {
+            return res.status(400).json({ message: "This agent is already a teamlead." });
+        };
 
         // Update the field agent's userType to "teamlead"
         const updatedFieldAgent = await UserModel.findByIdAndUpdate(
@@ -593,4 +599,5 @@ export const assignTeamLead = asyncHandler(async (req: CustomRequest, res: Respo
         res.status(500).json({ message: "An error occurred while assigning team lead." });
     }
 });
+
 

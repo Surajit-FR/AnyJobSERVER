@@ -11,8 +11,10 @@ import {
     verifyServiceProvider,
     getSingleUser,
     banUser,
-    fetchAssociates
+    fetchAssociates,
+    assignTeamLead
 } from "../controller/user.controller";
+import { givePermission, getUserPermissions } from "../controller/permission.controller";
 
 
 const router: Router = express.Router();
@@ -49,7 +51,7 @@ router.route('/get-registered-customers').get(getRegisteredCustomerList);
 router.route('/get-users').get(getUsers);
 
 //fetch associate List
-router.route('/get-associates/:serviceProviderId').get(fetchAssociates);
+router.route('/get-associates/:serviceProviderId').get(verifyUserType(["SuperAdmin", "ServiceProvider"]), fetchAssociates);
 
 
 router.route('/u/:userId')
@@ -60,5 +62,15 @@ router.route('/verify/:serviceProviderId').patch(
     verifyUserType(["SuperAdmin"]),
     verifyServiceProvider
 );
+
+router.route('/assign-teamlead').post(
+    [VerifyJWTToken],
+    verifyUserType(["ServiceProvider"]),
+    assignTeamLead
+);
+
+router.route("/give-permission").post(verifyUserType(['SuperAdmin', 'ServiceProvider']), givePermission);
+router.route("/fetch-permission/:userId").get(verifyUserType(['SuperAdmin', 'ServiceProvider']), getUserPermissions);
+
 
 export default router;

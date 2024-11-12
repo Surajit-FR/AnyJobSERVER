@@ -26,7 +26,7 @@ router.route('/get-service-request')
     .get(getServiceRequestByStatus);
 
 router.route('/nearby-services-request')
-    .get(verifyUserType(['ServiceProvider']), fetchServiceRequest);
+    .get(verifyUserType(['ServiceProvider', 'TeamLead']), fetchServiceRequest);
 
 router.route("/c/:serviceId")
     .get(verifyUserType(['SuperAdmin', "ServiceProvider", "Customer"]), fetchSingleServiceRequest)

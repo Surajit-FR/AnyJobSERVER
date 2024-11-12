@@ -14,6 +14,7 @@ import {
     fetchAssociates,
     assignTeamLead
 } from "../controller/user.controller";
+import { givePermission, getUserPermissions } from "../controller/permission.controller";
 
 
 const router: Router = express.Router();
@@ -67,5 +68,9 @@ router.route('/assign-teamlead').post(
     verifyUserType(["ServiceProvider"]),
     assignTeamLead
 );
+
+router.route("/give-permission").post(verifyUserType(['SuperAdmin', 'ServiceProvider']), givePermission);
+router.route("/fetch-permission/:userId").get(verifyUserType(['SuperAdmin', 'ServiceProvider']), getUserPermissions);
+
 
 export default router;

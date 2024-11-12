@@ -7,6 +7,7 @@ import { sendErrorResponse, sendSuccessResponse } from "../utils/response";
 import { asyncHandler } from "../utils/asyncHandler";
 import mongoose, { ObjectId } from "mongoose";
 import { IAddServicePayloadReq } from "../../types/requests_responseType";
+import PermissionModel from "../models/permission.model";
 
 
 // addService controller
@@ -265,16 +266,25 @@ export const deleteService = asyncHandler(async (req: Request, res: Response) =>
     return sendSuccessResponse(res, 200, {}, "Service deleted successfully");
 });
 
-// fetchServiceRequest controller
+// fetch nearby ServiceRequest controller
 export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {
     const userId = req.user?._id as string;
-    console.log(userId);
+    const userType = req.user?.userType;
+
+    // Check if user is a team lead and needs permission to proceed
+    if (userType === "TeamLead") {
+        const permissions = await PermissionModel.findOne({ userId }).select('acceptRequest');
+        console.log(permissions);
+
+        if (!permissions || !permissions.acceptRequest) {
+            return sendErrorResponse(res, new ApiError(403, 'Permission denied: Accept Request not granted.'));
+        }
+    }
 
     const user = await addressModel.findOne({ userId }).select('zipCode');
     if (!user || !user.zipCode) {
         return sendErrorResponse(res, new ApiError(400, 'User zipcode not found'));
     }
-    // console.log("====");
     const userZipcode = user.zipCode;
 
     const minZipcode = userZipcode - 10;

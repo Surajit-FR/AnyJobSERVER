@@ -193,3 +193,14 @@ export interface ITeamSchema extends Document {
     createdAt?: Date;
     updatedAt?: Date;
 };
+
+export interface IPermissionSchema extends Document {
+    _id: ObjectId;
+    userId: ObjectId;
+    acceptRequest: boolean;
+    assignJob: boolean;
+    fieldAgentManagement: boolean;
+    isDeleted: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
+};

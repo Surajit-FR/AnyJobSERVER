@@ -5,11 +5,10 @@ import { sendErrorResponse, sendSuccessResponse } from "../utils/response";
 import { asyncHandler } from "../utils/asyncHandler";
 import PermissionModel from "../models/permission.model";
 import TeamModel from "../models/teams.model";
-import Api from "twilio/lib/rest/Api";
 
 
 export const givePermission = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const { userId, acceptRequest, assignJob, fieldAgentManagement } = req.body;
+    const {  userId, acceptRequest, assignJob, fieldAgentManagement } = req.body;
     const serviceProviderId = req.user?._id;
 
     // Check if the user exists in the service provider's team
@@ -26,12 +25,13 @@ export const givePermission = asyncHandler(async (req: CustomRequest, res: Respo
     const updatedPermissions = await PermissionModel.findOneAndUpdate(
         { userId }, // Find by userId
         {
+            serviceProviderId,
             userId,
             acceptRequest,
             assignJob,
             fieldAgentManagement
         },
-        { new: true, upsert: true } // upsert: true will create a new doc if one doesn't exist
+        { new: true, upsert: true } 
     );
 
     if (!updatedPermissions) {

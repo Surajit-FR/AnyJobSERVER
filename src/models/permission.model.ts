@@ -1,7 +1,7 @@
 import mongoose, { Model, Schema } from "mongoose";
 import { IPermissionSchema } from "../../types/schemaTypes";
 
-const PermissionSchema: Schema<IPermissionSchema> = new Schema({
+const PermissionSchema: Schema<IPermissionSchema> = new Schema({   
     userId: {
         type: Schema.Types.ObjectId,
         ref: 'user',

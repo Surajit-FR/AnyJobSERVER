@@ -8,6 +8,7 @@ import { asyncHandler } from "../utils/asyncHandler";
 import mongoose, { ObjectId } from "mongoose";
 import { IAddServicePayloadReq } from "../../types/requests_responseType";
 import PermissionModel from "../models/permission.model";
+import TeamModel from "../models/teams.model";
 
 
 // addService controller
@@ -270,37 +271,48 @@ export const deleteService = asyncHandler(async (req: Request, res: Response) =>
 export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {
     const userId = req.user?._id as string;
     const userType = req.user?.userType;
+    let serviceProviderId, address;
 
-    // Check if user is a team lead and needs permission to proceed
     if (userType === "TeamLead") {
-        const permissions = await PermissionModel.findOne({ userId }).select('acceptRequest');
-        console.log(permissions);
+        const permissions = await PermissionModel.findOne({ userId }).select('acceptRequest serviceProviderId');
 
         if (!permissions || !permissions.acceptRequest) {
             return sendErrorResponse(res, new ApiError(403, 'Permission denied: Accept Request not granted.'));
         }
+
+        const team = await TeamModel.aggregate([
+            {
+                $match: {
+                    isDeleted: false,
+                    fieldAgentIds: userId
+                }
+            }
+        ]);
+        serviceProviderId = team[0].serviceProviderId
+        address = await addressModel.findOne({userId:serviceProviderId})
+
+    }else{
+        address = await addressModel.findOne({userId})
+
     }
 
-    const user = await addressModel.findOne({ userId }).select('zipCode');
-    if (!user || !user.zipCode) {
+    if (!address || !address.zipCode) {
         return sendErrorResponse(res, new ApiError(400, 'User zipcode not found'));
     }
-    const userZipcode = user.zipCode;
 
+    const userZipcode = address.zipCode;
     const minZipcode = userZipcode - 10;
     const maxZipcode = userZipcode + 10;
 
     const serviceRequests = await ServiceModel.find({
         isReqAcceptedByServiceProvider: false,
-        serviceZipCode: {
-            $gte: minZipcode,
-            $lte: maxZipcode
-        },
+        serviceZipCode: { $gte: minZipcode, $lte: maxZipcode },
         isDeleted: false
     });
 
     return sendSuccessResponse(res, 200, serviceRequests, 'Service requests fetched successfully');
 });
+
 
 // fetchSingleServiceRequest controller
 export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: Response) => {

@@ -12,6 +12,44 @@ import { IUser } from "../../../types/schemaTypes";
 import { GoogleAuth } from "../../utils/socialAuth"
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import TeamModel from '../../models/teams.model';
+import { ObjectId } from "mongoose";
+
+const fetchUserData = async (userId:string|ObjectId) => {
+    const user = await UserModel.aggregate([
+        {
+            $match: {
+                isDeleted: false,
+                _id: userId
+            }
+        },
+        {
+            $lookup: {
+                from: "permissions",
+                foreignField: "userId",
+                localField: "_id",
+                as: "permission"
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$permission"
+            }
+        },
+        {
+            $project: {
+                'permission.userId': 0,
+                'permission.isDeleted': 0,
+                'permission.createdAt': 0,
+                'permission.updatedAt': 0,
+                'permission.__v': 0,
+                password: 0,
+                refreshToken: 0
+            }
+        }
+    ]);
+    return user;
+}
 
 // addAssociate controller
 export const addAssociate = asyncHandler(async (req: CustomRequest, res: Response) => {
@@ -40,10 +78,8 @@ export const addAssociate = asyncHandler(async (req: CustomRequest, res: Respons
 export const registerUser = asyncHandler(async (req: Request, res: Response) => {
     const userData: IRegisterCredentials = req.body;
 
-    // Register the user using addUser utility function
     const savedUser = await addUser(userData);
 
-    // If the user is a ServiceProvider, create a team for them
     if (userData.userType === 'ServiceProvider') {
         const newTeam = new TeamModel({
             serviceProviderId: savedUser._id,
@@ -54,16 +90,24 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
             return sendErrorResponse(res, new ApiError(400, "ServiceProvider team not created"));
         }
     }
-
-    // Generate tokens for the user
+    const newUser = await fetchUserData(savedUser._id)
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, savedUser._id);
 
-    // Send response with tokens and user data
-    return res.status(201)
+    return res.status(200)
         .cookie("accessToken", accessToken, { httpOnly: true, secure: true, maxAge: 24 * 60 * 60 * 1000, sameSite: 'strict' })
         .cookie("refreshToken", refreshToken, { httpOnly: true, secure: true, maxAge: 24 * 60 * 60 * 1000, sameSite: 'strict' })
-        .json({ user: savedUser, accessToken, refreshToken, message: "User Registered Successfully" });
+        .json({
+            statusCode: 200,
+            data: {
+                user: newUser[0],
+                accessToken,
+                refreshToken
+            },
+            message: "User Registered Successfully",
+            success: true
+        });
 });
+
 
 // login user controller
 export const loginUser = asyncHandler(async (req: Request, res: Response) => {
@@ -91,7 +135,7 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
     };
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, user._id);
-    const loggedInUser = await UserModel.findById(user._id).select("-password -refreshToken");
+    const loggedInUser = await fetchUserData(user._id)
 
     const cookieOption: { httpOnly: boolean, secure: boolean, maxAge: number, sameSite: 'lax' | 'strict' | 'none' } = {
         httpOnly: true,
@@ -112,7 +156,7 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
             new ApiResponse
                 (
                     200,
-                    { user: loggedInUser, accessToken, refreshToken },
+                    { user: loggedInUser[0], accessToken, refreshToken },
                     "User logged In successfully"
                 )
         );
@@ -251,3 +295,5 @@ export const AuthUserSocial = async (req: CustomRequest, res: Response) => {
         return res.status(500).json({ success: false, message: "Internal server error", error: exc.message });
     }
 };
+
+

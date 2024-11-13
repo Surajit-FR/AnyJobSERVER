@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { CustomRequest } from "../../types/commonType";
 import ServiceModel from "../models/service.model";
-import addressModel from "../models/address.model";
+import AddressModel from "../models/address.model";
 import { ApiError } from "../utils/ApisErrors";
 import { sendErrorResponse, sendSuccessResponse } from "../utils/response";
 import { asyncHandler } from "../utils/asyncHandler";
@@ -274,11 +274,11 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
     let serviceProviderId, address;
 
     if (userType === "TeamLead") {
-        const permissions = await PermissionModel.findOne({ userId }).select('acceptRequest serviceProviderId');
+        const permissions = await PermissionModel.findOne({ userId }).select('acceptRequest');
 
         if (!permissions || !permissions.acceptRequest) {
             return sendErrorResponse(res, new ApiError(403, 'Permission denied: Accept Request not granted.'));
-        }
+        };
 
         const team = await TeamModel.aggregate([
             {
@@ -288,17 +288,23 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
                 }
             }
         ]);
-        serviceProviderId = team[0].serviceProviderId
-        address = await addressModel.findOne({userId:serviceProviderId})
 
-    }else{
-        address = await addressModel.findOne({userId})
-
-    }
+        if (team.length > 0) {
+            serviceProviderId = team[0].serviceProviderId;
+            if (!serviceProviderId) {
+                return sendErrorResponse(res, new ApiError(404, 'Service Provider ID not found in team.'));
+            };
+            address = await AddressModel.findOne({ userId: serviceProviderId });
+        } else {
+            return sendErrorResponse(res, new ApiError(404, 'Team not found.'));
+        };
+    } else {
+        address = await AddressModel.findOne({ userId });
+    };
 
     if (!address || !address.zipCode) {
         return sendErrorResponse(res, new ApiError(400, 'User zipcode not found'));
-    }
+    };
 
     const userZipcode = address.zipCode;
     const minZipcode = userZipcode - 10;
@@ -312,7 +318,6 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
 
     return sendSuccessResponse(res, 200, serviceRequests, 'Service requests fetched successfully');
 });
-
 
 // fetchSingleServiceRequest controller
 export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: Response) => {

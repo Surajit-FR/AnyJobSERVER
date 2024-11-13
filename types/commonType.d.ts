@@ -8,8 +8,8 @@ export type DBInfo = {
     HOST: string,
     DATE_TIME: string,
 };
-export type RequestHandler = (req: Request, res: Response, next: NextFunction) => Promises<any>;
-export type AsyncHandler = (req: Request, res: Response, next: NestedPaths) => Promises<any>;
+export type RequestHandler = (req: Request, res: Response, next: NextFunction) => Promise<any>;
+export type AsyncHandler = (req: Request, res: Response, next: NestedPaths) => Promise<any>;
 export interface CustomRequest extends Request {
     user?: IUser
 };

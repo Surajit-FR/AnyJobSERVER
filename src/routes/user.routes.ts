@@ -70,7 +70,7 @@ router.route('/assign-teamlead').post(
 );
 
 router.route("/give-permission").post(verifyUserType(['SuperAdmin', 'ServiceProvider']), givePermission);
-router.route("/fetch-permission/:userId").get(verifyUserType(['SuperAdmin', 'ServiceProvider']), getUserPermissions);
+router.route("/fetch-permission").get(verifyUserType(['SuperAdmin', 'ServiceProvider']), getUserPermissions);
 
 
 export default router;

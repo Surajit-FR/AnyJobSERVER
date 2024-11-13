@@ -2,6 +2,7 @@ import { CustomRequest } from '../../../types/commonType';
 import { Request, Response, NextFunction } from 'express';
 import UserModel from '../../models/user.model';
 import { IUser } from '../../../types/schemaTypes';
+import { asyncHandler } from '../../utils/asyncHandler';
 
 
 
@@ -9,7 +10,7 @@ import { IUser } from '../../../types/schemaTypes';
 
 
 // HandleSocialAuthError
-export const HandleSocialAuthError = async (req: CustomRequest, res: Response, next: NextFunction) => {
+export const HandleSocialAuthError = asyncHandler(async (req: CustomRequest, res: Response, next: NextFunction) => {
     const { email, uid, displayName, photoURL, phoneNumber } = req.body;
 
     try {
@@ -48,4 +49,4 @@ export const HandleSocialAuthError = async (req: CustomRequest, res: Response, n
         console.log(exc.message);
         return res.status(500).json({ success: false, message: "Something went wrong. Please try again.", error: exc.message });
     }
-};
+});

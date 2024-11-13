@@ -237,7 +237,7 @@ export const refreshAccessToken = asyncHandler(async (req: CustomRequest, res: R
 });
 
 // Auth user (Social)
-export const AuthUserSocial = async (req: CustomRequest, res: Response) => {
+export const AuthUserSocial = asyncHandler(async (req: CustomRequest, res: Response) => {
     try {
         // Check if user object is already attached by the middleware
         let user: any = req.user;
@@ -296,4 +296,4 @@ export const AuthUserSocial = async (req: CustomRequest, res: Response) => {
         console.log(exc.message);
         return res.status(500).json({ success: false, message: "Internal server error", error: exc.message });
     }
-};
+});

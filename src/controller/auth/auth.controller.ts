@@ -14,6 +14,8 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
 import TeamModel from '../../models/teams.model';
 import { ObjectId } from "mongoose";
 
+
+// fetchUserData func.
 const fetchUserData = async (userId: string | ObjectId) => {
     const user = await UserModel.aggregate([
         {
@@ -49,7 +51,7 @@ const fetchUserData = async (userId: string | ObjectId) => {
         }
     ]);
     return user;
-}
+};
 
 // Set cookieOption
 const cookieOption: { httpOnly: boolean, secure: boolean, maxAge: number, sameSite: 'lax' | 'strict' | 'none' } = {
@@ -115,7 +117,6 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
             success: true
         });
 });
-
 
 // login user controller
 export const loginUser = asyncHandler(async (req: Request, res: Response) => {
@@ -296,5 +297,3 @@ export const AuthUserSocial = async (req: CustomRequest, res: Response) => {
         return res.status(500).json({ success: false, message: "Internal server error", error: exc.message });
     }
 };
-
-

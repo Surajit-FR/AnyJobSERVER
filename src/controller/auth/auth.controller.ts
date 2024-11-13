@@ -14,7 +14,7 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
 import TeamModel from '../../models/teams.model';
 import { ObjectId } from "mongoose";
 
-const fetchUserData = async (userId:string|ObjectId) => {
+const fetchUserData = async (userId: string | ObjectId) => {
     const user = await UserModel.aggregate([
         {
             $match: {
@@ -50,6 +50,14 @@ const fetchUserData = async (userId:string|ObjectId) => {
     ]);
     return user;
 }
+
+// Set cookieOption
+const cookieOption: { httpOnly: boolean, secure: boolean, maxAge: number, sameSite: 'lax' | 'strict' | 'none' } = {
+    httpOnly: true,
+    secure: true,
+    maxAge: 24 * 60 * 60 * 1000, // 1 Day
+    sameSite: 'strict'
+};
 
 // addAssociate controller
 export const addAssociate = asyncHandler(async (req: CustomRequest, res: Response) => {
@@ -94,8 +102,8 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, savedUser._id);
 
     return res.status(200)
-        .cookie("accessToken", accessToken, { httpOnly: true, secure: true, maxAge: 24 * 60 * 60 * 1000, sameSite: 'strict' })
-        .cookie("refreshToken", refreshToken, { httpOnly: true, secure: true, maxAge: 24 * 60 * 60 * 1000, sameSite: 'strict' })
+        .cookie("accessToken", accessToken, cookieOption)
+        .cookie("refreshToken", refreshToken, cookieOption)
         .json({
             statusCode: 200,
             data: {
@@ -136,13 +144,6 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, user._id);
     const loggedInUser = await fetchUserData(user._id)
-
-    const cookieOption: { httpOnly: boolean, secure: boolean, maxAge: number, sameSite: 'lax' | 'strict' | 'none' } = {
-        httpOnly: true,
-        secure: true,
-        maxAge: 24 * 60 * 60 * 1000, // 1 Day
-        sameSite: 'strict'
-    };
 
     if (user.userType === "ServiceProvider" && !user.isVerified) {
         return sendErrorResponse(res, new ApiError(403, "Your account verification is under process. Please wait for confirmation.", [], userId));

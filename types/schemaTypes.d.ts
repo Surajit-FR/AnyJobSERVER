@@ -104,6 +104,7 @@ export interface IServiceSchema extends Document {
     isApproved: string;
     isReqAcceptedByServiceProvider: boolean;
     serviceProviderId: ObjectId;
+    assignedAgentId: ObjectId;
     serviceProductImage: string;
     otherInfo: object;
     userId: ObjectId;

@@ -9,6 +9,7 @@ import mongoose, { ObjectId } from "mongoose";
 import { IAddServicePayloadReq } from "../../types/requests_responseType";
 import PermissionModel from "../models/permission.model";
 import TeamModel from "../models/teams.model";
+import UserModel from "../models/user.model";
 
 
 // addService controller
@@ -434,4 +435,36 @@ export const getServiceRequestByStatus = asyncHandler(async (req: Request, res: 
     const totalRequest = results.length;
 
     return sendSuccessResponse(res, 200, { results, totalRequest: totalRequest }, "Service request retrieved successfully.");
+});
+
+export const assignJob = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const userType = req.user?.userType;
+    const { assignedAgentId, serviceId, assignedTo } = req.body;
+
+    if (!serviceId) {
+        return sendErrorResponse(res, new ApiError(400, "Service ID is required."));
+    };
+
+    let isAssignable = true;
+
+    if (userType === "TeamLead") {
+        const agentUser = await UserModel.findById(assignedAgentId).select('userType');
+        isAssignable = agentUser?.userType === "FieldAgent" || agentUser?.userType === "TeamLead";
+    };
+
+    if (!isAssignable) {
+        return sendErrorResponse(res, new ApiError(403, "Assigned agent must be a FieldAgent."));
+    };
+
+    const updatedService = await ServiceModel.findByIdAndUpdate(
+        serviceId,
+        { $set: { assignedAgentId: new mongoose.Types.ObjectId(assignedAgentId) } },
+        { new: true }
+    );
+
+    if (!updatedService) {
+        return sendErrorResponse(res, new ApiError(404, "Service not found for updating."));
+    };
+
+    return sendSuccessResponse(res, 200, updatedService, "Job assigned to the agent successfully.");
 });

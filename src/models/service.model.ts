@@ -90,9 +90,12 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
     },
     serviceProviderId: {
         type: mongoose.Schema.Types.ObjectId,
-        default: null
+        default: ''
     },
-    // Answer array to store answers and derived answers
+    assignedAgentId: {
+        type: mongoose.Schema.Types.ObjectId,
+        default: ''
+    },//can be a tl or fieldAgent
     answerArray: [answerSchema],
     serviceProductImage: {
         type: String,

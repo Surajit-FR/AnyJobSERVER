@@ -32,7 +32,7 @@ router.route("/c/:serviceId")
     .get(verifyUserType(['SuperAdmin', "ServiceProvider", "Customer"]), fetchSingleServiceRequest)
     .delete(verifyUserType(['SuperAdmin']), deleteService)
     .put(verifyUserType(['SuperAdmin', 'ServiceProvider']), updateServiceRequest)
-    .patch(verifyUserType(["ServiceProvider"]), handleServiceRequestState);
+    .patch(verifyUserType(["ServiceProvider",'TeamLead']), handleServiceRequestState);
 
 
 export default router;

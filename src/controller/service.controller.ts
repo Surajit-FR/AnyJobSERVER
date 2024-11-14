@@ -205,50 +205,64 @@ export const updateServiceRequest = asyncHandler(async (req: Request, res: Respo
 
 // handleServiceRequestState controller
 export const handleServiceRequestState = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const userType = req.user?.userType;
+    const userId = req.user?._id;
     const { serviceId } = req.params;
     const { isReqAcceptedByServiceProvider, requestProgress }: { isReqAcceptedByServiceProvider: boolean, requestProgress: string } = req.body;
 
     if (!serviceId) {
         return sendErrorResponse(res, new ApiError(400, "Service ID is required."));
-    };
+    }
 
-    // Find the current service request details
+    let serviceProviderId = userId;
+
+    if (userType === "TeamLead") {
+        const permissions = await PermissionModel.findOne({ userId }).select('acceptRequest');
+        if (!permissions?.acceptRequest) {
+            return sendErrorResponse(res, new ApiError(403, 'Permission denied: Accept Request not granted.'));
+        }
+
+        const team = await TeamModel.findOne({ isDeleted: false, fieldAgentIds: userId }).select('serviceProviderId');
+        if (!team || !team.serviceProviderId) {
+            return sendErrorResponse(res, new ApiError(404, 'Service Provider ID not found for team.'));
+        }
+        serviceProviderId = team.serviceProviderId;
+    }
+
     const serviceRequest = await ServiceModel.findById(serviceId);
-
     if (!serviceRequest) {
         return sendErrorResponse(res, new ApiError(404, "Service not found."));
-    };
+    }
 
-    // Initialize the update object
     const updateData: any = { isReqAcceptedByServiceProvider };
 
     if (isReqAcceptedByServiceProvider) {
-        if (!serviceRequest.isReqAcceptedByServiceProvider) {
-            updateData.requestProgress = "Pending";
-            updateData.serviceProviderId = req.user?._id;
-        } else if (serviceRequest.requestProgress === "Pending" && requestProgress === "Started") {
-            updateData.requestProgress = "Started";
-        } else if (serviceRequest.requestProgress === "Started" && requestProgress === "Completed") {
-            updateData.requestProgress = "Completed";
-        } else if (requestProgress === "Cancelled") {
-            updateData.requestProgress = "Cancelled";
-            updateData.isReqAcceptedByServiceProvider = false;
+        updateData.serviceProviderId = serviceProviderId;
 
+        switch (serviceRequest.requestProgress) {
+            case "Pending":
+                updateData.requestProgress = requestProgress === "Started" ? "Started" : "Pending";
+                break;
+            case "Started":
+                updateData.requestProgress = requestProgress === "Completed" ? "Completed" : "Started";
+                break;
+            default:
+                updateData.requestProgress = requestProgress;
+                if (requestProgress === "Cancelled") {
+                    updateData.isReqAcceptedByServiceProvider = false;
+                }
+                break;
         }
-    };
+    }
 
-    const updatedService = await ServiceModel.findByIdAndUpdate(
-        serviceId,
-        { $set: updateData },
-        { new: true }
-    );
-
+    const updatedService = await ServiceModel.findByIdAndUpdate(serviceId, { $set: updateData }, { new: true });
     if (!updatedService) {
         return sendErrorResponse(res, new ApiError(404, "Service not found for updating."));
-    };
+    }
 
     return sendSuccessResponse(res, 200, updatedService, "Service Request status updated successfully.");
 });
+
 
 // deleteService controller
 export const deleteService = asyncHandler(async (req: Request, res: Response) => {

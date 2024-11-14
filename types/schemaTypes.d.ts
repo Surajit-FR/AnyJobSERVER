@@ -51,6 +51,8 @@ export interface IAdditionalUserInfo extends Document {
 export interface IAddressType extends Document {
     _id: string | ObjectId;
     userId: ObjectId;
+    location:string;
+    addressType:string;
     street: string;
     city: string;
     state: string;

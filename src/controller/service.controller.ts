@@ -465,6 +465,6 @@ export const assignJob = asyncHandler(async (req: CustomRequest, res: Response) 
     if (!updatedService) {
         return sendErrorResponse(res, new ApiError(404, "Service not found for updating."));
     };
-
+    
     return sendSuccessResponse(res, 200, updatedService, "Job assigned to the agent successfully.");
 });

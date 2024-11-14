@@ -96,6 +96,7 @@ export interface IServiceSchema extends Document {
     serviceStartDate: Date;
     serviceShifftId: ObjectId;
     SelectedShiftTime: object;
+    serviceProductImage: string;
     serviceZipCode: number;
     serviceLatitude: number;
     serviceLongitude: number;
@@ -107,7 +108,6 @@ export interface IServiceSchema extends Document {
     isReqAcceptedByServiceProvider: boolean;
     serviceProviderId: ObjectId;
     assignedAgentId: ObjectId;
-    serviceProductImage: string;
     otherInfo: object;
     userId: ObjectId;
     answerArray: Array<any>;

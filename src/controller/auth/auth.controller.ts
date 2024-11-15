@@ -70,6 +70,7 @@ export const addAssociate = asyncHandler(async (req: CustomRequest, res: Respons
     let serviceProviderId = userId;
 
     if (userType === "TeamLead") {
+        
         const permissions = await PermissionModel.findOne({ userId }).select('fieldAgentManagement');
         if (!permissions?.fieldAgentManagement) {
             return sendErrorResponse(res, new ApiError(403, 'Permission denied: Field Agent Management not granted.'));

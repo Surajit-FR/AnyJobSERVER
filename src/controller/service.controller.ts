@@ -264,7 +264,6 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
     return sendSuccessResponse(res, 200, updatedService, "Service Request status updated successfully.");
 });
 
-
 // deleteService controller
 export const deleteService = asyncHandler(async (req: Request, res: Response) => {
     const { serviceId } = req.params;
@@ -439,7 +438,7 @@ export const getServiceRequestByStatus = asyncHandler(async (req: Request, res: 
 
 export const assignJob = asyncHandler(async (req: CustomRequest, res: Response) => {
     const userType = req.user?.userType;
-    const { assignedAgentId, serviceId, assignedTo } = req.body;
+    const { assignedAgentId, serviceId } = req.body;
 
     if (!serviceId) {
         return sendErrorResponse(res, new ApiError(400, "Service ID is required."));

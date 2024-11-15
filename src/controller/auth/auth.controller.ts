@@ -99,7 +99,6 @@ export const addAssociate = asyncHandler(async (req: CustomRequest, res: Respons
     return res.status(201).json({ user: savedAgent, message: `${userData.userType} added successfully.` });
 });
 
-
 // register user controller
 export const registerUser = asyncHandler(async (req: Request, res: Response) => {
     const userData: IRegisterCredentials = req.body;
@@ -136,7 +135,7 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
 
 // login user controller
 export const loginUser = asyncHandler(async (req: Request, res: Response) => {
-    const { email, password }: IUser = req.body;
+    const { email, password, isAdminPanel }: IUser & { isAdminPanel?: boolean } = req.body;
 
     if (!email) {
         return sendErrorResponse(res, new ApiError(400, "Email is required"));
@@ -158,6 +157,13 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
     if (user.isDeleted) {
         return sendErrorResponse(res, new ApiError(403, "Your account is banned from a AnyJob."));
     };
+
+    // Check for admin panel access
+    if (isAdminPanel) {
+        if (user.userType !== 'SuperAdmin') {
+            return sendErrorResponse(res, new ApiError(403, "Access denied. Only SuperAdmins can log in to the admin panel."));
+        }
+    }
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, user._id);
     const loggedInUser = await fetchUserData(user._id)

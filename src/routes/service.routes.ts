@@ -9,7 +9,8 @@ import {
     fetchServiceRequest,
     handleServiceRequestState,
     fetchSingleServiceRequest,
-    getServiceRequestByStatus
+    getServiceRequestByStatus,
+    assignJob
 } from "../controller/service.controller";
 
 const router: Router = express.Router();
@@ -26,13 +27,16 @@ router.route('/get-service-request')
     .get(getServiceRequestByStatus);
 
 router.route('/nearby-services-request')
-    .get(verifyUserType(['ServiceProvider']), fetchServiceRequest);
+    .get(verifyUserType(['ServiceProvider', 'TeamLead']), fetchServiceRequest);
+
+router.route('/assign-job')
+    .patch(verifyUserType(['ServiceProvider', 'TeamLead']), assignJob);
 
 router.route("/c/:serviceId")
     .get(verifyUserType(['SuperAdmin', "ServiceProvider", "Customer"]), fetchSingleServiceRequest)
     .delete(verifyUserType(['SuperAdmin']), deleteService)
     .put(verifyUserType(['SuperAdmin', 'ServiceProvider']), updateServiceRequest)
-    .patch(verifyUserType(["ServiceProvider"]), handleServiceRequestState);
+    .patch(verifyUserType(["ServiceProvider", 'TeamLead']), handleServiceRequestState);
 
 
 export default router;

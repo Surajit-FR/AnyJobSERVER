@@ -51,6 +51,8 @@ export interface IAdditionalUserInfo extends Document {
 export interface IAddressType extends Document {
     _id: string | ObjectId;
     userId: ObjectId;
+    location:string;
+    addressType:string;
     street: string;
     city: string;
     state: string;
@@ -94,6 +96,7 @@ export interface IServiceSchema extends Document {
     serviceStartDate: Date;
     serviceShifftId: ObjectId;
     SelectedShiftTime: object;
+    serviceProductImage: string;
     serviceZipCode: number;
     serviceLatitude: number;
     serviceLongitude: number;
@@ -104,7 +107,7 @@ export interface IServiceSchema extends Document {
     isApproved: string;
     isReqAcceptedByServiceProvider: boolean;
     serviceProviderId: ObjectId;
-    serviceProductImage: string;
+    assignedAgentId: ObjectId;
     otherInfo: object;
     userId: ObjectId;
     answerArray: Array<any>;
@@ -189,6 +192,17 @@ export interface ITeamSchema extends Document {
     _id: ObjectId;
     serviceProviderId: ObjectId;
     fieldAgentIds: Array;
+    isDeleted: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
+};
+
+export interface IPermissionSchema extends Document {
+    _id: ObjectId;
+    userId: ObjectId;
+    acceptRequest: boolean;
+    assignJob: boolean;
+    fieldAgentManagement: boolean;
     isDeleted: boolean;
     createdAt?: Date;
     updatedAt?: Date;

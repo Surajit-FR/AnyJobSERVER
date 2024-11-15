@@ -12,16 +12,79 @@ import { IUser } from "../../../types/schemaTypes";
 import { GoogleAuth } from "../../utils/socialAuth"
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import TeamModel from '../../models/teams.model';
+import { ObjectId } from "mongoose";
+import PermissionModel from "../../models/permission.model";
+
+
+// fetchUserData func.
+const fetchUserData = async (userId: string | ObjectId) => {
+    const user = await UserModel.aggregate([
+        {
+            $match: {
+                isDeleted: false,
+                _id: userId
+            }
+        },
+        {
+            $lookup: {
+                from: "permissions",
+                foreignField: "userId",
+                localField: "_id",
+                as: "permission"
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$permission"
+            }
+        },
+        {
+            $project: {
+                'permission.userId': 0,
+                'permission.isDeleted': 0,
+                'permission.createdAt': 0,
+                'permission.updatedAt': 0,
+                'permission.__v': 0,
+                password: 0,
+                refreshToken: 0
+            }
+        }
+    ]);
+    return user;
+};
+
+// Set cookieOption
+const cookieOption: { httpOnly: boolean, secure: boolean, maxAge: number, sameSite: 'lax' | 'strict' | 'none' } = {
+    httpOnly: true,
+    secure: true,
+    maxAge: 24 * 60 * 60 * 1000, // 1 Day
+    sameSite: 'strict'
+};
 
 // addAssociate controller
 export const addAssociate = asyncHandler(async (req: CustomRequest, res: Response) => {
     const userData: IRegisterCredentials = req.body;
+    const userType = req.user?.userType;
+    const userId = req.user?._id;
+    let serviceProviderId = userId;
+
+    if (userType === "TeamLead") {
+        const permissions = await PermissionModel.findOne({ userId }).select('fieldAgentManagement');
+        if (!permissions?.fieldAgentManagement) {
+            return sendErrorResponse(res, new ApiError(403, 'Permission denied: Field Agent Management not granted.'));
+        }
+
+        const team = await TeamModel.findOne({ isDeleted: false, fieldAgentIds: userId }).select('serviceProviderId');
+        if (!team || !team.serviceProviderId) {
+            return sendErrorResponse(res, new ApiError(404, 'Service Provider ID not found in team.'));
+        }
+
+        serviceProviderId = team.serviceProviderId;
+    }
 
     const savedAgent = await addUser(userData);
-
     if (userData.userType === "FieldAgent") {
-        const serviceProviderId = req.user?._id;
-
         const team = await TeamModel.findOneAndUpdate(
             { serviceProviderId },
             { $push: { fieldAgentIds: savedAgent._id } },
@@ -29,21 +92,19 @@ export const addAssociate = asyncHandler(async (req: CustomRequest, res: Respons
         );
 
         if (!team) {
-            return sendErrorResponse(res, new ApiError(400, "ServiceProvider team not found"));
+            return sendErrorResponse(res, new ApiError(400, "Service Provider team not found."));
         }
     }
 
-    return res.status(201).json({ user: savedAgent, message: "FieldAgent added successfully" });
+    return res.status(201).json({ user: savedAgent, message: `${userData.userType} added successfully.` });
 });
 
 // register user controller
 export const registerUser = asyncHandler(async (req: Request, res: Response) => {
     const userData: IRegisterCredentials = req.body;
 
-    // Register the user using addUser utility function
     const savedUser = await addUser(userData);
 
-    // If the user is a ServiceProvider, create a team for them
     if (userData.userType === 'ServiceProvider') {
         const newTeam = new TeamModel({
             serviceProviderId: savedUser._id,
@@ -54,20 +115,27 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
             return sendErrorResponse(res, new ApiError(400, "ServiceProvider team not created"));
         }
     }
-
-    // Generate tokens for the user
+    const newUser = await fetchUserData(savedUser._id)
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, savedUser._id);
 
-    // Send response with tokens and user data
-    return res.status(201)
-        .cookie("accessToken", accessToken, { httpOnly: true, secure: true, maxAge: 24 * 60 * 60 * 1000, sameSite: 'strict' })
-        .cookie("refreshToken", refreshToken, { httpOnly: true, secure: true, maxAge: 24 * 60 * 60 * 1000, sameSite: 'strict' })
-        .json({ user: savedUser, accessToken, refreshToken, message: "User Registered Successfully" });
+    return res.status(200)
+        .cookie("accessToken", accessToken, cookieOption)
+        .cookie("refreshToken", refreshToken, cookieOption)
+        .json({
+            statusCode: 200,
+            data: {
+                user: newUser[0],
+                accessToken,
+                refreshToken
+            },
+            message: "User Registered Successfully",
+            success: true
+        });
 });
 
 // login user controller
 export const loginUser = asyncHandler(async (req: Request, res: Response) => {
-    const { email, password }: IUser = req.body;
+    const { email, password, isAdminPanel }: IUser & { isAdminPanel?: boolean } = req.body;
 
     if (!email) {
         return sendErrorResponse(res, new ApiError(400, "Email is required"));
@@ -90,15 +158,15 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
         return sendErrorResponse(res, new ApiError(403, "Your account is banned from a AnyJob."));
     };
 
-    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, user._id);
-    const loggedInUser = await UserModel.findById(user._id).select("-password -refreshToken");
+    // Check for admin panel access
+    if (isAdminPanel) {
+        if (user.userType !== 'SuperAdmin') {
+            return sendErrorResponse(res, new ApiError(403, "Access denied. Only SuperAdmins can log in to the admin panel."));
+        }
+    }
 
-    const cookieOption: { httpOnly: boolean, secure: boolean, maxAge: number, sameSite: 'lax' | 'strict' | 'none' } = {
-        httpOnly: true,
-        secure: true,
-        maxAge: 24 * 60 * 60 * 1000, // 1 Day
-        sameSite: 'strict'
-    };
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, user._id);
+    const loggedInUser = await fetchUserData(user._id)
 
     if (user.userType === "ServiceProvider" && !user.isVerified) {
         return sendErrorResponse(res, new ApiError(403, "Your account verification is under process. Please wait for confirmation.", [], userId));
@@ -112,7 +180,7 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
             new ApiResponse
                 (
                     200,
-                    { user: loggedInUser, accessToken, refreshToken },
+                    { user: loggedInUser[0], accessToken, refreshToken },
                     "User logged In successfully"
                 )
         );
@@ -191,7 +259,7 @@ export const refreshAccessToken = asyncHandler(async (req: CustomRequest, res: R
 });
 
 // Auth user (Social)
-export const AuthUserSocial = async (req: CustomRequest, res: Response) => {
+export const AuthUserSocial = asyncHandler(async (req: CustomRequest, res: Response) => {
     try {
         // Check if user object is already attached by the middleware
         let user: any = req.user;
@@ -250,4 +318,4 @@ export const AuthUserSocial = async (req: CustomRequest, res: Response) => {
         console.log(exc.message);
         return res.status(500).json({ success: false, message: "Internal server error", error: exc.message });
     }
-};
+});

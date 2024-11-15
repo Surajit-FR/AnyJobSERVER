@@ -1,12 +1,15 @@
 import { Request, Response } from "express";
 import { CustomRequest } from "../../types/commonType";
 import ServiceModel from "../models/service.model";
-import addressModel from "../models/address.model";
+import AddressModel from "../models/address.model";
 import { ApiError } from "../utils/ApisErrors";
 import { sendErrorResponse, sendSuccessResponse } from "../utils/response";
 import { asyncHandler } from "../utils/asyncHandler";
 import mongoose, { ObjectId } from "mongoose";
 import { IAddServicePayloadReq } from "../../types/requests_responseType";
+import PermissionModel from "../models/permission.model";
+import TeamModel from "../models/teams.model";
+import UserModel from "../models/user.model";
 
 
 // addService controller
@@ -203,50 +206,64 @@ export const updateServiceRequest = asyncHandler(async (req: Request, res: Respo
 
 // handleServiceRequestState controller
 export const handleServiceRequestState = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const userType = req.user?.userType;
+    const userId = req.user?._id;
     const { serviceId } = req.params;
     const { isReqAcceptedByServiceProvider, requestProgress }: { isReqAcceptedByServiceProvider: boolean, requestProgress: string } = req.body;
 
     if (!serviceId) {
         return sendErrorResponse(res, new ApiError(400, "Service ID is required."));
-    };
+    }
 
-    // Find the current service request details
+    let serviceProviderId = userId;
+
+    if (userType === "TeamLead") {
+        const permissions = await PermissionModel.findOne({ userId }).select('acceptRequest');
+        if (!permissions?.acceptRequest) {
+            return sendErrorResponse(res, new ApiError(403, 'Permission denied: Accept Request not granted.'));
+        }
+
+        const team = await TeamModel.findOne({ isDeleted: false, fieldAgentIds: userId }).select('serviceProviderId');
+        if (!team || !team.serviceProviderId) {
+            return sendErrorResponse(res, new ApiError(404, 'Service Provider ID not found for team.'));
+        }
+        serviceProviderId = team.serviceProviderId;
+    }
+
     const serviceRequest = await ServiceModel.findById(serviceId);
-
     if (!serviceRequest) {
         return sendErrorResponse(res, new ApiError(404, "Service not found."));
-    };
+    }
 
-    // Initialize the update object
     const updateData: any = { isReqAcceptedByServiceProvider };
 
     if (isReqAcceptedByServiceProvider) {
-        if (!serviceRequest.isReqAcceptedByServiceProvider) {
-            updateData.requestProgress = "Pending";
-            updateData.serviceProviderId = req.user?._id;
-        } else if (serviceRequest.requestProgress === "Pending" && requestProgress === "Started") {
-            updateData.requestProgress = "Started";
-        } else if (serviceRequest.requestProgress === "Started" && requestProgress === "Completed") {
-            updateData.requestProgress = "Completed";
-        } else if (requestProgress === "Cancelled") {
-            updateData.requestProgress = "Cancelled";
-            updateData.isReqAcceptedByServiceProvider = false;
+        updateData.serviceProviderId = serviceProviderId;
 
+        switch (serviceRequest.requestProgress) {
+            case "Pending":
+                updateData.requestProgress = requestProgress === "Started" ? "Started" : "Pending";
+                break;
+            case "Started":
+                updateData.requestProgress = requestProgress === "Completed" ? "Completed" : "Started";
+                break;
+            default:
+                updateData.requestProgress = requestProgress;
+                if (requestProgress === "Cancelled") {
+                    updateData.isReqAcceptedByServiceProvider = false;
+                }
+                break;
         }
-    };
+    }
 
-    const updatedService = await ServiceModel.findByIdAndUpdate(
-        serviceId,
-        { $set: updateData },
-        { new: true }
-    );
-
+    const updatedService = await ServiceModel.findByIdAndUpdate(serviceId, { $set: updateData }, { new: true });
     if (!updatedService) {
         return sendErrorResponse(res, new ApiError(404, "Service not found for updating."));
-    };
+    }
 
     return sendSuccessResponse(res, 200, updatedService, "Service Request status updated successfully.");
 });
+
 
 // deleteService controller
 export const deleteService = asyncHandler(async (req: Request, res: Response) => {
@@ -265,27 +282,52 @@ export const deleteService = asyncHandler(async (req: Request, res: Response) =>
     return sendSuccessResponse(res, 200, {}, "Service deleted successfully");
 });
 
-// fetchServiceRequest controller
+// fetch nearby ServiceRequest controller
 export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {
     const userId = req.user?._id as string;
-    console.log(userId);
+    const userType = req.user?.userType;
+    let serviceProviderId, address;
 
-    const user = await addressModel.findOne({ userId }).select('zipCode');
-    if (!user || !user.zipCode) {
+    if (userType === "TeamLead") {
+        const permissions = await PermissionModel.findOne({ userId }).select('acceptRequest');
+
+        if (!permissions || !permissions.acceptRequest) {
+            return sendErrorResponse(res, new ApiError(403, 'Permission denied: Accept Request not granted.'));
+        };
+
+        const team = await TeamModel.aggregate([
+            {
+                $match: {
+                    isDeleted: false,
+                    fieldAgentIds: userId
+                }
+            }
+        ]);
+
+        if (team.length > 0) {
+            serviceProviderId = team[0].serviceProviderId;
+            if (!serviceProviderId) {
+                return sendErrorResponse(res, new ApiError(404, 'Service Provider ID not found in team.'));
+            };
+            address = await AddressModel.findOne({ userId: serviceProviderId });
+        } else {
+            return sendErrorResponse(res, new ApiError(404, 'Team not found.'));
+        };
+    } else {
+        address = await AddressModel.findOne({ userId });
+    };
+
+    if (!address || !address.zipCode) {
         return sendErrorResponse(res, new ApiError(400, 'User zipcode not found'));
-    }
-    // console.log("====");
-    const userZipcode = user.zipCode;
+    };
 
+    const userZipcode = address.zipCode;
     const minZipcode = userZipcode - 10;
     const maxZipcode = userZipcode + 10;
 
     const serviceRequests = await ServiceModel.find({
         isReqAcceptedByServiceProvider: false,
-        serviceZipCode: {
-            $gte: minZipcode,
-            $lte: maxZipcode
-        },
+        serviceZipCode: { $gte: minZipcode, $lte: maxZipcode },
         isDeleted: false
     });
 
@@ -393,4 +435,36 @@ export const getServiceRequestByStatus = asyncHandler(async (req: Request, res: 
     const totalRequest = results.length;
 
     return sendSuccessResponse(res, 200, { results, totalRequest: totalRequest }, "Service request retrieved successfully.");
+});
+
+export const assignJob = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const userType = req.user?.userType;
+    const { assignedAgentId, serviceId, assignedTo } = req.body;
+
+    if (!serviceId) {
+        return sendErrorResponse(res, new ApiError(400, "Service ID is required."));
+    };
+
+    let isAssignable = true;
+
+    if (userType === "TeamLead") {
+        const agentUser = await UserModel.findById(assignedAgentId).select('userType');
+        isAssignable = agentUser?.userType === "FieldAgent" || agentUser?.userType === "TeamLead";
+    };
+
+    if (!isAssignable) {
+        return sendErrorResponse(res, new ApiError(403, "Assigned agent must be a FieldAgent."));
+    };
+
+    const updatedService = await ServiceModel.findByIdAndUpdate(
+        serviceId,
+        { $set: { assignedAgentId: new mongoose.Types.ObjectId(assignedAgentId) } },
+        { new: true }
+    );
+
+    if (!updatedService) {
+        return sendErrorResponse(res, new ApiError(404, "Service not found for updating."));
+    };
+    
+    return sendSuccessResponse(res, 200, updatedService, "Job assigned to the agent successfully.");
 });

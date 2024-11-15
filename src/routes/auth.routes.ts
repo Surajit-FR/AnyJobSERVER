@@ -11,7 +11,7 @@ import {
     addAssociate
 } from "../controller/auth/auth.controller";
 import { upload } from "../middlewares/multer.middleware";
-import { VerifyJWTToken } from "../middlewares/auth/userAuth";
+import { VerifyJWTToken,verifyUserType } from "../middlewares/auth/userAuth";
 import { HandleSocialAuthError } from '../middlewares/auth/socialAuth';
 import { rateLimiter } from '../middlewares/rateLimiter.middleware';
 
@@ -48,6 +48,7 @@ router.route('/logout').post(
 router.route('/add-associate').post(
     rateLimiter,
     [VerifyJWTToken],
+    verifyUserType(["ServiceProvider", 'TeamLead']),
     addAssociate
 );
 
@@ -59,3 +60,5 @@ router.route('/refresh-token').post(
 
 
 export default router;
+
+

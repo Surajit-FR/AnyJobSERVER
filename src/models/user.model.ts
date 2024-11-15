@@ -5,9 +5,9 @@ import { IUser } from "../../types/schemaTypes";
 
 
 const UserSchema: Schema<IUser> = new Schema({
-    fullName:{
+    fullName: {
         type: String,
-        required:false,
+        required: false,
         trim: true,
         index: true,
     },
@@ -29,12 +29,12 @@ const UserSchema: Schema<IUser> = new Schema({
         unique: true,
         lowercase: true,
     },
-    dob:{
-        type:Date
+    dob: {
+        type: Date
     },
     phone: {
         type: String,
-        default:"",
+        default: "",
         required: false
     },
     password: {
@@ -47,19 +47,19 @@ const UserSchema: Schema<IUser> = new Schema({
     },
     avatar: {
         type: String,
-        default:"",
+        default: "",
         required: false,
     },
-    coverImage:{
+    coverImage: {
         type: String,
-    }, 
-    isVerified:{
-        type:Boolean,
-        default:false
-    },   
+    },
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
     userType: {
         type: String,
-        enum: ["SuperAdmin", "ServiceProvider", "Customer","FieldAgent"],
+        enum: ["SuperAdmin", "ServiceProvider", "Customer", "FieldAgent", "TeamLead"],
         default: ""
     },
     refreshToken: {

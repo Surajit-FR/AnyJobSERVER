@@ -24,7 +24,7 @@ app.use(cookieParser());
 import healthcheckRouter from "./routes/healthcheck.routes";
 import authRouter from './routes/auth.routes';
 import userRouter from './routes/user.routes';
-import customerRouter from './routes/user/user.routes'
+import customerRouter from './routes/user/user.routes';
 import categoryRouter from './routes/category.routes';
 import serviceRouter from './routes/service.routes';
 import questionRouter from './routes/question.routes';

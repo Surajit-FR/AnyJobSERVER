@@ -509,15 +509,14 @@ export const banUser = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const fetchAssociates = asyncHandler(async (req: Request, res: Response) => {
-
     const { serviceProviderId } = req.params;
     if (!serviceProviderId) {
         return sendErrorResponse(res, new ApiError(400, "Service provider ID is required."));
-    };
+    }
 
     if (!mongoose.Types.ObjectId.isValid(serviceProviderId)) {
         return sendErrorResponse(res, new ApiError(400, "Invalid Service provider ID."));
-    };
+    }
 
     const results = await TeamModel.aggregate([
         {
@@ -531,14 +530,14 @@ export const fetchAssociates = asyncHandler(async (req: Request, res: Response) 
                 from: "users",
                 localField: "fieldAgentIds",
                 foreignField: "_id",
-                as: "fieldAgents"
+                as: "teamMembers"
             }
         },
         {
             $project: {
                 _id: 1,
                 serviceProviderId: 1,
-                fieldAgents: {
+                teamMembers: {
                     _id: 1,
                     firstName: 1,
                     lastName: 1,
@@ -550,10 +549,55 @@ export const fetchAssociates = asyncHandler(async (req: Request, res: Response) 
         }
     ]);
 
-    if (!results) {
-        return sendErrorResponse(res, new ApiError(404, "User not found."));
-    };
+    if (!results || results.length === 0) {
+        return sendErrorResponse(res, new ApiError(404, "Field agents not found."));
+    }
 
     return sendSuccessResponse(res, 200, results, "Field Agent list retrieved successfully.");
 });
+
+export const assignTeamLead = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const { fieldAgentId } = req.body;
+    const serviceProviderId = req.user?._id;
+
+    try {
+        // Check if the field agent exists in the service provider's team
+        const team = await TeamModel.findOne({
+            serviceProviderId,
+            fieldAgentIds: { $in: fieldAgentId }
+        });
+        // console.log({ team });
+
+
+        if (!team) {
+            return res.status(404).json({ message: "Field agent not found in the service provider's team." });
+        }
+
+        // Check if the field agent is already a teamlead
+        const fieldAgent = await UserModel.findById(fieldAgentId);
+        if (fieldAgent?.userType === "teamlead") {
+            return res.status(400).json({ message: "This agent is already a teamlead." });
+        };
+
+        // Update the field agent's userType to "teamlead"
+        const updatedFieldAgent = await UserModel.findByIdAndUpdate(
+            fieldAgentId,
+            { userType: "teamlead" },
+            { new: true }
+        );
+
+        if (!updatedFieldAgent) {
+            return res.status(500).json({ message: "Failed to update user role to teamlead." });
+        }
+
+        res.status(200).json({
+            message: "Field agent promoted to team lead successfully.",
+            teamLead: updatedFieldAgent
+        });
+    } catch (error) {
+        console.error("Error promoting field agent to team lead:", error);
+        res.status(500).json({ message: "An error occurred while assigning team lead." });
+    }
+});
+
 

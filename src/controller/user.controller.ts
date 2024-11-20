@@ -600,4 +600,111 @@ export const assignTeamLead = asyncHandler(async (req: CustomRequest, res: Respo
     }
 });
 
+export const getAgentEngagementStatus = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const serviceProviderId = req.user?._id;
+    if (!serviceProviderId) {
+        return sendErrorResponse(res, new ApiError(400, "Service provider ID is required."));
+    };
 
+    const results = await TeamModel.aggregate([
+        {
+            $match: {
+                isDeleted: false,
+                serviceProviderId: serviceProviderId
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "fieldAgentIds",
+                foreignField: "_id",
+                as: "teamMembers"
+            }
+        },
+        {
+            $unwind: {
+                path: "$teamMembers",
+                preserveNullAndEmptyArrays: true,
+            },
+        },
+        {
+            $lookup: {
+                from: "services",
+                let: { agentId: "$teamMembers._id" },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {
+                                $eq: ["$assignedAgentId", "$$agentId"],
+                            },
+                            $and: [
+                                { requestProgress: { $ne: "Completed" } },
+                                { requestProgress: { $ne: "Cancelled" } }
+                            ]
+                        },
+                    },
+                    {
+                        $project: {
+                            _id: 1,
+                            serviceZipCode: 1,
+                            requestProgress: 1,
+                            serviceStartDate: 1
+                        },
+                    },
+                ],
+                as: "teamMembers.engagement",
+            },
+        },
+        {
+            $addFields: {
+                isEngaged: {
+                    $cond: {
+                        if: {
+                            $gt: [{ $size: "$teamMembers.engagement" }, 0]
+                        },
+                        then: true, else: false
+                    }
+                }
+            }
+        },
+        {
+            $group: {
+                _id: "$_id",
+                serviceProviderId: { $first: "$_id" },
+                teamMembers: {
+                    $push: {
+                        _id: "$teamMembers._id",
+                        firstName: "$teamMembers.firstName",
+                        lastName: "$teamMembers.lastName",
+                        email: "$teamMembers.email",
+                        phone: "$teamMembers.phone",
+                        userType: "$teamMembers.userType",
+                        // engagement: "$teamMembers.engagement",
+                        isEngaged: "$isEngaged"
+
+                    },
+                },
+            },
+        },
+        {
+            $project: {
+                __v: 0,
+                isDeleted: 0,
+                refreshToken: 0,
+                password: 0,
+                "additionalInfo.__v": 0,
+                "additionalInfo.isDeleted": 0,
+                "userAddress.__v": 0,
+                "userAddress.isDeleted": 0,
+                "teamMembers.__v": 0,
+                "teamMembers.isDeleted": 0,
+            },
+        },
+    ]);
+
+    if (!results || results.length === 0) {
+        return sendErrorResponse(res, new ApiError(404, "Field agents not found."));
+    }
+
+    return sendSuccessResponse(res, 200, results, "Field Agent list with engagement status retrieved successfully.");
+});

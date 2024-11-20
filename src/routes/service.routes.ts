@@ -10,7 +10,7 @@ import {
     handleServiceRequestState,
     fetchSingleServiceRequest,
     getServiceRequestByStatus,
-    assignJob
+    assignJob,
 } from "../controller/service.controller";
 
 const router: Router = express.Router();
@@ -37,6 +37,5 @@ router.route("/c/:serviceId")
     .delete(verifyUserType(['SuperAdmin']), deleteService)
     .put(verifyUserType(['SuperAdmin', 'ServiceProvider']), updateServiceRequest)
     .patch(verifyUserType(["ServiceProvider", 'TeamLead']), handleServiceRequestState);
-
 
 export default router;

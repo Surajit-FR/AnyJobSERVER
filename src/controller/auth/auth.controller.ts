@@ -338,8 +338,6 @@ export const AuthUserSocial = asyncHandler(async (req: CustomRequest, res: Respo
     }
 });
 
-
-
 export const resetPassword = asyncHandler(async (req: CustomRequest, res: Response) => {
     const userId = req.user?._id;
 

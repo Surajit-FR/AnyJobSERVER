@@ -359,3 +359,4 @@ export const resetPassword = asyncHandler(async (req: CustomRequest, res: Respon
 
     res.status(200).json({ message: 'Password reset Successfull.' });
 });
+

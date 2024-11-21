@@ -481,3 +481,28 @@ export const assignJob = asyncHandler(async (req: CustomRequest, res: Response) 
 
     return sendSuccessResponse(res, 200, updatedService, "Job assigned to the agent successfully.");
 });
+
+export const totalJobCount = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const serviceProviderId = req.user?._id;
+
+    if (!serviceProviderId) {
+        return sendErrorResponse(res, new ApiError(400, "Service provider ID is required."));
+    };
+
+    const jobData = await ServiceModel.aggregate([
+        {
+            $match: {
+                isDeleted: false,
+                serviceProviderId: serviceProviderId
+            }
+        },
+        {
+            $group: {
+                _id: "$requestProgress",
+                count: { $sum: 1 },
+                jobDetails: { $push: "$$ROOT" }
+            }
+        }
+    ]);
+    return sendSuccessResponse(res, 200, jobData, "Job counts retrieved successfully.");
+});

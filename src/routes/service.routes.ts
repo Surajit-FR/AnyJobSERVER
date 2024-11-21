@@ -11,6 +11,7 @@ import {
     fetchSingleServiceRequest,
     getServiceRequestByStatus,
     assignJob,
+    totalJobCount
 } from "../controller/service.controller";
 
 const router: Router = express.Router();
@@ -26,8 +27,11 @@ router.route('/get-pending-service')
 router.route('/get-service-request')
     .get(getServiceRequestByStatus);
 
+router.route('/get-job-count')
+    .get(verifyUserType(['ServiceProvider', 'TeamLead']), totalJobCount);
+
 router.route('/nearby-services-request')
-    .get(verifyUserType(['ServiceProvider', 'TeamLead']), fetchServiceRequest);
+    .get(verifyUserType(['ServiceProvider']), fetchServiceRequest);
 
 router.route('/assign-job')
     .patch(verifyUserType(['ServiceProvider', 'TeamLead']), assignJob);

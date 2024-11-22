@@ -12,7 +12,7 @@ import { upload } from '../middlewares/multer.middleware';
 import { VerifyJWTToken, verifyUserType } from '../middlewares/auth/userAuth';
 
 const router: Router = express.Router();
-router.use(VerifyJWTToken); // Apply SuperAdmin verifyJWT middleware
+// router.use(VerifyJWTToken); // Apply SuperAdmin verifyJWT middleware
 
 router.route('/').post(
     upload.fields([
@@ -20,15 +20,15 @@ router.route('/').post(
     ]),
     [ModelAuth(validateCategory)],
     verifyUserType(['SuperAdmin']),
+    VerifyJWTToken,
     addCategory);
 
 router.route("/c/:CategoryId")
-    .get(getCategorieById)
-    .delete(verifyUserType(['SuperAdmin']), deleteCategory)
-    .put(verifyUserType(['SuperAdmin']),
-        upload.fields([
-            { name: "categoryImage" },
-        ]), updateCategory);
+    .get(VerifyJWTToken, getCategorieById)
+    .delete(VerifyJWTToken, verifyUserType(['SuperAdmin']), deleteCategory)
+    .put(verifyUserType(['SuperAdmin']), upload.fields([
+        { name: "categoryImage" },
+    ]), VerifyJWTToken, updateCategory);
 
 router.route('/').get(getCategories);
 

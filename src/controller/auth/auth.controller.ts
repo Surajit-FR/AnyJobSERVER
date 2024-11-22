@@ -14,6 +14,9 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
 import TeamModel from '../../models/teams.model';
 import { ObjectId } from "mongoose";
 import PermissionModel from "../../models/permission.model";
+import crypto from 'crypto';
+import bcrypt from 'bcrypt';
+import { sendMail } from "../../utils/sendMail";
 
 
 // fetchUserData func.
@@ -70,7 +73,7 @@ export const addAssociate = asyncHandler(async (req: CustomRequest, res: Respons
     let serviceProviderId = userId;
 
     if (userType === "TeamLead") {
-        
+
         const permissions = await PermissionModel.findOne({ userId }).select('fieldAgentManagement');
         if (!permissions?.fieldAgentManagement) {
             return sendErrorResponse(res, new ApiError(403, 'Permission denied: Field Agent Management not granted.'));
@@ -97,7 +100,21 @@ export const addAssociate = asyncHandler(async (req: CustomRequest, res: Respons
         }
     }
 
-    return res.status(201).json({ user: savedAgent, message: `${userData.userType} added successfully.` });
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, savedAgent._id);
+
+    return res.status(200)
+        .cookie("accessToken", accessToken, cookieOption)
+        .cookie("refreshToken", refreshToken, cookieOption)
+        .json({
+            statusCode: 200,
+            data: {
+                user: savedAgent,
+                accessToken,
+                refreshToken
+            },
+            message: `${userData.userType} added successfully.`,
+            success: true
+        });
 });
 
 // register user controller
@@ -320,3 +337,26 @@ export const AuthUserSocial = asyncHandler(async (req: CustomRequest, res: Respo
         return res.status(500).json({ success: false, message: "Internal server error", error: exc.message });
     }
 });
+
+export const resetPassword = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const userId = req.user?._id;
+
+
+    if (!userId) {
+        return res.status(400).json({ message: 'User ID is required.' });
+    };
+
+    const userDetails = await UserModel.findById(userId);
+
+    if (!userDetails) {
+        return res.status(404).json({ message: 'User not found.' });
+    };
+
+    // Update the password
+    userDetails.password = req.body.password;
+
+    await userDetails.save();
+
+    res.status(200).json({ message: 'Password reset Successfull.' });
+});
+

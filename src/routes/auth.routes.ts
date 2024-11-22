@@ -8,10 +8,11 @@ import {
     loginUser,
     registerUser,
     AuthUserSocial,
-    addAssociate
+    addAssociate,
+    resetPassword
 } from "../controller/auth/auth.controller";
 import { upload } from "../middlewares/multer.middleware";
-import { VerifyJWTToken,verifyUserType } from "../middlewares/auth/userAuth";
+import { VerifyJWTToken, verifyUserType } from "../middlewares/auth/userAuth";
 import { HandleSocialAuthError } from '../middlewares/auth/socialAuth';
 import { rateLimiter } from '../middlewares/rateLimiter.middleware';
 
@@ -57,6 +58,9 @@ router.route('/refresh-token').post(
     rateLimiter,
     refreshAccessToken
 );
+
+router.route("/reset-password").post([VerifyJWTToken], resetPassword);
+
 
 
 export default router;

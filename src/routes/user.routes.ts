@@ -12,7 +12,8 @@ import {
     getSingleUser,
     banUser,
     fetchAssociates,
-    assignTeamLead
+    assignTeamLead,
+    getAgentEngagementStatus
 } from "../controller/user.controller";
 import { givePermission, getUserPermissions } from "../controller/permission.controller";
 
@@ -52,6 +53,7 @@ router.route('/get-users').get(getUsers);
 
 //fetch associate List
 router.route('/get-associates/:serviceProviderId').get(verifyUserType(["SuperAdmin", "ServiceProvider"]), fetchAssociates);
+router.route('/get-agent-engagement').get(verifyUserType(["SuperAdmin", "ServiceProvider"]), getAgentEngagementStatus);
 
 
 router.route('/u/:userId')

@@ -19,7 +19,7 @@ const router: Router = express.Router();
 router.use(VerifyJWTToken); // Apply verifyJWT middleware to all routes in this file
 router.route('/')
     .post(verifyUserType(['Customer']), addService)
-    .get(verifyUserType(['SuperAdmin', 'ServiceProvider']), getServiceRequestList);
+    .get(verifyUserType(['SuperAdmin']), getServiceRequestList);
 
 router.route('/get-pending-service')
     .get(getPendingServiceRequest);

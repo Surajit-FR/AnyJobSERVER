@@ -26,6 +26,7 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         incentiveAmount,
         isTipGiven,
         tipAmount,
+        otherInfo,
         answerArray // Expecting answerArray instead of answers
     }: IAddServicePayloadReq = req.body;
 
@@ -59,6 +60,7 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         incentiveAmount,
         isTipGiven,
         tipAmount,
+        otherInfo,
         answerArray,
         userId: req.user?._id
     });

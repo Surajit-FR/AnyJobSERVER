@@ -97,7 +97,7 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
     otherInfo: {
         type: {
             productSerialNumber: {
-                type: Number
+                type: String
             },
             serviceDescription: {
                 type: String

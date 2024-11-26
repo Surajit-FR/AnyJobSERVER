@@ -70,6 +70,7 @@ export interface IAddServicePayloadReq {
     incentiveAmount: number,
     isTipGiven: boolean,
     tipAmount: number,
+    otherInfo:object,
     userId: ObjectId,
     answerArray: IQuestion
 };

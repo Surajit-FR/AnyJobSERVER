@@ -26,6 +26,7 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         incentiveAmount,
         isTipGiven,
         tipAmount,
+        otherInfo,
         answerArray // Expecting answerArray instead of answers
     }: IAddServicePayloadReq = req.body;
 
@@ -59,6 +60,7 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         incentiveAmount,
         isTipGiven,
         tipAmount,
+        otherInfo,
         answerArray,
         userId: req.user?._id
     });
@@ -264,7 +266,6 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
     return sendSuccessResponse(res, 200, updatedService, "Service Request status updated successfully.");
 });
 
-
 // deleteService controller
 export const deleteService = asyncHandler(async (req: Request, res: Response) => {
     const { serviceId } = req.params;
@@ -356,6 +357,7 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
 
 });
 
+
 // Function to fetch a single service by serviceId
 export const fetchAssociatedCustomer = async (serviceId: string) => {
     if (!serviceId) {
@@ -377,6 +379,7 @@ export const fetchAssociatedCustomer = async (serviceId: string) => {
 
     return serviceRequest[0].userId;
 };
+
 
 export const getServiceRequestByStatus = asyncHandler(async (req: Request, res: Response) => {
     const { requestProgress } = req.body;
@@ -437,9 +440,11 @@ export const getServiceRequestByStatus = asyncHandler(async (req: Request, res: 
     return sendSuccessResponse(res, 200, { results, totalRequest: totalRequest }, "Service request retrieved successfully.");
 });
 
+
 export const assignJob = asyncHandler(async (req: CustomRequest, res: Response) => {
     const userType = req.user?.userType;
-    const { assignedAgentId, serviceId, assignedTo } = req.body;
+    let serviceProviderId = req.user?._id;
+    const { assignedAgentId, serviceId } = req.body;
 
     if (!serviceId) {
         return sendErrorResponse(res, new ApiError(400, "Service ID is required."));
@@ -448,6 +453,11 @@ export const assignJob = asyncHandler(async (req: CustomRequest, res: Response) 
     let isAssignable = true;
 
     if (userType === "TeamLead") {
+        const teamInfo = await TeamModel.findOne({ fieldAgentIds: req.user?._id });
+        if (teamInfo) {
+            serviceProviderId = teamInfo?.serviceProviderId;
+        }
+
         const agentUser = await UserModel.findById(assignedAgentId).select('userType');
         isAssignable = agentUser?.userType === "FieldAgent" || agentUser?.userType === "TeamLead";
     };
@@ -458,13 +468,43 @@ export const assignJob = asyncHandler(async (req: CustomRequest, res: Response) 
 
     const updatedService = await ServiceModel.findByIdAndUpdate(
         serviceId,
-        { $set: { assignedAgentId: new mongoose.Types.ObjectId(assignedAgentId) } },
+        {
+            $set: {
+                assignedAgentId: new mongoose.Types.ObjectId(assignedAgentId),
+                serviceProviderId: serviceProviderId
+            }
+        },
         { new: true }
     );
 
     if (!updatedService) {
         return sendErrorResponse(res, new ApiError(404, "Service not found for updating."));
     };
-    
+
     return sendSuccessResponse(res, 200, updatedService, "Job assigned to the agent successfully.");
+});
+
+export const totalJobCount = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const serviceProviderId = req.user?._id;
+
+    if (!serviceProviderId) {
+        return sendErrorResponse(res, new ApiError(400, "Service provider ID is required."));
+    };
+
+    const jobData = await ServiceModel.aggregate([
+        {
+            $match: {
+                isDeleted: false,
+                serviceProviderId: serviceProviderId
+            }
+        },
+        {
+            $group: {
+                _id: "$requestProgress",
+                count: { $sum: 1 },
+                jobDetails: { $push: "$$ROOT" }
+            }
+        }
+    ]);
+    return sendSuccessResponse(res, 200, jobData, "Job counts retrieved successfully.");
 });

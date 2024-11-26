@@ -22,12 +22,7 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
         type: Schema.Types.ObjectId,
         ref: "category",
         required: [true, "Category Id is Required"]
-    },
-    subCategoryId: {
-        type: Schema.Types.ObjectId,
-        ref: "subcategory",
-        required: [true, "Category Id is Required"]
-    },
+    },  
     serviceStartDate: {
         type: Date,
         required: [true, "Service Start Date is Required"]
@@ -68,7 +63,6 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
     incentiveAmount: {
         type: Number,
         default: 0,
-        min: 10
     },
     isTipGiven: {
         type: Boolean,
@@ -77,7 +71,6 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
     tipAmount: {
         type: Number,
         default: 0,
-        min: 10
     },
     isApproved: {
         type: String,
@@ -90,11 +83,11 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
     },
     serviceProviderId: {
         type: mongoose.Schema.Types.ObjectId,
-        default: ''
+        default: null
     },
     assignedAgentId: {
         type: mongoose.Schema.Types.ObjectId,
-        default: ''
+        default: null
     },//can be a tl or fieldAgent
     answerArray: [answerSchema],
     serviceProductImage: {
@@ -104,7 +97,7 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
     otherInfo: {
         type: {
             productSerialNumber: {
-                type: Number
+                type: String
             },
             serviceDescription: {
                 type: String

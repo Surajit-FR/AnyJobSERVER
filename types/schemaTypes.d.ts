@@ -92,7 +92,6 @@ export interface ISubCategorySchema extends Document {
 export interface IServiceSchema extends Document {
     _id: ObjectId;
     categoryId: ObjectId;
-    subCategoryId: ObjectId;
     serviceStartDate: Date;
     serviceShifftId: ObjectId;
     SelectedShiftTime: object;

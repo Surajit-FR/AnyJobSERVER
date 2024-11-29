@@ -20,7 +20,7 @@ import { sendMail } from "../../utils/sendMail";
 
 
 // fetchUserData func.
-const fetchUserData = async (userId: string | ObjectId) => {
+export const fetchUserData = async (userId: string | ObjectId) => {
     const user = await UserModel.aggregate([
         {
             $match: {
@@ -58,7 +58,7 @@ const fetchUserData = async (userId: string | ObjectId) => {
 };
 
 // Set cookieOption
-const cookieOption: { httpOnly: boolean, secure: boolean, maxAge: number, sameSite: 'lax' | 'strict' | 'none' } = {
+export const cookieOption: { httpOnly: boolean, secure: boolean, maxAge: number, sameSite: 'lax' | 'strict' | 'none' } = {
     httpOnly: true,
     secure: true,
     maxAge: 24 * 60 * 60 * 1000, // 1 Day

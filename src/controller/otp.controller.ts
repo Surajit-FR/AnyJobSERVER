@@ -6,6 +6,9 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { sendErrorResponse, sendSuccessResponse } from '../utils/response';
 import { ApiError } from '../utils/ApisErrors';
 import { Request, Response } from "express";
+import { generateAccessAndRefreshToken } from '../utils/createTokens';
+import { fetchUserData, cookieOption } from './auth/auth.controller';
+import { ApiResponse } from '../utils/ApiResponse';
 
 authenticator.options = {
     step: 300,
@@ -61,34 +64,51 @@ export const sendOTP = asyncHandler(async (req: Request, res: Response) => {
 
 // Verify OTP controller
 export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
-    const { phoneNumber, otp } = req.body;
+    const { phoneNumber, otp, purpose } = req.body;
 
-    if (!phoneNumber || !otp) {
-        return sendErrorResponse(res, new ApiError(400, "phoneNumber and otp are required"));
+    if (!phoneNumber || !otp || !purpose) {
+        return sendErrorResponse(res, new ApiError(400, "phoneNumber, otp, and purpose are required"));
     }
 
     const formattedPhoneNumber = `+91${phoneNumber}`;
-
     const otpEntry = await OTPModel.findOne({ phoneNumber: formattedPhoneNumber });
 
-    if (!otpEntry) {
-        return sendErrorResponse(res, new ApiError(400, "Invalid OTP or phone number"));
+    if (!otpEntry || otpEntry.expiredAt < new Date()) {
+        if (otpEntry) await OTPModel.deleteOne({ _id: otpEntry._id }); // Delete expired OTP
+        return sendErrorResponse(res, new ApiError(400, "Invalid or expired OTP"));
     }
 
-    const currentTime = new Date();
-
-    if (otpEntry.expiredAt < currentTime) {
-        await OTPModel.deleteOne({ _id: otpEntry._id }); 
-        return sendErrorResponse(res, new ApiError(400, "OTP has expired"));
-    }
-
-    const isValid = authenticator.check(otp, otpEntry.secret);
-
-    if (!isValid) {
+    if (!authenticator.check(otp, otpEntry.secret)) {
         return sendErrorResponse(res, new ApiError(400, "Invalid OTP"));
     }
 
+    // Delete OTP after successful validation
     await OTPModel.deleteOne({ _id: otpEntry._id });
 
-    return sendSuccessResponse(res, 201, "OTP Verified Successfully");
+    switch (purpose) {
+        case "login":
+            const user = await UserModel.findOne({ phone: phoneNumber });
+            if (!user) {
+                return sendErrorResponse(res, new ApiError(400, "User does not exist"));
+            }
+
+            const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, user._id);
+            const loggedInUser = await fetchUserData(user._id);
+
+            return res
+                .status(200)
+                .cookie("accessToken", accessToken, cookieOption)
+                .cookie("refreshToken", refreshToken, cookieOption)
+                .json(
+                    new ApiResponse(200, { user: loggedInUser[0], accessToken, refreshToken }, "User logged in successfully")
+                );
+
+        case "forgetPassword":
+        case "startJob":
+        case "endJob": // Fixed typo: endJopb -> endJob
+            return sendSuccessResponse(res, 200, "OTP Verified Successfully");
+
+        default:
+            return sendErrorResponse(res, new ApiError(400, "Invalid purpose"));
+    }
 });

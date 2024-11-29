@@ -209,16 +209,20 @@ export const updateServiceRequest = asyncHandler(async (req: Request, res: Respo
 // handleServiceRequestState controller
 export const handleServiceRequestState = asyncHandler(async (req: CustomRequest, res: Response) => {
     const userType = req.user?.userType;
-    const userId = req.user?._id;
+    let userId = req.user?._id;
     const { serviceId } = req.params;
     const { isReqAcceptedByServiceProvider, requestProgress }: { isReqAcceptedByServiceProvider: boolean, requestProgress: string } = req.body;
 
     if (!serviceId) {
         return sendErrorResponse(res, new ApiError(400, "Service ID is required."));
     }
+    const serviceRequest = await ServiceModel.findById(serviceId);
+    if (!serviceRequest) {
+        return sendErrorResponse(res, new ApiError(404, "Service not found."));
+    }
 
     let serviceProviderId = userId;
-
+    //|| userType === "FieldAgent"
     if (userType === "TeamLead") {
         const permissions = await PermissionModel.findOne({ userId }).select('acceptRequest');
         if (!permissions?.acceptRequest) {
@@ -230,11 +234,28 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
             return sendErrorResponse(res, new ApiError(404, 'Service Provider ID not found for team.'));
         }
         serviceProviderId = team.serviceProviderId;
-    }
+    };
 
-    const serviceRequest = await ServiceModel.findById(serviceId);
-    if (!serviceRequest) {
-        return sendErrorResponse(res, new ApiError(404, "Service not found."));
+    if (userType === "FieldAgent") {
+
+        if (!serviceRequest.assignedAgentId) {
+            return sendErrorResponse(res, new ApiError(403, "Job is not assigned yet. Permission denied."));
+        };
+
+        console.log(serviceRequest.assignedAgentId);
+
+        const serviceRequestAssignedAgentId = serviceRequest.assignedAgentId.toString();
+        const currentuserId = userId?.toString();
+
+        if (serviceRequestAssignedAgentId !== currentuserId) {
+            return sendErrorResponse(res, new ApiError(403, "Permission denied: You are not assigned to this service..."));
+        };
+
+        const team = await TeamModel.findOne({ isDeleted: false, fieldAgentIds: userId }).select('serviceProviderId');
+        if (!team || !team.serviceProviderId) {
+            return sendErrorResponse(res, new ApiError(404, 'Service Provider ID not found for team.'));
+        }
+        serviceProviderId = team.serviceProviderId;
     }
 
     const updateData: any = { isReqAcceptedByServiceProvider };

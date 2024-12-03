@@ -153,7 +153,7 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
 
 // login user controller
 export const loginUser = asyncHandler(async (req: Request, res: Response) => {
-    const { email, password, isAdminPanel }: IUser & { isAdminPanel?: boolean } = req.body;
+    const { email, password, userType, isAdminPanel }: IUser & { isAdminPanel?: boolean, userType: Array<string> } = req.body;
 
     if (!email) {
         return sendErrorResponse(res, new ApiError(400, "Email is required"));
@@ -163,6 +163,10 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
 
     if (!user) {
         return sendErrorResponse(res, new ApiError(400, "User does not exist"));
+    };
+
+    if (userType && !userType.includes(user.userType)) {
+        return sendErrorResponse(res, new ApiError(403, "Access denied"));
     };
 
     const userId = user._id;

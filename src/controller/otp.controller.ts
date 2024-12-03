@@ -74,7 +74,7 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
     const otpEntry = await OTPModel.findOne({ phoneNumber: formattedPhoneNumber });
 
     if (!otpEntry || otpEntry.expiredAt < new Date()) {
-        if (otpEntry) await OTPModel.deleteOne({ _id: otpEntry._id }); // Delete expired OTP
+        if (otpEntry) await OTPModel.deleteOne({ _id: otpEntry._id }); 
         return sendErrorResponse(res, new ApiError(400, "Invalid or expired OTP"));
     }
 
@@ -105,7 +105,7 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
 
         case "forgetPassword":
         case "startJob":
-        case "endJob": // Fixed typo: endJopb -> endJob
+        case "endJob":
             return sendSuccessResponse(res, 200, "OTP Verified Successfully");
 
         default:

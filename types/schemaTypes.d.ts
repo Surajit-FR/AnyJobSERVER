@@ -99,6 +99,8 @@ export interface IServiceSchema extends Document {
     serviceZipCode: number;
     serviceLatitude: number;
     serviceLongitude: number;
+    startedAt:Date;
+    completedAt:Date;
     isIncentiveGiven: boolean;
     incentiveAmount: number;
     isTipGiven: boolean;

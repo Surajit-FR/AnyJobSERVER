@@ -265,10 +265,16 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
 
         switch (serviceRequest.requestProgress) {
             case "Pending":
-                updateData.requestProgress = requestProgress === "Started" ? "Started" : "Pending";
+                if (requestProgress === "Started") {
+                    updateData.requestProgress = "Started";
+                    updateData.startedAt = new Date();
+                }
                 break;
             case "Started":
-                updateData.requestProgress = requestProgress === "Completed" ? "Completed" : "Started";
+                if (requestProgress === "Completed") {
+                    updateData.requestProgress = "Completed";
+                    updateData.completedAt = new Date();
+                }
                 break;
             default:
                 updateData.requestProgress = requestProgress;
@@ -284,7 +290,13 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
         return sendErrorResponse(res, new ApiError(404, "Service not found for updating."));
     }
 
-    return sendSuccessResponse(res, 200, updatedService, "Service Request status updated successfully.");
+    // Calculate total duration if completedAt is available
+    let totalExecutionTime: number = 0;
+    if (updatedService.completedAt && updatedService.startedAt) {
+        totalExecutionTime = (new Date(updatedService.completedAt).getTime() - new Date(updatedService.startedAt).getTime()) / 1000;
+    }
+
+    return sendSuccessResponse(res, 200, { updatedService, totalExecutionTime }, "Service Request status updated successfully.");
 });
 
 // deleteService controller
@@ -379,7 +391,7 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
 });
 
 
-// Function to fetch a single service by serviceId
+// Function to fetch associated customer with the service request
 export const fetchAssociatedCustomer = async (serviceId: string) => {
     if (!serviceId) {
         throw new Error("Service request ID is required.");

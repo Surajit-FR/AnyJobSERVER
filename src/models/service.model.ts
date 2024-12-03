@@ -22,7 +22,7 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
         type: Schema.Types.ObjectId,
         ref: "category",
         required: [true, "Category Id is Required"]
-    },  
+    },
     serviceStartDate: {
         type: Date,
         required: [true, "Service Start Date is Required"]
@@ -59,6 +59,14 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
     isIncentiveGiven: {
         type: Boolean,
         default: false
+    },
+    startedAt: {
+        type: Date,
+        default: null
+    },
+    completedAt: {
+        type: Date,
+        default: null
     },
     incentiveAmount: {
         type: Number,
@@ -111,7 +119,7 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
     },
     requestProgress: {
         type: String,
-        enum: ["NotStarted", "Pending", "Ongoing", "Completed", "Cancelled"],
+        enum: ["NotStarted", "Pending", "Started", "Completed", "Cancelled"],
         default: "NotStarted"
     },
     isDeleted: {

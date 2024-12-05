@@ -369,8 +369,13 @@ export const forgetPassword = asyncHandler(async (req: Request, res: Response) =
     });
 
     const to = receiverEmail;
-    const subject = "Reset Password";
-    const html = `Dear ${checkEmail.firstName} ${checkEmail.lastName}, your verification code for reset password is: <b>Veification Code: ${verificationCode}</b> `;
+    const subject = "Verification code to reset password of your account";
+    const html = `Dear ${checkEmail.firstName} ${checkEmail.lastName},</br>
+  Thank you for joining us. You have requested OTP to reset your password. Please use this code to verify your account.Your verification code for reset password is:
+</br>
+  <div style="background-color: #f0f0f0; padding: 10px; border-radius: 5px;">
+    <b><h2 style="margin: 5px 0;">Verification Code: ${verificationCode}</h2></b>
+  </div>`;
     await sendMail(to, subject, html)
     return res.status(200).json
         (
@@ -383,6 +388,7 @@ export const forgetPassword = asyncHandler(async (req: Request, res: Response) =
 
 });
 //-------------2.verify otp
+
 //-------------3.Reset Password
 export const resetPassword = asyncHandler(async (req: CustomRequest, res: Response) => {
     const userId = req.user?._id;

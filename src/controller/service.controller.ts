@@ -185,8 +185,6 @@ export const getAcceptedServiceRequestInJobQueue = asyncHandler(async (req: Cust
                 'categoryId.owner': 0,
                 'categoryId.createdAt': 0,
                 'categoryId.updatedAt': 0,
-
-
             }
         },
         { $sort: { createdAt: -1 } },

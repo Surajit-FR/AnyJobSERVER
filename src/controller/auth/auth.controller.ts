@@ -3,7 +3,7 @@ import UserModel from "../../models/user.model";
 import { ApiError } from "../../utils/ApisErrors";
 import { addUser } from "../../utils/auth";
 import { IRegisterCredentials } from "../../../types/requests_responseType";
-import { sendErrorResponse } from "../../utils/response";
+import { sendErrorResponse, sendSuccessResponse } from "../../utils/response";
 import { generateAccessAndRefreshToken } from "../../utils/createTokens";
 import { CustomRequest } from "../../../types/commonType";
 import { ApiResponse } from "../../utils/ApiResponse";
@@ -17,6 +17,8 @@ import PermissionModel from "../../models/permission.model";
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import { sendMail } from "../../utils/sendMail";
+import { generateVerificationCode } from "../otp.controller";
+import OTPModel from "../../models/otp.model";
 
 
 // fetchUserData func.
@@ -342,24 +344,65 @@ export const AuthUserSocial = asyncHandler(async (req: CustomRequest, res: Respo
     }
 });
 
+//---------------FORGET PASSWORD CONTROLLERS-------------//
+//-------------1.send verification code to given mail 
+export const forgetPassword = asyncHandler(async (req: Request, res: Response) => {
+    const { email } = req.body
+    // console.log({ email });
+
+    if (!email) {
+        return sendErrorResponse(res, new ApiError(400, "Email is required"));
+    };
+    const checkEmail = await UserModel.findOne({ email });
+    if (!checkEmail) {
+        return sendErrorResponse(res, new ApiError(400, "Email does not exist"));
+    };
+    const receiverEmail = checkEmail.email;
+    const verificationCode = generateVerificationCode(5);
+    const expiredAt = new Date(Date.now() + 15 * 60 * 1000); // Expires in 15 minutes
+
+    await OTPModel.create({
+        userId: checkEmail._id,
+        email: receiverEmail,
+        otp: verificationCode,
+        expiredAt
+    });
+
+    const to = receiverEmail;
+    const subject = "Reset Password";
+    const html = `Dear ${checkEmail.firstName} ${checkEmail.lastName}, your verification code for reset password is: <b>Veification Code: ${verificationCode}</b> `;
+    await sendMail(to, subject, html)
+    return res.status(200).json
+        (
+            new ApiResponse
+                (
+                    200,
+                    "Verification code sent to given email successfully"
+                )
+        );
+
+});
+//-------------2.verify otp
+//-------------3.Reset Password
 export const resetPassword = asyncHandler(async (req: CustomRequest, res: Response) => {
     const userId = req.user?._id;
 
 
     if (!userId) {
-        return res.status(400).json({ message: 'User ID is required.' });
+        return sendErrorResponse(res, new ApiError(400, "userId is required"));
     };
 
     const userDetails = await UserModel.findById(userId);
 
     if (!userDetails) {
-        return res.status(404).json({ message: 'User not found.' });
+        return sendErrorResponse(res, new ApiError(404, "User not found"));
     };
 
     // Update the password
     userDetails.password = req.body.password;
 
     await userDetails.save();
+    return sendSuccessResponse(res, 200, {}, "Password reset Successfull")
 
     res.status(200).json({ message: 'Password reset Successfull.' });
 });

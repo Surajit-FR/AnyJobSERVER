@@ -171,7 +171,8 @@ export interface IShiftSchema extends Document {
 export interface IOTPSchema extends Document {
     _id: ObjectId;
     userId: ObjectId;
-    phoneNumber: string;    
+    phoneNumber: string;  
+    email:string;  
     otp: string;
     secret: string;
     createdAt?: Date;

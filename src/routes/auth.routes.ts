@@ -9,8 +9,11 @@ import {
     registerUser,
     AuthUserSocial,
     addAssociate,
+    forgetPassword,
     resetPassword
 } from "../controller/auth/auth.controller";
+
+
 import { upload } from "../middlewares/multer.middleware";
 import { VerifyJWTToken, verifyUserType } from "../middlewares/auth/userAuth";
 import { HandleSocialAuthError } from '../middlewares/auth/socialAuth';
@@ -59,6 +62,7 @@ router.route('/refresh-token').post(
     refreshAccessToken
 );
 
+router.route("/forget-password").post( forgetPassword);
 router.route("/reset-password").post([VerifyJWTToken], resetPassword);
 
 

@@ -3,7 +3,7 @@ import { VerifyJWTToken, verifyUserType } from '../middlewares/auth/userAuth';
 import {
     addService,
     getServiceRequestList,
-    getPendingServiceRequest,
+    getAcceptedServiceRequestInJobQueue,
     updateServiceRequest,
     deleteService,
     fetchServiceRequest,
@@ -21,8 +21,8 @@ router.route('/')
     .post(verifyUserType(['Customer']), addService)
     .get(verifyUserType(['SuperAdmin']), getServiceRequestList);
 
-router.route('/get-pending-service')
-    .get(getPendingServiceRequest);
+router.route('/get-accepted-service-request')
+    .get(getAcceptedServiceRequestInJobQueue);
 
 router.route('/get-service-request')
     .get(getServiceRequestByStatus);

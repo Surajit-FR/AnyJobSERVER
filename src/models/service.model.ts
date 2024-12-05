@@ -46,15 +46,27 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
         // required:  [true, "Service Shift Time is Required"]
     },
     serviceZipCode: {
-        type: Number
+        type: String,
+        required: [true, "Service Zipcode is required"]
     },
     serviceLatitude: {
-        type: Number,
+        type: String,
         required: [true, "Service Latitude is required"]
     },
     serviceLongitude: {
-        type: Number,
+        type: String,
         required: [true, "Service Longitude is required"]
+    },
+    location: {
+        type: {
+            type: String, // Always 'Point'
+            enum: ["Point"], // GeoJSON format
+            required: true,
+        },
+        coordinates: {
+            type: [Number], // [longitude, latitude]
+            required: true,
+        },
     },
     isIncentiveGiven: {
         type: Boolean,
@@ -129,6 +141,9 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
 
 }, { timestamps: true });
 
+
+//adding geospatial index
+ServiceSchema.index({ location: "2dsphere" });
 
 const ServiceModel: Model<IServiceSchema> = mongoose.model<IServiceSchema>('service', ServiceSchema);
 export default ServiceModel;

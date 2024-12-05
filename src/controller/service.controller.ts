@@ -39,6 +39,14 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
     if (!serviceLatitude || !serviceLongitude) return sendErrorResponse(res, new ApiError(400, "Service location is required."));
     if (!answerArray || !Array.isArray(answerArray)) return sendErrorResponse(res, new ApiError(400, "Answer array is required and must be an array."));
 
+    //strcture location object for geospatial query
+    const location = {
+        type: "Point",
+        coordinates: [serviceLongitude, serviceLatitude] // [longitude, latitude]
+    };
+    if (!location) return sendErrorResponse(res, new ApiError(400, "Location is required."));
+
+
     // Conditional checks for incentive and tip amounts
     if (isIncentiveGiven && (incentiveAmount === undefined || incentiveAmount <= 0)) {
         return sendErrorResponse(res, new ApiError(400, "Incentive amount must be provided and more than zero if incentive is given."));
@@ -56,6 +64,7 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         serviceZipCode,
         serviceLatitude,
         serviceLongitude,
+        location,
         isIncentiveGiven,
         incentiveAmount,
         isTipGiven,
@@ -121,12 +130,13 @@ export const getServiceRequestList = asyncHandler(async (req: Request, res: Resp
 });
 
 // getPendingServiceRequest controller
-export const getPendingServiceRequest = asyncHandler(async (req: Request, res: Response) => {
+export const getAcceptedServiceRequestInJobQueue = asyncHandler(async (req: CustomRequest, res: Response) => {
     const results = await ServiceModel.aggregate([
         {
             $match: {
-                isApproved: "Pending",
-                isReqAcceptedByServiceProvider: false
+                requestProgress: "Pending",
+                serviceProviderId: req.user?._id,
+                isReqAcceptedByServiceProvider: true
             }
         },
         {
@@ -164,12 +174,17 @@ export const getPendingServiceRequest = asyncHandler(async (req: Request, res: R
                 'userId.password': 0,
                 'userId.refreshToken': 0,
                 'userId.isDeleted': 0,
+                'userId.createdAt': 0,
+                'userId.updatedAt': 0,
+                'userId.userType': 0,
+                'userId.isVerified': 0,
                 'userId.__v': 0,
-                'userId.signupType': 0,
-                'subCategoryId.isDeleted': 0,
-                'subCategoryId.__v': 0,
-                // 'categoryId.isDeleted': 0,
-                // 'categoryId.__v': 0,
+                'userId.signupType': 0,                
+                'categoryId.isDeleted': 0,
+                'categoryId.__v': 0,
+                'categoryId.owner': 0,
+                'categoryId.createdAt': 0,
+                'categoryId.updatedAt': 0,
 
 
             }
@@ -296,7 +311,10 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
         totalExecutionTime = (new Date(updatedService.completedAt).getTime() - new Date(updatedService.startedAt).getTime()) / 1000;
     }
 
-    return sendSuccessResponse(res, 200, { updatedService, totalExecutionTime }, "Service Request status updated successfully.");
+    return sendSuccessResponse(res, 200,
+        { updatedService, totalExecutionTime },
+        isReqAcceptedByServiceProvider ? "Service Request accepted successfully." : "Service Request status updated successfully."
+    )
 });
 
 // deleteService controller
@@ -351,19 +369,37 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
         address = await AddressModel.findOne({ userId });
     };
 
-    if (!address || !address.zipCode) {
-        return sendErrorResponse(res, new ApiError(400, 'User zipcode not found'));
+    if (!address || !address.zipCode || !address.longitude || !address.latitude) {
+        return sendErrorResponse(res, new ApiError(400, `User's Location not found`));
     };
 
     const userZipcode = address.zipCode;
-    const minZipcode = userZipcode - 10;
-    const maxZipcode = userZipcode + 10;
+    const userLongitude = address.longitude;
+    const userLatitude = address.latitude;
+
+    const radius = 4000 // in meter
+    // const minZipcode = userZipcode - 10;
+    // const maxZipcode = userZipcode + 10;
 
     const serviceRequests = await ServiceModel.find({
+        location: {
+            $near: {
+                $geometry: { type: 'Point', coordinates: [userLongitude, userLatitude] },
+                $maxDistance: radius  // Maximum distance in meters
+            }
+        },
         isReqAcceptedByServiceProvider: false,
-        serviceZipCode: { $gte: minZipcode, $lte: maxZipcode },
+        // serviceZipCode: { $gte: minZipcode, $lte: maxZipcode },
         isDeleted: false
-    });
+    }).populate({
+        path: "userId",
+        select: "firstName lastName email phone avatar"
+    }).populate(
+        {
+            path: "categoryId",
+            select: "name categoryImage"
+        }
+    );
 
     return sendSuccessResponse(res, 200, serviceRequests, 'Service requests fetched successfully');
 });

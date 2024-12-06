@@ -408,8 +408,6 @@ export const resetPassword = asyncHandler(async (req: CustomRequest, res: Respon
     userDetails.password = req.body.password;
 
     await userDetails.save();
-    return sendSuccessResponse(res, 200, {}, "Password reset Successfull")
-
-    res.status(200).json({ message: 'Password reset Successfull.' });
+    return sendSuccessResponse(res, 200, {}, "Password reset Successfull");
 });
 

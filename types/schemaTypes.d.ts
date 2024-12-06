@@ -23,6 +23,13 @@ export interface IUser extends Document {
     updatedAt?: Date;
 };
 
+export interface IActionDetails extends Document {
+    userId: string; 
+    action: string; 
+    ipAddress: string; 
+    performedAt: Date; 
+}
+
 export interface IAdditionalUserInfo extends Document {
     _id: string | ObjectId;
     userId: ObjectId;

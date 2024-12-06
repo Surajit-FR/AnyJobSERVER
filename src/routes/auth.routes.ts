@@ -10,7 +10,8 @@ import {
     AuthUserSocial,
     addAssociate,
     forgetPassword,
-    resetPassword
+    resetPassword,
+    createAdminUsers
 } from "../controller/auth/auth.controller";
 
 
@@ -55,6 +56,12 @@ router.route('/add-associate').post(
     verifyUserType(["ServiceProvider", 'TeamLead']),
     addAssociate
 );
+router.route('/add-admin-user').post(
+    rateLimiter,
+    [VerifyJWTToken],
+    verifyUserType(["SuperAdmin"]),
+    createAdminUsers
+);
 
 // Refresh token routes
 router.route('/refresh-token').post(
@@ -62,7 +69,7 @@ router.route('/refresh-token').post(
     refreshAccessToken
 );
 
-router.route("/forget-password").post( forgetPassword);
+router.route("/forget-password").post(forgetPassword);
 router.route("/reset-password").post([VerifyJWTToken], resetPassword);
 
 

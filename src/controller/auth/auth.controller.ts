@@ -119,6 +119,27 @@ export const addAssociate = asyncHandler(async (req: CustomRequest, res: Respons
         });
 });
 
+//add admin Users
+export const createAdminUsers = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const userData: IRegisterCredentials = req.body;
+    const savedUser = await addUser(userData);
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, savedUser._id);
+
+    return res.status(200)
+        .cookie("accessToken", accessToken, cookieOption)
+        .cookie("refreshToken", refreshToken, cookieOption)
+        .json({
+            statusCode: 200,
+            data: {
+                user: savedUser,
+                accessToken,
+                refreshToken
+            },
+            message: `${userData.userType} added successfully.`,
+            success: true
+        });
+});
+
 // register user controller
 export const registerUser = asyncHandler(async (req: Request, res: Response) => {
     const userData: IRegisterCredentials = req.body;
@@ -156,6 +177,7 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
 // login user controller
 export const loginUser = asyncHandler(async (req: Request, res: Response) => {
     const { email, password, userType, isAdminPanel }: IUser & { isAdminPanel?: boolean, userType: Array<string> } = req.body;
+
 
     if (!email) {
         return sendErrorResponse(res, new ApiError(400, "Email is required"));
@@ -348,8 +370,6 @@ export const AuthUserSocial = asyncHandler(async (req: CustomRequest, res: Respo
 //-------------1.send verification code to given mail 
 export const forgetPassword = asyncHandler(async (req: Request, res: Response) => {
     const { email } = req.body
-    // console.log({ email });
-
     if (!email) {
         return sendErrorResponse(res, new ApiError(400, "Email is required"));
     };

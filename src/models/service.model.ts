@@ -40,6 +40,7 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
         },
         shiftTimeId: {
             type: Schema.Types.ObjectId,
+            ref: "shift",
             required: true
         }
 
@@ -103,10 +104,12 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
     },
     serviceProviderId: {
         type: mongoose.Schema.Types.ObjectId,
+        ref: "user",
         default: null
     },
     assignedAgentId: {
         type: mongoose.Schema.Types.ObjectId,
+        ref: "user",
         default: null
     },//can be a tl or fieldAgent
     answerArray: [answerSchema],

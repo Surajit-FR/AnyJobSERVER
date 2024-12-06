@@ -418,7 +418,119 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
                 isDeleted: false,
                 _id: new mongoose.Types.ObjectId(serviceId)
             }
-        }
+        },
+        {
+            $lookup: {
+                from: "categories",
+                foreignField: "_id",
+                localField: "categoryId",
+                as: "categoryId"
+            }
+        },
+        {
+            $unwind: {
+                // preserveNullAndEmptyArrays: true,
+                path: "$categoryId"
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "userId",
+                as: "userId"
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$userId"
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "serviceProviderId",
+                as: "serviceProviderId"
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$serviceProviderId"
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "assignedAgentId",
+                as: "assignedAgentId"
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$assignedAgentId"
+            }
+        },
+        {
+            $lookup: {
+                from: "shifts",
+                foreignField: "_id",
+                localField: "serviceShifftId",
+                as: "serviceShifftId"
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$serviceShifftId"
+            }
+        },      
+        {
+            $project: {
+                isDeleted: 0,
+                __v: 0,
+                'userId.password': 0,
+                'userId.refreshToken': 0,
+                'userId.isDeleted': 0,
+                'userId.createdAt': 0,
+                'userId.updatedAt': 0,
+                'userId.userType': 0,
+                'userId.isVerified': 0,
+                'serviceProviderId.password': 0,
+                'serviceProviderId.refreshToken': 0,
+                'serviceProviderId.isDeleted': 0,
+                'serviceProviderId.createdAt': 0,
+                'serviceProviderId.updatedAt': 0,
+                'serviceProviderId.userType': 0,
+                'serviceProviderId.isVerified': 0,
+                'serviceProviderId.__v': 0,
+                'serviceProviderId.signupType': 0,
+                'assignedAgentId.password': 0,
+                'assignedAgentId.refreshToken': 0,
+                'assignedAgentId.isDeleted': 0,
+                'assignedAgentId.createdAt': 0,
+                'assignedAgentId.updatedAt': 0,
+                'assignedAgentId.userType': 0,
+                'assignedAgentId.isVerified': 0,
+                'assignedAgentId.__v': 0,
+                'assignedAgentId.signupType': 0,
+                'categoryId.isDeleted': 0,
+                'categoryId.__v': 0,
+                'categoryId.owner': 0,
+                'categoryId.createdAt': 0,
+                'categoryId.updatedAt': 0,
+                // 'serviceShifftId.shiftTimes': 0,
+                'serviceShifftId.updatedAt': 0,
+                'serviceShifftId.createdBy': 0,
+                'serviceShifftId.__v': 0,
+                'serviceShifftId.isDeleted': 0,
+                'serviceShifftId.createdAt': 0,
+            }
+        },
     ]);
 
     return sendSuccessResponse(res, 200, serviceRequestToFetch, "Service request retrieved successfully.");

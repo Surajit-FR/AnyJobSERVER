@@ -89,16 +89,17 @@ export const getServiceRequestList = asyncHandler(async (req: Request, res: Resp
     const limitNumber = parseInt(limit as string, 10) || 10;
     const skip = (pageNumber - 1) * limitNumber;
 
-    const searchQuery = query
-        ? {
+    const searchQuery = {
+        isDeleted: false,
+        ...(query && {
             $or: [
                 { firstName: { $regex: query, $options: "i" } },
                 { lastName: { $regex: query, $options: "i" } },
                 { requestProgress: { $regex: query, $options: "i" } },
                 { email: { $regex: query, $options: "i" } },
             ]
-        }
-        : {};
+        })
+    };
 
     // Explicitly cast sortBy and sortType to string
     const validSortBy = (sortBy as string) || 'createdAt';
@@ -179,7 +180,7 @@ export const getAcceptedServiceRequestInJobQueue = asyncHandler(async (req: Cust
                 'userId.userType': 0,
                 'userId.isVerified': 0,
                 'userId.__v': 0,
-                'userId.signupType': 0,                
+                'userId.signupType': 0,
                 'categoryId.isDeleted': 0,
                 'categoryId.__v': 0,
                 'categoryId.owner': 0,

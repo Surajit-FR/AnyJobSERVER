@@ -3,7 +3,7 @@ import UserModel from "../../models/user.model";
 import { ApiError } from "../../utils/ApisErrors";
 import { addUser } from "../../utils/auth";
 import { IRegisterCredentials } from "../../../types/requests_responseType";
-import { sendErrorResponse } from "../../utils/response";
+import { sendErrorResponse, sendSuccessResponse } from "../../utils/response";
 import { generateAccessAndRefreshToken } from "../../utils/createTokens";
 import { CustomRequest } from "../../../types/commonType";
 import { ApiResponse } from "../../utils/ApiResponse";
@@ -17,6 +17,8 @@ import PermissionModel from "../../models/permission.model";
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import { sendMail } from "../../utils/sendMail";
+import { generateVerificationCode } from "../otp.controller";
+import OTPModel from "../../models/otp.model";
 
 
 // fetchUserData func.
@@ -117,6 +119,27 @@ export const addAssociate = asyncHandler(async (req: CustomRequest, res: Respons
         });
 });
 
+//add admin Users
+export const createAdminUsers = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const userData: IRegisterCredentials = req.body;
+    const savedUser = await addUser(userData);
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, savedUser._id);
+
+    return res.status(200)
+        .cookie("accessToken", accessToken, cookieOption)
+        .cookie("refreshToken", refreshToken, cookieOption)
+        .json({
+            statusCode: 200,
+            data: {
+                user: savedUser,
+                accessToken,
+                refreshToken
+            },
+            message: `${userData.userType} added successfully.`,
+            success: true
+        });
+});
+
 // register user controller
 export const registerUser = asyncHandler(async (req: Request, res: Response) => {
     const userData: IRegisterCredentials = req.body;
@@ -154,6 +177,7 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
 // login user controller
 export const loginUser = asyncHandler(async (req: Request, res: Response) => {
     const { email, password, userType, isAdminPanel }: IUser & { isAdminPanel?: boolean, userType: Array<string> } = req.body;
+
 
     if (!email) {
         return sendErrorResponse(res, new ApiError(400, "Email is required"));
@@ -342,25 +366,68 @@ export const AuthUserSocial = asyncHandler(async (req: CustomRequest, res: Respo
     }
 });
 
+//---------------FORGET PASSWORD CONTROLLERS-------------//
+//-------------1.send verification code to given mail 
+export const forgetPassword = asyncHandler(async (req: Request, res: Response) => {
+    const { email } = req.body
+    if (!email) {
+        return sendErrorResponse(res, new ApiError(400, "Email is required"));
+    };
+    const checkEmail = await UserModel.findOne({ email });
+    if (!checkEmail) {
+        return sendErrorResponse(res, new ApiError(400, "Email does not exist"));
+    };
+    const receiverEmail = checkEmail.email;
+    const verificationCode = generateVerificationCode(5);
+    const expiredAt = new Date(Date.now() + 15 * 60 * 1000); // Expires in 15 minutes
+
+    await OTPModel.create({
+        userId: checkEmail._id,
+        email: receiverEmail,
+        otp: verificationCode,
+        expiredAt
+    });
+
+    const to = receiverEmail;
+    const subject = "Verification code to reset password of your account";
+    const html = `Dear ${checkEmail.firstName} ${checkEmail.lastName},</br>
+  Thank you for joining us. You have requested OTP to reset your password. Please use this code to verify your account.Your verification code for reset password is:
+</br>
+  <div style="background-color: #f0f0f0; padding: 10px; border-radius: 5px;">
+    <b><h2 style="margin: 5px 0;">Verification Code: ${verificationCode}</h2></b>
+  </div>`;
+    await sendMail(to, subject, html)
+    return res.status(200).json
+        (
+            new ApiResponse
+                (
+                    200,
+                    "Verification code sent to given email successfully"
+                )
+        );
+
+});
+//-------------2.verify otp
+
+//-------------3.Reset Password
 export const resetPassword = asyncHandler(async (req: CustomRequest, res: Response) => {
     const userId = req.user?._id;
 
 
     if (!userId) {
-        return res.status(400).json({ message: 'User ID is required.' });
+        return sendErrorResponse(res, new ApiError(400, "userId is required"));
     };
 
     const userDetails = await UserModel.findById(userId);
 
     if (!userDetails) {
-        return res.status(404).json({ message: 'User not found.' });
+        return sendErrorResponse(res, new ApiError(404, "User not found"));
     };
 
     // Update the password
     userDetails.password = req.body.password;
 
     await userDetails.save();
-
-    res.status(200).json({ message: 'Password reset Successfull.' });
+    return sendSuccessResponse(res, 200, {}, "Password reset Successfull");
 });
 

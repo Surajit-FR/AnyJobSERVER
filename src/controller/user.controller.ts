@@ -352,6 +352,58 @@ export const getRegisteredCustomerList = asyncHandler(async (req: Request, res: 
         }
     }, "Registered Customers list retrieved successfully.");
 });
+//get admin user list
+export const getAdminUsersList = asyncHandler(async (req: Request, res: Response) => {
+    const { page = 1, limit = 10, query = "", sortBy = "createdAt", sortType = "asc" } = req.query;
+
+    const pageNumber = parseInt(page as string, 10);
+    const pageSize = parseInt(limit as string, 10);
+
+    const sortDirection = sortType === "asc" ? 1 : -1;
+
+    const sortField = typeof sortBy === 'string' ? sortBy : "createdAt";
+
+    const searchFilter = {
+        $or: [
+            { firstName: { $regex: query, $options: "i" } },
+            { lastName: { $regex: query, $options: "i" } },
+            { email: { $regex: query, $options: "i" } },
+        ]
+    };
+
+    const matchCriteria = {
+        userType: { $in: ["Admin", "Finance"] },
+        ...searchFilter
+    };
+
+    const totalAdminUsers = await UserModel.countDocuments(matchCriteria);
+
+    const totalPages = Math.ceil(totalAdminUsers / pageSize);
+
+    const adminUsers = await UserModel.aggregate([
+        { $match: matchCriteria },
+        {
+            $project: {
+                __v: 0,
+                refreshToken: 0,
+                password: 0,
+            }
+        },
+        { $sort: { [sortField]: sortDirection } },
+        { $skip: (pageNumber - 1) * pageSize },
+        { $limit: pageSize }
+    ]);
+
+    return sendSuccessResponse(res, 200, {
+        adminUsers,
+        pagination: {
+            total: totalAdminUsers,
+            totalPages,
+            currentPage: pageNumber,
+            limit: pageSize
+        }
+    }, "Admin Users list retrieved successfully.");
+});
 
 //get all users list
 export const getUsers = asyncHandler(async (req: Request, res: Response) => {

@@ -1,5 +1,6 @@
 import mongoose, { Schema, Model } from "mongoose";
 import { IOTPSchema } from "../../types/schemaTypes";
+import { string } from "joi";
 
 const otpSchema: Schema<IOTPSchema> = new Schema({
     userId: {
@@ -8,21 +9,24 @@ const otpSchema: Schema<IOTPSchema> = new Schema({
     },
     phoneNumber: {
         type: String,
-        required: true
+        // required: true
+    },
+    email:{
+        type:String
     },
     otp: {
         type: String,
         unique: true,
         required: true,
     },
-    secret: {
-        type: String,
-        required: true
-    },
+    // secret: {
+    //     type: String,
+    //     required: true
+    // },
     expiredAt: {
         type: Date,
         required: true,
-        index: { expires: '0s' }
+        // index: { expires: '0s' }
     },
     createdAt: {
         type: Date,

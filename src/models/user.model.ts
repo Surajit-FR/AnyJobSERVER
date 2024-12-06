@@ -59,7 +59,7 @@ const UserSchema: Schema<IUser> = new Schema({
     },
     userType: {
         type: String,
-        enum: ["SuperAdmin", "ServiceProvider", "Customer", "FieldAgent", "TeamLead"],
+        enum: ["SuperAdmin", "ServiceProvider", "Customer", "FieldAgent", "TeamLead", "Admin", "Finance"],
         default: ""
     },
     refreshToken: {

@@ -13,7 +13,8 @@ import {
     banUser,
     fetchAssociates,
     assignTeamLead,
-    getAgentEngagementStatus
+    getAgentEngagementStatus,
+    getAdminUsersList
 } from "../controller/user.controller";
 import { givePermission, getUserPermissions } from "../controller/permission.controller";
 
@@ -47,6 +48,9 @@ router.route('/get-service-providers').get(getServiceProviderList);
 
 //fetch customers List
 router.route('/get-registered-customers').get(getRegisteredCustomerList);
+
+//fetch admin users List
+router.route('/get-admin-users').get(getAdminUsersList);
 
 //fetch users List
 router.route('/get-users').get(getUsers);

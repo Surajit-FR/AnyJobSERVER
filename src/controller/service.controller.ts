@@ -39,6 +39,14 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
     if (!serviceLatitude || !serviceLongitude) return sendErrorResponse(res, new ApiError(400, "Service location is required."));
     if (!answerArray || !Array.isArray(answerArray)) return sendErrorResponse(res, new ApiError(400, "Answer array is required and must be an array."));
 
+    //strcture location object for geospatial query
+    const location = {
+        type: "Point",
+        coordinates: [serviceLongitude, serviceLatitude] // [longitude, latitude]
+    };
+    if (!location) return sendErrorResponse(res, new ApiError(400, "Location is required."));
+
+
     // Conditional checks for incentive and tip amounts
     if (isIncentiveGiven && (incentiveAmount === undefined || incentiveAmount <= 0)) {
         return sendErrorResponse(res, new ApiError(400, "Incentive amount must be provided and more than zero if incentive is given."));
@@ -56,6 +64,7 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         serviceZipCode,
         serviceLatitude,
         serviceLongitude,
+        location,
         isIncentiveGiven,
         incentiveAmount,
         isTipGiven,
@@ -80,16 +89,17 @@ export const getServiceRequestList = asyncHandler(async (req: Request, res: Resp
     const limitNumber = parseInt(limit as string, 10) || 10;
     const skip = (pageNumber - 1) * limitNumber;
 
-    const searchQuery = query
-        ? {
+    const searchQuery = {
+        isDeleted: false,
+        ...(query && {
             $or: [
                 { firstName: { $regex: query, $options: "i" } },
                 { lastName: { $regex: query, $options: "i" } },
                 { requestProgress: { $regex: query, $options: "i" } },
                 { email: { $regex: query, $options: "i" } },
             ]
-        }
-        : {};
+        })
+    };
 
     // Explicitly cast sortBy and sortType to string
     const validSortBy = (sortBy as string) || 'createdAt';
@@ -121,12 +131,13 @@ export const getServiceRequestList = asyncHandler(async (req: Request, res: Resp
 });
 
 // getPendingServiceRequest controller
-export const getPendingServiceRequest = asyncHandler(async (req: Request, res: Response) => {
+export const getAcceptedServiceRequestInJobQueue = asyncHandler(async (req: CustomRequest, res: Response) => {
     const results = await ServiceModel.aggregate([
         {
             $match: {
-                isApproved: "Pending",
-                isReqAcceptedByServiceProvider: false
+                requestProgress: "Pending",
+                serviceProviderId: req.user?._id,
+                isReqAcceptedByServiceProvider: true
             }
         },
         {
@@ -164,14 +175,17 @@ export const getPendingServiceRequest = asyncHandler(async (req: Request, res: R
                 'userId.password': 0,
                 'userId.refreshToken': 0,
                 'userId.isDeleted': 0,
+                'userId.createdAt': 0,
+                'userId.updatedAt': 0,
+                'userId.userType': 0,
+                'userId.isVerified': 0,
                 'userId.__v': 0,
                 'userId.signupType': 0,
-                'subCategoryId.isDeleted': 0,
-                'subCategoryId.__v': 0,
-                // 'categoryId.isDeleted': 0,
-                // 'categoryId.__v': 0,
-
-
+                'categoryId.isDeleted': 0,
+                'categoryId.__v': 0,
+                'categoryId.owner': 0,
+                'categoryId.createdAt': 0,
+                'categoryId.updatedAt': 0,
             }
         },
         { $sort: { createdAt: -1 } },
@@ -296,7 +310,10 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
         totalExecutionTime = (new Date(updatedService.completedAt).getTime() - new Date(updatedService.startedAt).getTime()) / 1000;
     }
 
-    return sendSuccessResponse(res, 200, { updatedService, totalExecutionTime }, "Service Request status updated successfully.");
+    return sendSuccessResponse(res, 200,
+        { updatedService, totalExecutionTime },
+        isReqAcceptedByServiceProvider ? "Service Request accepted successfully." : "Service Request status updated successfully."
+    )
 });
 
 // deleteService controller
@@ -351,19 +368,37 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
         address = await AddressModel.findOne({ userId });
     };
 
-    if (!address || !address.zipCode) {
-        return sendErrorResponse(res, new ApiError(400, 'User zipcode not found'));
+    if (!address || !address.zipCode || !address.longitude || !address.latitude) {
+        return sendErrorResponse(res, new ApiError(400, `User's Location not found`));
     };
 
     const userZipcode = address.zipCode;
-    const minZipcode = userZipcode - 10;
-    const maxZipcode = userZipcode + 10;
+    const userLongitude = address.longitude;
+    const userLatitude = address.latitude;
+
+    const radius = 4000 // in meter
+    // const minZipcode = userZipcode - 10;
+    // const maxZipcode = userZipcode + 10;
 
     const serviceRequests = await ServiceModel.find({
+        location: {
+            $near: {
+                $geometry: { type: 'Point', coordinates: [userLongitude, userLatitude] },
+                $maxDistance: radius  // Maximum distance in meters
+            }
+        },
         isReqAcceptedByServiceProvider: false,
-        serviceZipCode: { $gte: minZipcode, $lte: maxZipcode },
+        // serviceZipCode: { $gte: minZipcode, $lte: maxZipcode },
         isDeleted: false
-    });
+    }).populate({
+        path: "userId",
+        select: "firstName lastName email phone avatar"
+    }).populate(
+        {
+            path: "categoryId",
+            select: "name categoryImage"
+        }
+    );
 
     return sendSuccessResponse(res, 200, serviceRequests, 'Service requests fetched successfully');
 });
@@ -383,7 +418,119 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
                 isDeleted: false,
                 _id: new mongoose.Types.ObjectId(serviceId)
             }
-        }
+        },
+        {
+            $lookup: {
+                from: "categories",
+                foreignField: "_id",
+                localField: "categoryId",
+                as: "categoryId"
+            }
+        },
+        {
+            $unwind: {
+                // preserveNullAndEmptyArrays: true,
+                path: "$categoryId"
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "userId",
+                as: "userId"
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$userId"
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "serviceProviderId",
+                as: "serviceProviderId"
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$serviceProviderId"
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "assignedAgentId",
+                as: "assignedAgentId"
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$assignedAgentId"
+            }
+        },
+        {
+            $lookup: {
+                from: "shifts",
+                foreignField: "_id",
+                localField: "serviceShifftId",
+                as: "serviceShifftId"
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$serviceShifftId"
+            }
+        },      
+        {
+            $project: {
+                isDeleted: 0,
+                __v: 0,
+                'userId.password': 0,
+                'userId.refreshToken': 0,
+                'userId.isDeleted': 0,
+                'userId.createdAt': 0,
+                'userId.updatedAt': 0,
+                'userId.userType': 0,
+                'userId.isVerified': 0,
+                'serviceProviderId.password': 0,
+                'serviceProviderId.refreshToken': 0,
+                'serviceProviderId.isDeleted': 0,
+                'serviceProviderId.createdAt': 0,
+                'serviceProviderId.updatedAt': 0,
+                'serviceProviderId.userType': 0,
+                'serviceProviderId.isVerified': 0,
+                'serviceProviderId.__v': 0,
+                'serviceProviderId.signupType': 0,
+                'assignedAgentId.password': 0,
+                'assignedAgentId.refreshToken': 0,
+                'assignedAgentId.isDeleted': 0,
+                'assignedAgentId.createdAt': 0,
+                'assignedAgentId.updatedAt': 0,
+                'assignedAgentId.userType': 0,
+                'assignedAgentId.isVerified': 0,
+                'assignedAgentId.__v': 0,
+                'assignedAgentId.signupType': 0,
+                'categoryId.isDeleted': 0,
+                'categoryId.__v': 0,
+                'categoryId.owner': 0,
+                'categoryId.createdAt': 0,
+                'categoryId.updatedAt': 0,
+                // 'serviceShifftId.shiftTimes': 0,
+                'serviceShifftId.updatedAt': 0,
+                'serviceShifftId.createdBy': 0,
+                'serviceShifftId.__v': 0,
+                'serviceShifftId.isDeleted': 0,
+                'serviceShifftId.createdAt': 0,
+            }
+        },
     ]);
 
     return sendSuccessResponse(res, 200, serviceRequestToFetch, "Service request retrieved successfully.");

@@ -9,8 +9,12 @@ import {
     registerUser,
     AuthUserSocial,
     addAssociate,
-    resetPassword
+    forgetPassword,
+    resetPassword,
+    createAdminUsers
 } from "../controller/auth/auth.controller";
+
+
 import { upload } from "../middlewares/multer.middleware";
 import { VerifyJWTToken, verifyUserType } from "../middlewares/auth/userAuth";
 import { HandleSocialAuthError } from '../middlewares/auth/socialAuth';
@@ -52,6 +56,12 @@ router.route('/add-associate').post(
     verifyUserType(["ServiceProvider", 'TeamLead']),
     addAssociate
 );
+router.route('/add-admin-user').post(
+    rateLimiter,
+    [VerifyJWTToken],
+    verifyUserType(["SuperAdmin"]),
+    createAdminUsers
+);
 
 // Refresh token routes
 router.route('/refresh-token').post(
@@ -59,6 +69,7 @@ router.route('/refresh-token').post(
     refreshAccessToken
 );
 
+router.route("/forget-password").post(forgetPassword);
 router.route("/reset-password").post([VerifyJWTToken], resetPassword);
 
 

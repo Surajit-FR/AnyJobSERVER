@@ -15,10 +15,10 @@ const transporter = nodemailer.createTransport({
 export const sendMail = async (to: string, subject: string, html?: string) => {
     try {
         const info = await transporter.sendMail({
-            from: process.env.SMTP_USER,               
-            to,                                         
-            subject,                                    
-            html
+            from: process.env.SMTP_USER,
+            to,
+            subject,
+            html    //const html = `Dear ${savedUser.firstName} ${savedUser.lastName}, your login credentials for AnyJob are: <b>Password: ${generatedPass}</b> or you can directly log in using your registered <b>Phone Number: ${savedUser.phone}</b>.`;
         });
 
         console.log('Message sent: %s', info.messageId);

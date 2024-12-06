@@ -10,11 +10,11 @@ const AddressSchema: Schema<IAddressType> = new Schema({
     city: { type: String, required: false, default: "" },
     state: { type: String, required: false, default: "" },
     country: { type: String, required: false, default: "" },
-    zipCode: { type: Number, required: [true, "Zipcode is Required"] },
+    zipCode: { type: String, required: [true, "Zipcode is Required"] },
     apartmentNumber: { type: String, default: "" },
     landmark: { type: String, default: "" },
-    latitude: { type: Number, required: [true, "Latitude is Required"] },
-    longitude: { type: Number, required: [true, "Longitude is Required"] }
+    latitude: { type: String, required: [true, "Latitude is Required"] },
+    longitude: { type: String, required: [true, "Longitude is Required"] }
 }, { timestamps: true });
 
 const AddressModel: Model<IAddressType> = mongoose.model<IAddressType>("address", AddressSchema);

@@ -23,6 +23,13 @@ export interface IUser extends Document {
     updatedAt?: Date;
 };
 
+export interface IActionDetails extends Document {
+    userId: string; 
+    action: string; 
+    ipAddress: string; 
+    performedAt: Date; 
+}
+
 export interface IAdditionalUserInfo extends Document {
     _id: string | ObjectId;
     userId: ObjectId;
@@ -57,11 +64,11 @@ export interface IAddressType extends Document {
     city: string;
     state: string;
     country: string;
-    zipCode: number;
+    zipCode: string;
     apartmentNumber?: string;
     landmark?: string;
-    latitude: number;
-    longitude: number;
+    latitude: string;
+    longitude: string;
     isPrimary?: boolean;
     createdAt: Date;
     updatedAt: Date;
@@ -89,6 +96,11 @@ export interface ISubCategorySchema extends Document {
     updatedAt?: Date;
 };
 
+export interface IGeoJSONPoint {
+    type: "Point";
+    coordinates: [number, number]; // [longitude, latitude]
+  }
+
 export interface IServiceSchema extends Document {
     _id: ObjectId;
     categoryId: ObjectId;
@@ -96,9 +108,10 @@ export interface IServiceSchema extends Document {
     serviceShifftId: ObjectId;
     SelectedShiftTime: object;
     serviceProductImage: string;
-    serviceZipCode: number;
-    serviceLatitude: number;
-    serviceLongitude: number;
+    serviceZipCode: string;
+    serviceLatitude: string;
+    serviceLongitude: string;
+    location:IGeoJSONPoint;
     startedAt:Date;
     completedAt:Date;
     isIncentiveGiven: boolean;
@@ -171,7 +184,8 @@ export interface IShiftSchema extends Document {
 export interface IOTPSchema extends Document {
     _id: ObjectId;
     userId: ObjectId;
-    phoneNumber: string;    
+    phoneNumber: string;  
+    email:string;  
     otp: string;
     secret: string;
     createdAt?: Date;

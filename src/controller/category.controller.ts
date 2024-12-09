@@ -9,6 +9,7 @@ import SubCategoryModel from "../models/subcategory.model";
 import QuestionModel from "../models/question.model";
 import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary";
 import { IAddCategoryPayloadReq } from "../../types/requests_responseType";
+import { deleteUploadedFiles } from "../middlewares/multer.middleware";
 import fs from 'fs';
 
 
@@ -17,9 +18,7 @@ export const addCategory = asyncHandler(async (req: CustomRequest, res: Response
     const { name }: IAddCategoryPayloadReq = req.body;
 
 
-    // Trim and convert name to lowercase
     const trimmedName = name.trim();
-    // Check if a category with the same name already exists (case-insensitive)
     const existingCategory = await CategoryModel.findOne({ name: { $regex: new RegExp(`^${trimmedName}$`, 'i') } });
 
     if (existingCategory) {
@@ -28,16 +27,11 @@ export const addCategory = asyncHandler(async (req: CustomRequest, res: Response
         const catImgFile = categoryImageFile?.categoryImage ? categoryImageFile.categoryImage[0] : undefined;
 
         if (catImgFile) {
-            fs.unlink(catImgFile.path, (err) => {
-                if (err) {
-                    console.error("Error deleting local image:", err);
-                }
-            });
+            deleteUploadedFiles({ categoryImage: categoryImageFile?.categoryImage });
         }
 
         return sendErrorResponse(res, new ApiError(400, "Category with the same name already exists."));
     }
-    // console.log("--------");
 
     const categoryImageFile = req.files as { [key: string]: Express.Multer.File[] } | undefined;
     if (!categoryImageFile) {
@@ -46,10 +40,7 @@ export const addCategory = asyncHandler(async (req: CustomRequest, res: Response
 
     const catImgFile = categoryImageFile.categoryImage ? categoryImageFile.categoryImage[0] : undefined;
 
-    // console.log(catImgFile);
-    // Upload files to Cloudinary
     const catImg = await uploadOnCloudinary(catImgFile?.path as string);
-    // console.log(catImg);
 
     const newCategory = await CategoryModel.create({
         name: trimmedName,
@@ -71,10 +62,7 @@ export const getCategories = asyncHandler(async (req: Request, res: Response) =>
         {
             $match: { isDeleted: false }
         },
-        // { $sort: { createdAt: -1 } },
     ]);
-    // console.log(results);
-    // Return the videos along with pagination details
     return sendSuccessResponse(res, 200, results, "Category retrieved successfully.");
 });
 
@@ -87,43 +75,33 @@ export const updateCategory = asyncHandler(async (req: Request, res: Response) =
         return sendErrorResponse(res, new ApiError(400, "Category ID is required."));
     };
 
-    // Trim and convert name to lowercase for case-insensitive comparison
     const trimmedName = name.trim();
 
-    // Check if a category with the same name already exists, excluding the current category being updated
     const existingCategory = await CategoryModel.findOne({
-        _id: { $ne: new mongoose.Types.ObjectId(CategoryId) },  // Exclude the current category
-        name: { $regex: new RegExp(`^${trimmedName}$`, 'i') }   // Case-insensitive name comparison
+        _id: { $ne: new mongoose.Types.ObjectId(CategoryId) },
+        name: { $regex: new RegExp(`^${trimmedName}$`, 'i') }
     });
 
     if (existingCategory) {
-        // Delete the local image if it exists
         const categoryImageFile = req.files as { [key: string]: Express.Multer.File[] } | undefined;
         const catImgFile = categoryImageFile?.categoryImage ? categoryImageFile.categoryImage[0] : undefined;
 
         if (catImgFile) {
-            fs.unlink(catImgFile.path, (err) => {
-                if (err) {
-                    console.error("Error deleting local image:", err);
-                }
-            });
+            deleteUploadedFiles({ categoryImage: categoryImageFile?.categoryImage })      
         }
 
         return sendErrorResponse(res, new ApiError(400, "Category with the same name already exists."));
     }
 
-    // Check if a category image file was uploaded
     const categoryImageFile = req.files as { [key: string]: Express.Multer.File[] } | undefined;
     const catImgFile = categoryImageFile?.categoryImage ? categoryImageFile.categoryImage[0] : undefined;
 
     let catImgUrl;
     if (catImgFile) {
-        // Upload the category image file to Cloudinary
         const catImg = await uploadOnCloudinary(catImgFile.path);
         catImgUrl = catImg?.url;
     }
 
-    // Update the category details with new name and image (if uploaded)
     const updatedCategory = await CategoryModel.findByIdAndUpdate(
         new mongoose.Types.ObjectId(CategoryId),
         {
@@ -149,35 +127,28 @@ export const deleteCategory = asyncHandler(async (req: Request, res: Response) =
         return sendErrorResponse(res, new ApiError(400, "Category ID is required."));
     };
 
-    //  Find the category to delete
     const categoryToDelete = await CategoryModel.findById(CategoryId);
     if (!categoryToDelete) {
         return sendErrorResponse(res, new ApiError(404, "Category not found for deleting."));
     };
     const imageUrls = [];
-    // Collect image from category
     if (categoryToDelete.categoryImage) imageUrls.push(categoryToDelete.categoryImage);
 
-    //Find SubCategories 
     const subcategories = await SubCategoryModel.find({ CategoryId })
-    // Collect images from subcategories
     subcategories.forEach((subCategory) => {
         if (subCategory.subCategoryImage) imageUrls.push(subCategory.subCategoryImage);
     });
 
-    //  Delete all questions related to this category and its subcategories
     await QuestionModel.deleteMany({
         $or: [
-            { categoryId: CategoryId },  // Questions directly related to the main category
+            { categoryId: CategoryId }, 
         ]
     });
 
     await SubCategoryModel.deleteMany({ categoryId: CategoryId });
 
-    //  Delete the category
     await CategoryModel.findByIdAndDelete(CategoryId);
 
-    // Remove images from Cloudinary
     const deleteImages = imageUrls.map((url) => {
         deleteFromCloudinary(url);
     });
@@ -193,7 +164,6 @@ export const getCategorieById = asyncHandler(async (req: Request, res: Response)
         return sendErrorResponse(res, new ApiError(400, "Category ID is required."));
     };
 
-    //  Find the category to delete
     const categoryToFetch = await CategoryModel.findById(CategoryId);
     if (!categoryToFetch) {
         return sendErrorResponse(res, new ApiError(404, "Category not found."));

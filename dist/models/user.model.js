@@ -93,7 +93,7 @@ const UserSchema = new mongoose_1.Schema({
     },
     userType: {
         type: String,
-        enum: ["SuperAdmin", "ServiceProvider", "Customer"],
+        enum: ["SuperAdmin", "ServiceProvider", "Customer", "FieldAgent", "TeamLead", "Admin", "Finance"],
         default: ""
     },
     refreshToken: {
@@ -139,5 +139,5 @@ UserSchema.methods.generateRefreshToken = function () {
         _id: this._id
     }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: process.env.REFRESH_TOKEN_EXPIRY });
 };
-const UserModel = mongoose_1.default.model("User", UserSchema);
+const UserModel = mongoose_1.default.model("user", UserSchema);
 exports.default = UserModel;

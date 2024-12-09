@@ -42,11 +42,6 @@ const ServiceSchema = new mongoose_1.Schema({
         ref: "category",
         required: [true, "Category Id is Required"]
     },
-    subCategoryId: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: "subcategory",
-        required: [true, "Category Id is Required"]
-    },
     serviceStartDate: {
         type: Date,
         required: [true, "Service Start Date is Required"]
@@ -64,29 +59,57 @@ const ServiceSchema = new mongoose_1.Schema({
         },
         shiftTimeId: {
             type: mongoose_1.Schema.Types.ObjectId,
+            ref: "shift",
             required: true
         }
         // required:  [true, "Service Shift Time is Required"]
     },
     serviceZipCode: {
-        type: Number
+        type: String,
+        required: [true, "Service Zipcode is required"]
     },
     serviceLatitude: {
-        type: Number,
+        type: String,
         required: [true, "Service Latitude is required"]
     },
     serviceLongitude: {
-        type: Number,
+        type: String,
         required: [true, "Service Longitude is required"]
+    },
+    location: {
+        type: {
+            type: String, // Always 'Point'
+            enum: ["Point"], // GeoJSON format
+            required: true,
+        },
+        coordinates: {
+            type: [Number], // [longitude, latitude]
+            required: true,
+        },
     },
     isIncentiveGiven: {
         type: Boolean,
         default: false
     },
+    startedAt: {
+        type: Date,
+        default: null
+    },
+    completedAt: {
+        type: Date,
+        default: null
+    },
     incentiveAmount: {
         type: Number,
         default: 0,
-        min: 10
+    },
+    isTipGiven: {
+        type: Boolean,
+        default: false
+    },
+    tipAmount: {
+        type: Number,
+        default: 0,
     },
     isApproved: {
         type: String,
@@ -97,7 +120,16 @@ const ServiceSchema = new mongoose_1.Schema({
         type: Boolean,
         default: false
     },
-    // Answer array to store answers and derived answers
+    serviceProviderId: {
+        type: mongoose_1.default.Schema.Types.ObjectId,
+        ref: "user",
+        default: null
+    },
+    assignedAgentId: {
+        type: mongoose_1.default.Schema.Types.ObjectId,
+        ref: "user",
+        default: null
+    }, //can be a tl or fieldAgent
     answerArray: [answerSchema],
     serviceProductImage: {
         type: String,
@@ -106,7 +138,7 @@ const ServiceSchema = new mongoose_1.Schema({
     otherInfo: {
         type: {
             productSerialNumber: {
-                type: Number
+                type: String
             },
             serviceDescription: {
                 type: String
@@ -117,10 +149,17 @@ const ServiceSchema = new mongoose_1.Schema({
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "user"
     },
+    requestProgress: {
+        type: String,
+        enum: ["NotStarted", "Pending", "Started", "Completed", "Cancelled"],
+        default: "NotStarted"
+    },
     isDeleted: {
         type: Boolean,
         default: false,
     },
 }, { timestamps: true });
-const ServiceModel = mongoose_1.default.model('Service', ServiceSchema);
+//adding geospatial index
+ServiceSchema.index({ location: "2dsphere" });
+const ServiceModel = mongoose_1.default.model('service', ServiceSchema);
 exports.default = ServiceModel;

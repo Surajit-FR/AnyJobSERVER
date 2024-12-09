@@ -72,7 +72,7 @@ exports.getCategories = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
         {
             $match: { isDeleted: false }
         },
-        { $sort: { createdAt: -1 } },
+        // { $sort: { createdAt: -1 } },
     ]);
     // console.log(results);
     // Return the videos along with pagination details

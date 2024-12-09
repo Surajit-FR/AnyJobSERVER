@@ -9,15 +9,16 @@ const modelAuth_1 = __importDefault(require("../middlewares/auth/modelAuth"));
 const category_validate_1 = __importDefault(require("../models/validator/category.validate"));
 const multer_middleware_1 = require("../middlewares/multer.middleware");
 const userAuth_1 = require("../middlewares/auth/userAuth");
+const IP_middleware_1 = require("../middlewares/IP.middleware");
 const router = express_1.default.Router();
 router.use(userAuth_1.VerifyJWTToken); // Apply SuperAdmin verifyJWT middleware
 router.route('/').post(multer_middleware_1.upload.fields([
     { name: "categoryImage" },
-]), [(0, modelAuth_1.default)(category_validate_1.default)], (0, userAuth_1.verifyUserType)(['SuperAdmin']), category_controller_1.addCategory);
+]), [(0, modelAuth_1.default)(category_validate_1.default)], (0, userAuth_1.verifyUserType)(['SuperAdmin']), IP_middleware_1.captureIPMiddleware, category_controller_1.addCategory);
 router.route("/c/:CategoryId")
     .get(category_controller_1.getCategorieById)
-    .delete((0, userAuth_1.verifyUserType)(['SuperAdmin']), category_controller_1.deleteCategory)
-    .put((0, userAuth_1.verifyUserType)(['SuperAdmin']), multer_middleware_1.upload.fields([
+    .delete((0, userAuth_1.verifyUserType)(['SuperAdmin']), IP_middleware_1.captureIPMiddleware, category_controller_1.deleteCategory)
+    .put((0, userAuth_1.verifyUserType)(['SuperAdmin']), IP_middleware_1.captureIPMiddleware, multer_middleware_1.upload.fields([
     { name: "categoryImage" },
 ]), category_controller_1.updateCategory);
 router.route('/').get(category_controller_1.getCategories);

@@ -1,30 +1,41 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.socketAuthMiddleware = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const user_model_1 = __importDefault(require("../../models/user.model"));
 // Middleware function to verify JWT token for socket connections
 const socketAuthMiddleware = (socket, next) => {
     const JWT_SECRET = process.env.REFRESH_TOKEN_SECRET;
-    console.log({ JWT_SECRET });
     const token = socket.handshake.headers.accesstoken;
     if (!token) {
-        // If no token is provided, block the connection
         return next(new Error("Authentication error: No token provided"));
     }
     // Verify the token
-    jsonwebtoken_1.default.verify(token, JWT_SECRET, (err, decoded) => {
+    jsonwebtoken_1.default.verify(token, JWT_SECRET, (err, decoded) => __awaiter(void 0, void 0, void 0, function* () {
         if (err) {
-            // console.log({ JWT_SECRET });
-            // If token is invalid or expired, reject the connection
+            console.log({ JWT_SECRET });
             return next(new Error("Authentication error: Invalid token"));
         }
-        // Attach the decoded user information (e.g., userId) to the socket object
-        socket.data.userId = decoded._id; // Store _id in socket's data object for future use
-        console.log(socket.data.userId);
-        next(); // Allow the connection to proceed
-    });
+        const connectedUser = yield user_model_1.default.findById(decoded._id).select("-password -refreshToken");
+        if (!connectedUser) {
+            console.log("---");
+            return next(new Error("Authentication error: User not found"));
+        }
+        socket.data.userId = connectedUser._id;
+        socket.data.userType = connectedUser.userType;
+        next();
+    }));
 };
 exports.socketAuthMiddleware = socketAuthMiddleware;

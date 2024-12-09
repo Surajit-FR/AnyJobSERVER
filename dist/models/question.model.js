@@ -15,7 +15,6 @@ const derivedQuestionSchema = new mongoose_1.Schema({
 // Main Question Schema
 const questionSchema = new mongoose_1.Schema({
     categoryId: { type: mongoose_1.Schema.Types.ObjectId, required: true, ref: 'Category' },
-    subCategoryId: { type: mongoose_1.Schema.Types.ObjectId, required: true, ref: 'SubCategory' },
     question: { type: String, required: true },
     options: {
         type: Map,
@@ -25,5 +24,5 @@ const questionSchema = new mongoose_1.Schema({
     derivedQuestions: [derivedQuestionSchema],
     isDeleted: { type: Boolean, default: false }
 }, { timestamps: true });
-const QuestionModel = (0, mongoose_1.model)('Question', questionSchema);
+const QuestionModel = (0, mongoose_1.model)('question', questionSchema);
 exports.default = QuestionModel;

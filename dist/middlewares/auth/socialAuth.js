@@ -14,8 +14,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.HandleSocialAuthError = void 0;
 const user_model_1 = __importDefault(require("../../models/user.model"));
+const asyncHandler_1 = require("../../utils/asyncHandler");
 // HandleSocialAuthError
-const HandleSocialAuthError = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+exports.HandleSocialAuthError = (0, asyncHandler_1.asyncHandler)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, uid, displayName, photoURL, phoneNumber } = req.body;
     try {
         // Check if all required fields are present
@@ -53,5 +54,4 @@ const HandleSocialAuthError = (req, res, next) => __awaiter(void 0, void 0, void
         console.log(exc.message);
         return res.status(500).json({ success: false, message: "Something went wrong. Please try again.", error: exc.message });
     }
-});
-exports.HandleSocialAuthError = HandleSocialAuthError;
+}));

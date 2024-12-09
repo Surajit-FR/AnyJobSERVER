@@ -43,5 +43,5 @@ const CategorySchema = new mongoose_1.Schema({
         ref: "User",
     },
 }, { timestamps: true });
-const CategoryModel = mongoose_1.default.model('Category', CategorySchema);
+const CategoryModel = mongoose_1.default.model('category', CategorySchema);
 exports.default = CategoryModel;

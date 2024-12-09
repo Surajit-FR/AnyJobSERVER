@@ -41,6 +41,7 @@ exports.VerifyJWTToken = (0, asyncHandler_1.asyncHandler)((req, res, next) => __
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(401, error.message || "Invalid access token"));
     }
 }));
+// verifyUserType
 const verifyUserType = (requiredUserTypes = null) => {
     return (0, asyncHandler_1.asyncHandler)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
         if (!req.user) {

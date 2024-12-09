@@ -406,7 +406,6 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
 // fetchSingleServiceRequest controller
 export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: Response) => {
     const { serviceId } = req.params;
-    console.log(req.params);
 
     if (!serviceId) {
         return sendErrorResponse(res, new ApiError(400, "Service request ID is required."));

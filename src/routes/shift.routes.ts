@@ -7,18 +7,19 @@ import {
     updateShift,
     deleteShift
 } from '../controller/shift.controller';
+import { captureIPMiddleware } from "../middlewares/IP.middleware";
 
 const router: Router = express.Router();
 router.use(VerifyJWTToken);
 
 router.route('/')
     .get(fetchShifs)
-    .post(verifyUserType(['SuperAdmin']), addShift);
+    .post(verifyUserType(['SuperAdmin']), captureIPMiddleware, addShift);
 
 router.route('/:shiftId')
     .get(fetchShiftbyId)
-    .patch(verifyUserType(['SuperAdmin']), updateShift)
-    .delete(verifyUserType(['SuperAdmin']), deleteShift)
+    .patch(verifyUserType(['SuperAdmin']), captureIPMiddleware, updateShift)
+    .delete(verifyUserType(['SuperAdmin']), captureIPMiddleware, deleteShift)
 
 
 

@@ -19,6 +19,7 @@ import { upload } from "../middlewares/multer.middleware";
 import { VerifyJWTToken, verifyUserType } from "../middlewares/auth/userAuth";
 import { HandleSocialAuthError } from '../middlewares/auth/socialAuth';
 import { rateLimiter } from '../middlewares/rateLimiter.middleware';
+import { captureIPMiddleware } from "../middlewares/IP.middleware";
 
 
 const router: Router = express.Router();

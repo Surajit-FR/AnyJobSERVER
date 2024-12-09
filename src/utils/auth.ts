@@ -3,6 +3,7 @@ import { ApiError } from "../utils/ApisErrors";
 import { IRegisterCredentials } from "../../types/requests_responseType";
 import PermissionModel from "../models/permission.model";
 import { sendMail } from "./sendMail";
+import { fetchUserData } from "../controller/auth/auth.controller";
 
 export const generateRandomPassword = (length = 10): string => {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$!";
@@ -24,12 +25,10 @@ export const addUser = async (userData: IRegisterCredentials) => {
     if (userType === "FieldAgent" || userType === "Admin" || userType === "Finance") {
         password = generateRandomPassword();
         generatedPass = password;
-        console.log({ password });
-
     }
 
     // Create the new user
-    const newUser = new UserModel({
+    const newUser = await UserModel.create({
         firstName,
         lastName,
         email,
@@ -38,7 +37,8 @@ export const addUser = async (userData: IRegisterCredentials) => {
         phone,
     });
 
-    const savedUser = await newUser.save();
+    const fetchUser = await fetchUserData(newUser._id);
+    const savedUser = fetchUser[0];
 
     // Adding permissions based on userType
     if (savedUser && (savedUser.userType === "SuperAdmin" || savedUser.userType === "ServiceProvider")) {

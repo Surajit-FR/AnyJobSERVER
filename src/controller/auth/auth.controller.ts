@@ -102,42 +102,15 @@ export const addAssociate = asyncHandler(async (req: CustomRequest, res: Respons
         }
     }
 
-    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, savedAgent._id);
-
-    return res.status(200)
-        .cookie("accessToken", accessToken, cookieOption)
-        .cookie("refreshToken", refreshToken, cookieOption)
-        .json({
-            statusCode: 200,
-            data: {
-                user: savedAgent,
-                accessToken,
-                refreshToken
-            },
-            message: `${userData.userType} added successfully.`,
-            success: true
-        });
+    return sendSuccessResponse(res, 200, savedAgent, `${userData.userType} added successfully.`);
 });
 
 //add admin Users
 export const createAdminUsers = asyncHandler(async (req: CustomRequest, res: Response) => {
     const userData: IRegisterCredentials = req.body;
     const savedUser = await addUser(userData);
-    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, savedUser._id);
 
-    return res.status(200)
-        .cookie("accessToken", accessToken, cookieOption)
-        .cookie("refreshToken", refreshToken, cookieOption)
-        .json({
-            statusCode: 200,
-            data: {
-                user: savedUser,
-                accessToken,
-                refreshToken
-            },
-            message: `${userData.userType} added successfully.`,
-            success: true
-        });
+    return sendSuccessResponse(res, 200, savedUser, `${userData.userType} added successfully.`);
 });
 
 // register user controller

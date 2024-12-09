@@ -406,6 +406,7 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
 // fetchSingleServiceRequest controller
 export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: Response) => {
     const { serviceId } = req.params;
+    console.log(req.params);
 
     if (!serviceId) {
         return sendErrorResponse(res, new ApiError(400, "Service request ID is required."));
@@ -487,7 +488,7 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
                 preserveNullAndEmptyArrays: true,
                 path: "$serviceShifftId"
             }
-        },
+        },      
         {
             $project: {
                 isDeleted: 0,
@@ -536,6 +537,7 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
 
 });
 
+
 // Function to fetch associated customer with the service request
 export const fetchAssociatedCustomer = async (serviceId: string) => {
     if (!serviceId) {
@@ -558,7 +560,7 @@ export const fetchAssociatedCustomer = async (serviceId: string) => {
     return serviceRequest[0].userId;
 };
 
-// getServiceRequestByStatus controller
+
 export const getServiceRequestByStatus = asyncHandler(async (req: Request, res: Response) => {
     const { requestProgress } = req.body;
     const results = await ServiceModel.aggregate([
@@ -618,7 +620,7 @@ export const getServiceRequestByStatus = asyncHandler(async (req: Request, res: 
     return sendSuccessResponse(res, 200, { results, totalRequest: totalRequest }, "Service request retrieved successfully.");
 });
 
-// assignJob controller
+
 export const assignJob = asyncHandler(async (req: CustomRequest, res: Response) => {
     const userType = req.user?.userType;
     let serviceProviderId = req.user?._id;
@@ -662,7 +664,6 @@ export const assignJob = asyncHandler(async (req: CustomRequest, res: Response) 
     return sendSuccessResponse(res, 200, updatedService, "Job assigned to the agent successfully.");
 });
 
-// totalJobCount controller
 export const totalJobCount = asyncHandler(async (req: CustomRequest, res: Response) => {
     const serviceProviderId = req.user?._id;
 

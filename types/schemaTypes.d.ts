@@ -22,6 +22,14 @@ export interface IUser extends Document {
     createdAt?: Date;
     updatedAt?: Date;
 };
+
+export interface IActionDetails extends Document {
+    userId: string; 
+    action: string; 
+    ipAddress: string; 
+    performedAt: Date; 
+}
+
 export interface IAdditionalUserInfo extends Document {
     _id: string | ObjectId;
     userId: ObjectId;
@@ -50,8 +58,8 @@ export interface IAdditionalUserInfo extends Document {
 export interface IAddressType extends Document {
     _id: string | ObjectId;
     userId: ObjectId;
-    location: string;
-    addressType: string;
+    location:string;
+    addressType:string;
     street: string;
     city: string;
     state: string;
@@ -91,7 +99,7 @@ export interface ISubCategorySchema extends Document {
 export interface IGeoJSONPoint {
     type: "Point";
     coordinates: [number, number]; // [longitude, latitude]
-}
+  }
 
 export interface IServiceSchema extends Document {
     _id: ObjectId;
@@ -103,9 +111,9 @@ export interface IServiceSchema extends Document {
     serviceZipCode: string;
     serviceLatitude: string;
     serviceLongitude: string;
-    location: IGeoJSONPoint;
-    startedAt: Date;
-    completedAt: Date;
+    location:IGeoJSONPoint;
+    startedAt:Date;
+    completedAt:Date;
     isIncentiveGiven: boolean;
     incentiveAmount: number;
     isTipGiven: boolean;
@@ -176,8 +184,8 @@ export interface IShiftSchema extends Document {
 export interface IOTPSchema extends Document {
     _id: ObjectId;
     userId: ObjectId;
-    phoneNumber: string;
-    email: string;
+    phoneNumber: string;  
+    email:string;  
     otp: string;
     secret: string;
     createdAt?: Date;
@@ -214,22 +222,3 @@ export interface IPermissionSchema extends Document {
     createdAt?: Date;
     updatedAt?: Date;
 };
-
-export interface IIPLogSchema extends Document {
-    _id: ObjectId;
-    ipAddress: string;
-    ipType: "IPv4" | "IPv6" | "Unknown";
-    route: string;
-    method: string;
-    protocol: string;
-    hostname: string;
-    queryParams: Record<string, any>; // Stores query parameters as a key-value object
-    headers: {
-        contentType?: string;
-        userAgent?: string;
-    };
-    referer: string;
-    userId: string;
-    userType: string;
-    timestamp: Date;
-}

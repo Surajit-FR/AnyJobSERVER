@@ -17,7 +17,6 @@ import {
     getAdminUsersList
 } from "../controller/user.controller";
 import { givePermission, getUserPermissions } from "../controller/permission.controller";
-import { captureIPMiddleware } from "../middlewares/IP.middleware";
 
 
 const router: Router = express.Router();
@@ -57,17 +56,16 @@ router.route('/get-admin-users').get(getAdminUsersList);
 router.route('/get-users').get(getUsers);
 
 //fetch associate List
-router.route('/get-associates/:serviceProviderId').get(verifyUserType(["SuperAdmin", "ServiceProvider"]), captureIPMiddleware, fetchAssociates);
-router.route('/get-agent-engagement').get(verifyUserType(["SuperAdmin", "ServiceProvider"]),captureIPMiddleware, getAgentEngagementStatus);
+router.route('/get-associates/:serviceProviderId').get(verifyUserType(["SuperAdmin", "ServiceProvider"]), fetchAssociates);
+router.route('/get-agent-engagement').get(verifyUserType(["SuperAdmin", "ServiceProvider"]), getAgentEngagementStatus);
 
 
 router.route('/u/:userId')
     .get(getSingleUser)
-    .patch(verifyUserType(["SuperAdmin"]),captureIPMiddleware, banUser);
+    .patch(verifyUserType(["SuperAdmin"]), banUser);
 
 router.route('/verify/:serviceProviderId').patch(
     verifyUserType(["SuperAdmin"]),
-    captureIPMiddleware,
     verifyServiceProvider
 );
 
@@ -77,8 +75,8 @@ router.route('/assign-teamlead').post(
     assignTeamLead
 );
 
-router.route("/give-permission").post(verifyUserType(['SuperAdmin', 'ServiceProvider']),captureIPMiddleware, givePermission);
-router.route("/fetch-permission").get(verifyUserType(['SuperAdmin', 'ServiceProvider']),captureIPMiddleware, getUserPermissions);
+router.route("/give-permission").post(verifyUserType(['SuperAdmin', 'ServiceProvider']), givePermission);
+router.route("/fetch-permission").get(verifyUserType(['SuperAdmin', 'ServiceProvider']), getUserPermissions);
 
 
 export default router;

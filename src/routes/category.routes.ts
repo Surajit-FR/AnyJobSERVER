@@ -26,8 +26,8 @@ router.route('/').post(
 
 router.route("/c/:CategoryId")
     .get(getCategorieById)
-    .delete(verifyUserType(['SuperAdmin']), captureIPMiddleware, deleteCategory)
-    .put(verifyUserType(['SuperAdmin']), captureIPMiddleware, upload.fields([
+    .delete(verifyUserType(['SuperAdmin']), deleteCategory)
+    .put(verifyUserType(['SuperAdmin']), upload.fields([
         { name: "categoryImage" },
     ]), updateCategory);
 

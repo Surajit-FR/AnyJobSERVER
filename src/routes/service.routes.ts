@@ -13,14 +13,13 @@ import {
     assignJob,
     totalJobCount
 } from "../controller/service.controller";
-import { captureIPMiddleware } from "../middlewares/IP.middleware";
 
 const router: Router = express.Router();
 
 router.use(VerifyJWTToken); // Apply verifyJWT middleware to all routes in this file
 router.route('/')
     .post(verifyUserType(['Customer']), addService)
-    .get(verifyUserType(['SuperAdmin']),captureIPMiddleware, getServiceRequestList);
+    .get(verifyUserType(['SuperAdmin']), getServiceRequestList);
 
 router.route('/get-accepted-service-request')
     .get(getAcceptedServiceRequestInJobQueue);
@@ -39,8 +38,8 @@ router.route('/assign-job')
 
 router.route("/c/:serviceId")
     .get(verifyUserType(['SuperAdmin', "ServiceProvider", "Customer"]), fetchSingleServiceRequest)
-    .delete(verifyUserType(['SuperAdmin']),captureIPMiddleware, deleteService)
-    .put(verifyUserType(['SuperAdmin', 'ServiceProvider']),captureIPMiddleware, updateServiceRequest)
+    .delete(verifyUserType(['SuperAdmin']), deleteService)
+    .put(verifyUserType(['SuperAdmin', 'ServiceProvider']), updateServiceRequest)
     .patch(verifyUserType(["ServiceProvider", 'TeamLead','FieldAgent']), handleServiceRequestState);
 
 export default router;

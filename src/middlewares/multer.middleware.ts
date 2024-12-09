@@ -1,5 +1,6 @@
 import multer from 'multer';
 import { Request, Response } from 'express';
+import fs from "fs";
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -17,9 +18,30 @@ const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilt
     const isValidFileType = allowedTypes.test(file.mimetype);
     if (isValidFileType) {
         cb(null, true);
-    } else {      
+    } else {
         cb(null, false);
     }
+};
+
+/**
+ * Deletes an array of files from the file system.
+ * @param filesMap - An object where keys are file fields and values are arrays of file paths.
+ */
+
+export const deleteUploadedFiles = (filesMap: { [key: string]: Express.Multer.File[] | undefined }) => {
+    Object.values(filesMap).forEach((fileArray) => {
+        fileArray?.forEach((file) => {
+            if (file?.path) {
+                fs.unlink(file.path, (err) => {
+                    if (err) {
+                        console.error(`Error deleting file: ${file.path}`, err);
+                    } else {
+                        console.log(`Successfully deleted file: ${file.path}`);
+                    }
+                });
+            }
+        });
+    });
 };
 
 export const upload = multer({ storage, fileFilter });

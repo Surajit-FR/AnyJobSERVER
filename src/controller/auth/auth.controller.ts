@@ -14,11 +14,10 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
 import TeamModel from '../../models/teams.model';
 import { ObjectId } from "mongoose";
 import PermissionModel from "../../models/permission.model";
-import crypto from 'crypto';
-import bcrypt from 'bcrypt';
 import { sendMail } from "../../utils/sendMail";
 import { generateVerificationCode } from "../otp.controller";
 import OTPModel from "../../models/otp.model";
+import AddressModel from "../../models/address.model";
 
 
 // fetchUserData func.
@@ -187,8 +186,15 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, user._id);
     const loggedInUser = await fetchUserData(user._id)
 
-    if (user.userType === "ServiceProvider" && !user.isVerified) {
-        return sendErrorResponse(res, new ApiError(403, "Your account verification is under process. Please wait for confirmation.", [], userId));
+    if (user.userType === "ServiceProvider") {
+        const userAddress = await AddressModel.findOne({ userId: user._id });
+        if (!userAddress) {
+            return sendErrorResponse(res, new ApiError(403, "Your account is created but please add address & your additional information.", [], { accessToken }));
+        } else {
+            if (!user.isVerified) {
+                return sendErrorResponse(res, new ApiError(403, "Your account verification is under process. Please wait for confirmation.", [], { accessToken }));
+            };
+        }
     };
 
     return res.status(200)
@@ -403,4 +409,3 @@ export const resetPassword = asyncHandler(async (req: CustomRequest, res: Respon
     await userDetails.save();
     return sendSuccessResponse(res, 200, {}, "Password reset Successfull");
 });
-

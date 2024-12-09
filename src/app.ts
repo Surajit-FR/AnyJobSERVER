@@ -31,6 +31,7 @@ import questionRouter from './routes/question.routes';
 import shiftRouter from './routes/shift.routes';
 import otpRouter from './routes/otp.routes';
 import ratingRouter from './routes/rating.routes';
+import googleCloudRouter from './routes/googleCloud.routes';
 
 //Admin routes
 app.use("/api/v1/healthcheck", healthcheckRouter);
@@ -40,6 +41,7 @@ app.use('/api/v1/user', userRouter);
 app.use('/api/v1/service', serviceRouter);
 app.use('/api/v1/question', questionRouter);
 app.use('/api/v1/shift', shiftRouter);
+app.use('/api/v1/google-cloud', googleCloudRouter);
 
 // Customer routes
 app.use('/api/v1/customer', customerRouter);

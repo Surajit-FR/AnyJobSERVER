@@ -10,6 +10,7 @@ import { CustomRequest } from "../../types/commonType";
 import { uploadOnCloudinary } from "../utils/cloudinary";
 import { asyncHandler } from "../utils/asyncHandler";
 import mongoose from 'mongoose';
+import { deleteUploadedFiles } from '../middlewares/multer.middleware';
 
 
 // get loggedin user
@@ -92,76 +93,162 @@ export const addAddress = asyncHandler(async (req: CustomRequest, res: Response)
 });
 
 // Add additional info for the user
-export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Response) => {
+// export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Response) => {
 
-    // Extract additional info details from request body
+//     // Extract additional info details from request body
+//     const { companyName, companyIntroduction, DOB, driverLicense, EIN, socialSecurity, companyLicense, insurancePolicy, businessName } = req.body;
+
+//     // Check if user already has additional info
+//     const existingAdditionalInfo = await additionalInfoModel.findOne({ userId: req.user?._id });
+
+//     if (existingAdditionalInfo) {
+//         const files = req.files as { [key: string]: Express.Multer.File[] } | undefined;
+//         if (!files) {
+//             return sendErrorResponse(res, new ApiError(400, "No files were uploaded"));
+//         };
+
+//         const driverLicenseImageFile =files.driverLicenseImage || [];
+//         const companyLicenseImageFile = files.companyLicenseImage ? files.companyLicenseImage[0] : undefined;
+//         const licenseProofImageFile = files.licenseProofImage ? files.licenseProofImage[0] : undefined;
+//         const businessLicenseImageFile = files.businessLicenseImage ? files.businessLicenseImage[0] : undefined;
+//         const businessImageFile = files.businessImage ? files.businessImage[0] : undefined;
+
+
+//         // Remove local files associated with the existing additional info
+//         const filesToRemove = [
+//             driverLicenseImageFile,
+//             companyLicenseImageFile?.path,
+//             licenseProofImageFile?.path,
+//             businessLicenseImageFile?.path,
+//             businessImageFile?.path
+//         ];
+
+//         filesToRemove.forEach((filePath) => {
+//             if (filePath) {
+//                 fs.unlink(filePath, (err) => {
+//                     if (err) {
+//                         console.error("Error deleting local file:", err);
+//                     }
+//                 });
+//             }
+//         });
+
+//         return sendErrorResponse(res, new ApiError(400, "Additional info already exists for this user"));
+//     }
+
+//     // Ensure req.files is defined and has the expected structure
+//     const files = req.files as { [key: string]: Express.Multer.File[] } | undefined;
+
+//     if (!files) {
+//         return sendErrorResponse(res, new ApiError(400, "No files were uploaded"));
+//     };
+
+//     const driverLicenseImageFile = files.driverLicenseImage ? files.driverLicenseImage[0] : undefined;
+//     const companyLicenseImageFile = files.companyLicenseImage ? files.companyLicenseImage[0] : undefined;
+//     const licenseProofImageFile = files.licenseProofImage ? files.licenseProofImage[0] : undefined;
+//     const businessLicenseImageFile = files.businessLicenseImage ? files.businessLicenseImage[0] : undefined;
+//     const businessImageFile = files.businessImage ? files.businessImage[0] : undefined;
+
+//     if (!driverLicenseImageFile || !companyLicenseImageFile || !licenseProofImageFile || !businessLicenseImageFile || !businessImageFile) {
+//         return sendErrorResponse(res, new ApiError(400, "All files are required"));
+//     };
+
+//     // Upload files to Cloudinary
+//     const driverLicenseImage = await uploadOnCloudinary(driverLicenseImageFile?.path as string);
+//     const companyLicenseImage = await uploadOnCloudinary(companyLicenseImageFile?.path);
+//     const licenseProofImage = await uploadOnCloudinary(licenseProofImageFile.path);
+//     const businessLicenseImage = await uploadOnCloudinary(businessLicenseImageFile.path);
+//     const businessImage = await uploadOnCloudinary(businessImageFile.path);
+
+//     if (!driverLicenseImage || !companyLicenseImage || !licenseProofImage || !businessLicenseImage || !businessImage) {
+//         return sendErrorResponse(res, new ApiError(400, "Error uploading files"));
+//     };
+
+//     // Create a new additional info record
+//     const newAdditionalInfo = new additionalInfoModel({
+//         userId: req.user?._id,
+//         companyName,
+//         companyIntroduction,
+//         DOB,
+//         driverLicense,
+//         EIN,
+//         socialSecurity,
+//         companyLicense,
+//         insurancePolicy,
+//         businessName,
+//         driverLicenseImage: driverLicenseImage?.url,
+//         companyLicenseImage: companyLicenseImage?.url,
+//         licenseProofImage: licenseProofImage?.url,
+//         businessLicenseImage: businessLicenseImage?.url,
+//         businessImage: businessImage?.url
+//     });
+
+//     // Save the additional info to the database
+//     const savedAdditionalInfo = await newAdditionalInfo.save();
+
+//     return sendSuccessResponse(res, 201, savedAdditionalInfo, "Additional info added successfully");
+// });
+
+export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { companyName, companyIntroduction, DOB, driverLicense, EIN, socialSecurity, companyLicense, insurancePolicy, businessName } = req.body;
 
-    // Check if user already has additional info
     const existingAdditionalInfo = await additionalInfoModel.findOne({ userId: req.user?._id });
 
     if (existingAdditionalInfo) {
         const files = req.files as { [key: string]: Express.Multer.File[] } | undefined;
-        if (!files) {
-            return sendErrorResponse(res, new ApiError(400, "No files were uploaded"));
-        };
-
-        const driverLicenseImageFile = files.driverLicenseImage ? files.driverLicenseImage[0] : undefined;
-        const companyLicenseImageFile = files.companyLicenseImage ? files.companyLicenseImage[0] : undefined;
-        const licenseProofImageFile = files.licenseProofImage ? files.licenseProofImage[0] : undefined;
-        const businessLicenseImageFile = files.businessLicenseImage ? files.businessLicenseImage[0] : undefined;
-        const businessImageFile = files.businessImage ? files.businessImage[0] : undefined;
-
-
-        // Remove local files associated with the existing additional info
-        const filesToRemove = [
-            driverLicenseImageFile?.path,
-            companyLicenseImageFile?.path,
-            licenseProofImageFile?.path,
-            businessLicenseImageFile?.path,
-            businessImageFile?.path
-        ];
-
-        filesToRemove.forEach((filePath) => {
-            if (filePath) {
-                fs.unlink(filePath, (err) => {
-                    if (err) {
-                        console.error("Error deleting local file:", err);
-                    }
-                });
-            }
-        });
-
+        if (files) {
+            deleteUploadedFiles(files);
+        }
         return sendErrorResponse(res, new ApiError(400, "Additional info already exists for this user"));
     }
 
-    // Ensure req.files is defined and has the expected structure
     const files = req.files as { [key: string]: Express.Multer.File[] } | undefined;
 
     if (!files) {
         return sendErrorResponse(res, new ApiError(400, "No files were uploaded"));
-    };
+    }
 
-    const driverLicenseImageFile = files.driverLicenseImage ? files.driverLicenseImage[0] : undefined;
-    const companyLicenseImageFile = files.companyLicenseImage ? files.companyLicenseImage[0] : undefined;
-    const licenseProofImageFile = files.licenseProofImage ? files.licenseProofImage[0] : undefined;
-    const businessLicenseImageFile = files.businessLicenseImage ? files.businessLicenseImage[0] : undefined;
-    const businessImageFile = files.businessImage ? files.businessImage[0] : undefined;
+    const driverLicenseImages = files.driverLicenseImage || [];
+    const companyLicenseImageFile = files.companyLicenseImage?.[0];
+    const licenseProofImageFile = files.licenseProofImage?.[0];
+    const businessLicenseImageFile = files.businessLicenseImage?.[0];
+    const businessImageFile = files.businessImage?.[0];
 
-    if (!driverLicenseImageFile || !companyLicenseImageFile || !licenseProofImageFile || !businessLicenseImageFile || !businessImageFile) {
-        return sendErrorResponse(res, new ApiError(400, "All files are required"));
-    };
 
-    // Upload files to Cloudinary
-    const driverLicenseImage = await uploadOnCloudinary(driverLicenseImageFile?.path as string);
-    const companyLicenseImage = await uploadOnCloudinary(companyLicenseImageFile?.path);
+    // Ensure all required files are provided
+    if (
+        driverLicenseImages.length < 2 ||
+        !companyLicenseImageFile ||
+        !licenseProofImageFile ||
+        !businessLicenseImageFile ||
+        !businessImageFile
+    ) {
+        const files = req.files as { [key: string]: Express.Multer.File[] } | undefined;
+        if (files) {
+            deleteUploadedFiles(files);
+        }
+        return sendErrorResponse(res, new ApiError(400, "All files are required, including two driver license images"));
+    }
+
+    // Upload driverLicenseImage files to Cloudinary
+    const uploadedDriverLicenseImages = [];
+    for (const file of driverLicenseImages) {
+        const uploadResult = await uploadOnCloudinary(file.path);
+        if (!uploadResult) {
+            return sendErrorResponse(res, new ApiError(400, "Error uploading driver license images"));
+        }
+        uploadedDriverLicenseImages.push(uploadResult.url);
+    }
+
+    // Upload other files to Cloudinary
+    const companyLicenseImage = await uploadOnCloudinary(companyLicenseImageFile.path);
     const licenseProofImage = await uploadOnCloudinary(licenseProofImageFile.path);
     const businessLicenseImage = await uploadOnCloudinary(businessLicenseImageFile.path);
     const businessImage = await uploadOnCloudinary(businessImageFile.path);
 
-    if (!driverLicenseImage || !companyLicenseImage || !licenseProofImage || !businessLicenseImage || !businessImage) {
-        return sendErrorResponse(res, new ApiError(400, "Error uploading files"));
-    };
+    if (!companyLicenseImage || !licenseProofImage || !businessLicenseImage || !businessImage) {
+        return sendErrorResponse(res, new ApiError(400, "Error uploading other files"));
+    }
 
     // Create a new additional info record
     const newAdditionalInfo = new additionalInfoModel({
@@ -175,11 +262,11 @@ export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Re
         companyLicense,
         insurancePolicy,
         businessName,
-        driverLicenseImage: driverLicenseImage?.url,
-        companyLicenseImage: companyLicenseImage?.url,
-        licenseProofImage: licenseProofImage?.url,
-        businessLicenseImage: businessLicenseImage?.url,
-        businessImage: businessImage?.url
+        driverLicenseImages: uploadedDriverLicenseImages,
+        companyLicenseImage: companyLicenseImage.url,
+        licenseProofImage: licenseProofImage.url,
+        businessLicenseImage: businessLicenseImage.url,
+        businessImage: businessImage.url,
     });
 
     // Save the additional info to the database
@@ -187,6 +274,7 @@ export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Re
 
     return sendSuccessResponse(res, 201, savedAdditionalInfo, "Additional info added successfully");
 });
+
 
 //get serviceProvider List
 export const getServiceProviderList = asyncHandler(async (req: Request, res: Response) => {

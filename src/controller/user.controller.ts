@@ -232,6 +232,7 @@ export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Re
 
     // Upload driverLicenseImage files to Cloudinary
     const uploadedDriverLicenseImages = [];
+    
     for (const file of driverLicenseImages) {
         const uploadResult = await uploadOnCloudinary(file.path);
         if (!uploadResult) {
@@ -239,6 +240,7 @@ export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Re
         }
         uploadedDriverLicenseImages.push(uploadResult.secure_url);
     }
+    console.log(uploadedDriverLicenseImages);
 
     // Upload other files to Cloudinary
     const companyLicenseImage = await uploadOnCloudinary(companyLicenseImageFile.path);

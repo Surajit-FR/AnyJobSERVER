@@ -29,7 +29,7 @@ export interface IAdditionalUserInfo extends Document {
     companyIntroduction: string;
     DOB: Date;
     driverLicense:string;
-    driverLicenseImage:  Array<string>;
+    driverLicenseImages:  Array<string>;
     EIN: string;
     socialSecurity: string;
     companyLicense: string;

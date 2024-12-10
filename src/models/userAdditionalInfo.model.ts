@@ -8,7 +8,7 @@ const AdditionalUserInfoSchema: Schema<IAdditionalUserInfo> = new Schema({
     companyIntroduction: { type: String, default: "", },
     DOB: { type: Date },
     driverLicense:  { type: String, default: "", },
-    driverLicenseImage: { type: [String], default: [] },   
+    driverLicenseImages: { type: [String], default: [] },   
     EIN: { type: String, default: "", },
     socialSecurity: { type: String, default: "", },
     companyLicense: { type: String, default: "", },

@@ -30,9 +30,7 @@ router.route('/signup').post(
     upload.fields([
         { name: "avatar", maxCount: 1 },
     ]),
-    [ModelAuth(ValidateUser)],
     registerUser,
-    // loginUser
 );
 
 // Auth user (social)

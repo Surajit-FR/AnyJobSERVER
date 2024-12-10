@@ -46,5 +46,5 @@ const AdditionalUserInfoSchema = new mongoose_1.Schema({
     arrivalFee: { type: Number },
     isDeleted: { type: Boolean, default: false }
 }, { timestamps: true });
-const AdditionalInfoModel = mongoose_1.default.model("AdditionalInfo", AdditionalUserInfoSchema);
+const AdditionalInfoModel = mongoose_1.default.model("additionalInfo", AdditionalUserInfoSchema);
 exports.default = AdditionalInfoModel;

@@ -12,8 +12,9 @@ router.use(userAuth_1.VerifyJWTToken);
 router.route('/').post(multer_middleware_1.upload.fields([
     { name: "subCategoryImage" }
 ]), (0, userAuth_1.verifyUserType)(['SuperAdmin']), subcategory_controller_1.addSubCategory);
-router.route("/c/:SubCategoryId").get(subcategory_controller_1.getSubCategorieById).delete((0, userAuth_1.verifyUserType)(['SuperAdmin']), subcategory_controller_1.deleteSubCategory).patch(multer_middleware_1.upload.fields([
-    { name: "subCategoryImage" }
-]), (0, userAuth_1.verifyUserType)(['SuperAdmin']), subcategory_controller_1.updateSubCategory);
+router.route("/c/:SubCategoryId")
+    .get(subcategory_controller_1.getSubCategorieById)
+    .delete((0, userAuth_1.verifyUserType)(['SuperAdmin']), subcategory_controller_1.deleteSubCategory)
+    .patch(multer_middleware_1.upload.fields([{ name: "subCategoryImage" }]), (0, userAuth_1.verifyUserType)(['SuperAdmin']), subcategory_controller_1.updateSubCategory);
 router.route('/').get(subcategory_controller_1.getSubCategories);
 exports.default = router;

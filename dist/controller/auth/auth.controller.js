@@ -12,81 +12,132 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addAdditionalInfo = exports.addAddress = exports.getUser = exports.AuthUserSocial = exports.refreshAccessToken = exports.logoutUser = exports.loginUser = exports.registerUser = void 0;
-const fs_1 = __importDefault(require("fs"));
+exports.resetPassword = exports.forgetPassword = exports.AuthUserSocial = exports.refreshAccessToken = exports.logoutUser = exports.loginUser = exports.registerUser = exports.createAdminUsers = exports.addAssociate = exports.cookieOption = exports.fetchUserData = void 0;
 const user_model_1 = __importDefault(require("../../models/user.model"));
-const address_model_1 = __importDefault(require("../../models/address.model"));
-const userAdditionalInfo_model_1 = __importDefault(require("../../models/userAdditionalInfo.model"));
 const ApisErrors_1 = require("../../utils/ApisErrors");
+const auth_1 = require("../../utils/auth");
 const response_1 = require("../../utils/response");
 const createTokens_1 = require("../../utils/createTokens");
 const ApiResponse_1 = require("../../utils/ApiResponse");
-const cloudinary_1 = require("../../utils/cloudinary");
 const asyncHandler_1 = require("../../utils/asyncHandler");
 const socialAuth_1 = require("../../utils/socialAuth");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-//register user controller
-exports.registerUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { firstName, lastName, email, password, userType } = req.body;
-    // console.log("req.body==>",req.body);
-    // return;
-    // Validate fields (Joi validation is preferred here)
-    if ([firstName, lastName, email, password, userType].some((field) => (field === null || field === void 0 ? void 0 : field.trim()) === "")) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "All fields are required"));
-    }
-    // Check for duplicate user
-    const existingUser = yield user_model_1.default.findOne({ email });
-    if (existingUser) {
-        const files = req.files;
-        if (!files) {
-            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "No files were uploaded"));
+const teams_model_1 = __importDefault(require("../../models/teams.model"));
+const permission_model_1 = __importDefault(require("../../models/permission.model"));
+const sendMail_1 = require("../../utils/sendMail");
+const otp_controller_1 = require("../otp.controller");
+const otp_model_1 = __importDefault(require("../../models/otp.model"));
+// fetchUserData func.
+const fetchUserData = (userId) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = yield user_model_1.default.aggregate([
+        {
+            $match: {
+                isDeleted: false,
+                _id: userId
+            }
+        },
+        {
+            $lookup: {
+                from: "permissions",
+                foreignField: "userId",
+                localField: "_id",
+                as: "permission"
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$permission"
+            }
+        },
+        {
+            $project: {
+                'permission.userId': 0,
+                'permission.isDeleted': 0,
+                'permission.createdAt': 0,
+                'permission.updatedAt': 0,
+                'permission.__v': 0,
+                password: 0,
+                refreshToken: 0
+            }
         }
-        const avatarFile = files.avatar ? files.avatar[0] : undefined;
-        if (avatarFile) {
-            fs_1.default.unlink(avatarFile.path, (err) => {
-                if (err) {
-                    console.error("Error deleting local image:", err);
-                }
-            });
+    ]);
+    return user;
+});
+exports.fetchUserData = fetchUserData;
+// Set cookieOption
+exports.cookieOption = {
+    httpOnly: true,
+    secure: true,
+    maxAge: 24 * 60 * 60 * 1000, // 1 Day
+    sameSite: 'strict'
+};
+// addAssociate controller
+exports.addAssociate = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
+    const userData = req.body;
+    const userType = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userType;
+    const userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+    let serviceProviderId = userId;
+    if (userType === "TeamLead") {
+        const permissions = yield permission_model_1.default.findOne({ userId }).select('fieldAgentManagement');
+        if (!(permissions === null || permissions === void 0 ? void 0 : permissions.fieldAgentManagement)) {
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(403, 'Permission denied: Field Agent Management not granted.'));
         }
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(409, "User with email already exists"));
-    }
-    ;
-    // Ensure `req.files` is defined and has the expected structure
-    const files = req.files;
-    let avatarUrl = "";
-    if (files && files.avatar) {
-        const avatarFile = files.avatar ? files.avatar[0] : undefined;
-        // Upload files to Cloudinary
-        const avatar = yield (0, cloudinary_1.uploadOnCloudinary)(avatarFile === null || avatarFile === void 0 ? void 0 : avatarFile.path);
-        if (!avatar) {
-            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Error uploading avatar file"));
+        const team = yield teams_model_1.default.findOne({ isDeleted: false, fieldAgentIds: userId }).select('serviceProviderId');
+        if (!team || !team.serviceProviderId) {
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, 'Service Provider ID not found in team.'));
         }
-        ;
-        avatarUrl = avatar.url;
+        serviceProviderId = team.serviceProviderId;
     }
-    ;
-    // Create new user
-    const newUser = new user_model_1.default({
-        firstName,
-        lastName,
-        email,
-        password,
-        userType,
-        avatar: avatarUrl,
-    });
-    const savedUser = yield newUser.save();
-    const createdUser = yield user_model_1.default.findById(savedUser._id).select("-password -refreshToken");
-    // console.log(createdUser);
-    if (!createdUser) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(500, "Something went wrong while registering the user"));
+    const savedAgent = yield (0, auth_1.addUser)(userData);
+    if (userData.userType === "FieldAgent") {
+        const team = yield teams_model_1.default.findOneAndUpdate({ serviceProviderId }, { $push: { fieldAgentIds: savedAgent._id } }, { new: true, upsert: true });
+        if (!team) {
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service Provider team not found."));
+        }
     }
-    ;
-    return (0, response_1.sendSuccessResponse)(res, 201, createdUser, "User Registered Successfully");
+    return (0, response_1.sendSuccessResponse)(res, 200, savedAgent, `${userData.userType} added successfully.`);
 }));
-//login user controller
+//add admin Users
+exports.createAdminUsers = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const userData = req.body;
+    const savedUser = yield (0, auth_1.addUser)(userData);
+    return (0, response_1.sendSuccessResponse)(res, 200, savedUser, `${userData.userType} added successfully.`);
+}));
+// register user controller
+exports.registerUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const userData = req.body;
+    const savedUser = yield (0, auth_1.addUser)(userData);
+    if (userData.userType === 'ServiceProvider') {
+        const newTeam = new teams_model_1.default({
+            serviceProviderId: savedUser._id,
+            fieldAgents: []
+        });
+        const savedTeam = yield newTeam.save();
+        if (!savedTeam) {
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "ServiceProvider team not created"));
+        }
+    }
+    const newUser = yield (0, exports.fetchUserData)(savedUser._id);
+    const { accessToken, refreshToken } = yield (0, createTokens_1.generateAccessAndRefreshToken)(res, savedUser._id);
+    return res.status(200)
+        .cookie("accessToken", accessToken, exports.cookieOption)
+        .cookie("refreshToken", refreshToken, exports.cookieOption)
+        .json({
+        statusCode: 200,
+        data: {
+            user: newUser[0],
+            accessToken,
+            refreshToken
+        },
+        message: "User Registered Successfully",
+        success: true
+    });
+}));
+// login user controller
 exports.loginUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { email, password } = req.body;
+    const { email, password, userType, isAdminPanel } = req.body;
     if (!email) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Email is required"));
     }
@@ -96,30 +147,38 @@ exports.loginUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "User does not exist"));
     }
     ;
+    if (userType && !userType.includes(user.userType)) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(403, "Access denied"));
+    }
+    ;
     const userId = user._id;
     const isPasswordValid = yield user.isPasswordCorrect(password);
     if (!isPasswordValid) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(403, "Invalid user credentials"));
     }
     ;
+    if (user.isDeleted) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(403, "Your account is banned from a AnyJob."));
+    }
+    ;
+    // Check for admin panel access
+    if (isAdminPanel) {
+        if (user.userType !== 'SuperAdmin') {
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(403, "Access denied. Only SuperAdmins can log in to the admin panel."));
+        }
+    }
     const { accessToken, refreshToken } = yield (0, createTokens_1.generateAccessAndRefreshToken)(res, user._id);
-    const loggedInUser = yield user_model_1.default.findById(user._id).select("-password -refreshToken");
-    const cookieOption = {
-        httpOnly: true,
-        secure: false,
-        maxAge: 24 * 60 * 60 * 1000, // 1 Day
-        sameSite: 'lax'
-    };
+    const loggedInUser = yield (0, exports.fetchUserData)(user._id);
     if (user.userType === "ServiceProvider" && !user.isVerified) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(403, "Your account verification is under process. Please wait for confirmation.", [], userId));
     }
     ;
     return res.status(200)
-        .cookie("accessToken", accessToken, cookieOption)
-        .cookie("refreshToken", refreshToken, cookieOption)
-        .json(new ApiResponse_1.ApiResponse(200, { user: loggedInUser, accessToken, refreshToken }, "User logged In successfully"));
+        .cookie("accessToken", accessToken, exports.cookieOption)
+        .cookie("refreshToken", refreshToken, exports.cookieOption)
+        .json(new ApiResponse_1.ApiResponse(200, { user: loggedInUser[0], accessToken, refreshToken }, "User logged In successfully"));
 }));
-//logout user controller
+// logout user controller
 exports.logoutUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
     if (!req.user || !((_a = req.user) === null || _a === void 0 ? void 0 : _a._id)) {
@@ -142,7 +201,8 @@ exports.logoutUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
 }));
 // refreshAccessToken controller
 exports.refreshAccessToken = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken;
+    var _a;
+    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken || ((_a = req.header("Authorization")) === null || _a === void 0 ? void 0 : _a.replace("Bearer ", ""));
     if (!incomingRefreshToken) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(401, "Unauthorized request"));
     }
@@ -174,7 +234,7 @@ exports.refreshAccessToken = (0, asyncHandler_1.asyncHandler)((req, res) => __aw
     ;
 }));
 // Auth user (Social)
-const AuthUserSocial = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+exports.AuthUserSocial = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         // Check if user object is already attached by the middleware
         let user = req.user;
@@ -227,123 +287,56 @@ const AuthUserSocial = (req, res) => __awaiter(void 0, void 0, void 0, function*
         console.log(exc.message);
         return res.status(500).json({ success: false, message: "Internal server error", error: exc.message });
     }
-});
-exports.AuthUserSocial = AuthUserSocial;
-// get user if added address and additional info
-exports.getUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+}));
+//---------------FORGET PASSWORD CONTROLLERS-------------//
+//-------------1.send verification code to given mail 
+exports.forgetPassword = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { email } = req.body;
+    if (!email) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Email is required"));
+    }
+    ;
+    const checkEmail = yield user_model_1.default.findOne({ email });
+    if (!checkEmail) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Email does not exist"));
+    }
+    ;
+    const receiverEmail = checkEmail.email;
+    const verificationCode = (0, otp_controller_1.generateVerificationCode)(5);
+    const expiredAt = new Date(Date.now() + 15 * 60 * 1000); // Expires in 15 minutes
+    yield otp_model_1.default.create({
+        userId: checkEmail._id,
+        email: receiverEmail,
+        otp: verificationCode,
+        expiredAt
+    });
+    const to = receiverEmail;
+    const subject = "Verification code to reset password of your account";
+    const html = `Dear ${checkEmail.firstName} ${checkEmail.lastName},</br>
+  Thank you for joining us. You have requested OTP to reset your password. Please use this code to verify your account.Your verification code for reset password is:
+</br>
+  <div style="background-color: #f0f0f0; padding: 10px; border-radius: 5px;">
+    <b><h2 style="margin: 5px 0;">Verification Code: ${verificationCode}</h2></b>
+  </div>`;
+    yield (0, sendMail_1.sendMail)(to, subject, html);
+    return res.status(200).json(new ApiResponse_1.ApiResponse(200, "Verification code sent to given email successfully"));
+}));
+//-------------2.verify otp
+//-------------3.Reset Password
+exports.resetPassword = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
-    // console.log(userId);
-    //Find user details
-    const userDetails = yield user_model_1.default.findById(userId).select("-password -refreshToken -__v");
-    return (0, response_1.sendSuccessResponse)(res, 200, userDetails, "User retrieved successfully.");
-}));
-// Add address for the user
-exports.addAddress = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { userId } = req.params;
-    // Extract address details from request body
-    const { street, city, state, zipCode, country, latitude, longitude } = req.body;
-    // Validate required fields (you can use Joi or other validation if needed)
-    if (!zipCode || !latitude || !longitude) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "All address fields are required"));
-    }
-    // Check if user already has an address
-    const existingAddress = yield address_model_1.default.findOne({ userId });
-    if (existingAddress) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Address already exists for this user"));
-    }
-    // Create a new address
-    const newAddress = new address_model_1.default({
-        userId,
-        zipCode,
-        latitude,
-        longitude,
-    });
-    // Save the address to the database
-    const savedAddress = yield newAddress.save();
-    return (0, response_1.sendSuccessResponse)(res, 201, savedAddress, "Address added successfully");
-}));
-// Add additional info for the user
-exports.addAdditionalInfo = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { userId } = req.params;
-    // Extract additional info details from request body
-    const { companyName, companyIntroduction, DOB, driverLicense, EIN, socialSecurity, companyLicense, insurancePolicy, businessName } = req.body;
-    // Check if user already has additional info
-    const existingAdditionalInfo = yield userAdditionalInfo_model_1.default.findOne({ userId });
-    if (existingAdditionalInfo) {
-        const files = req.files;
-        if (!files) {
-            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "No files were uploaded"));
-        }
-        ;
-        const driverLicenseImageFile = files.driverLicenseImage ? files.driverLicenseImage[0] : undefined;
-        const companyLicenseImageFile = files.companyLicenseImage ? files.companyLicenseImage[0] : undefined;
-        const licenseProofImageFile = files.licenseProofImage ? files.licenseProofImage[0] : undefined;
-        const businessLicenseImageFile = files.businessLicenseImage ? files.businessLicenseImage[0] : undefined;
-        const businessImageFile = files.businessImage ? files.businessImage[0] : undefined;
-        // Remove local files associated with the existing additional info
-        const filesToRemove = [
-            driverLicenseImageFile === null || driverLicenseImageFile === void 0 ? void 0 : driverLicenseImageFile.path,
-            companyLicenseImageFile === null || companyLicenseImageFile === void 0 ? void 0 : companyLicenseImageFile.path,
-            licenseProofImageFile === null || licenseProofImageFile === void 0 ? void 0 : licenseProofImageFile.path,
-            businessLicenseImageFile === null || businessLicenseImageFile === void 0 ? void 0 : businessLicenseImageFile.path,
-            businessImageFile === null || businessImageFile === void 0 ? void 0 : businessImageFile.path
-        ];
-        filesToRemove.forEach((filePath) => {
-            if (filePath) {
-                fs_1.default.unlink(filePath, (err) => {
-                    if (err) {
-                        console.error("Error deleting local file:", err);
-                    }
-                });
-            }
-        });
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Additional info already exists for this user"));
-    }
-    // Ensure req.files is defined and has the expected structure
-    const files = req.files;
-    if (!files) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "No files were uploaded"));
+    if (!userId) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "userId is required"));
     }
     ;
-    const driverLicenseImageFile = files.driverLicenseImage ? files.driverLicenseImage[0] : undefined;
-    const companyLicenseImageFile = files.companyLicenseImage ? files.companyLicenseImage[0] : undefined;
-    const licenseProofImageFile = files.licenseProofImage ? files.licenseProofImage[0] : undefined;
-    const businessLicenseImageFile = files.businessLicenseImage ? files.businessLicenseImage[0] : undefined;
-    const businessImageFile = files.businessImage ? files.businessImage[0] : undefined;
-    if (!driverLicenseImageFile || !companyLicenseImageFile || !licenseProofImageFile || !businessLicenseImageFile || !businessImageFile) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "All files are required"));
+    const userDetails = yield user_model_1.default.findById(userId);
+    if (!userDetails) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, "User not found"));
     }
     ;
-    // Upload files to Cloudinary
-    const driverLicenseImage = yield (0, cloudinary_1.uploadOnCloudinary)(driverLicenseImageFile === null || driverLicenseImageFile === void 0 ? void 0 : driverLicenseImageFile.path);
-    const companyLicenseImage = yield (0, cloudinary_1.uploadOnCloudinary)(companyLicenseImageFile === null || companyLicenseImageFile === void 0 ? void 0 : companyLicenseImageFile.path);
-    const licenseProofImage = yield (0, cloudinary_1.uploadOnCloudinary)(licenseProofImageFile.path);
-    const businessLicenseImage = yield (0, cloudinary_1.uploadOnCloudinary)(businessLicenseImageFile.path);
-    const businessImage = yield (0, cloudinary_1.uploadOnCloudinary)(businessImageFile.path);
-    if (!driverLicenseImage || !companyLicenseImage || !licenseProofImage || !businessLicenseImage || !businessImage) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Error uploading files"));
-    }
-    ;
-    // Create a new additional info record
-    const newAdditionalInfo = new userAdditionalInfo_model_1.default({
-        userId,
-        companyName,
-        companyIntroduction,
-        DOB,
-        driverLicense,
-        EIN,
-        socialSecurity,
-        companyLicense,
-        insurancePolicy,
-        businessName,
-        driverLicenseImage: driverLicenseImage === null || driverLicenseImage === void 0 ? void 0 : driverLicenseImage.url,
-        companyLicenseImage: companyLicenseImage === null || companyLicenseImage === void 0 ? void 0 : companyLicenseImage.url,
-        licenseProofImage: licenseProofImage === null || licenseProofImage === void 0 ? void 0 : licenseProofImage.url,
-        businessLicenseImage: businessLicenseImage === null || businessLicenseImage === void 0 ? void 0 : businessLicenseImage.url,
-        businessImage: businessImage === null || businessImage === void 0 ? void 0 : businessImage.url
-    });
-    // Save the additional info to the database
-    const savedAdditionalInfo = yield newAdditionalInfo.save();
-    return (0, response_1.sendSuccessResponse)(res, 201, savedAdditionalInfo, "Additional info added successfully");
+    // Update the password
+    userDetails.password = req.body.password;
+    yield userDetails.save();
+    return (0, response_1.sendSuccessResponse)(res, 200, {}, "Password reset Successfull");
 }));

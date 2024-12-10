@@ -15,6 +15,7 @@ const asyncHandler = (fn) => (req, res, next) => __awaiter(void 0, void 0, void 
         yield fn(req, res, next);
     }
     catch (error) {
+        console.log(error.message);
         res.status(error.code || 500).json({
             success: false,
             message: error.message

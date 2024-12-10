@@ -30,7 +30,8 @@ const UserSchema: Schema<IUser> = new Schema({
         lowercase: true,
     },
     dob: {
-        type: Date
+        type: Date,
+        default: null
     },
     phone: {
         type: String,
@@ -63,6 +64,10 @@ const UserSchema: Schema<IUser> = new Schema({
         default: ""
     },
     refreshToken: {
+        type: String,
+        default: "",
+    },
+    fcmToken: {
         type: String,
         default: "",
     },

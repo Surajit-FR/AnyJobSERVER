@@ -6,7 +6,6 @@ const AdditionalUserInfoSchema: Schema<IAdditionalUserInfo> = new Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, require: true },
     companyName: { type: String, default: "", required: true },
     companyIntroduction: { type: String, default: "", },
-    DOB: { type: Date },
     driverLicense:  { type: String, default: "", },
     driverLicenseImages: { type: [String], default: [] },   
     EIN: { type: String, default: "", },

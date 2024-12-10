@@ -148,7 +148,7 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
 
 // login user controller
 export const loginUser = asyncHandler(async (req: Request, res: Response) => {
-    const { email, password, userType, isAdminPanel }: IUser & { isAdminPanel?: boolean, userType: Array<string> } = req.body;
+    const { email, password, userType, fcmToken, isAdminPanel }: IUser & { isAdminPanel?: boolean, userType: Array<string> } = req.body;
 
 
     if (!email) {
@@ -181,6 +181,12 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
         if (user.userType !== 'SuperAdmin') {
             return sendErrorResponse(res, new ApiError(403, "Access denied. Only SuperAdmins can log in to the admin panel."));
         }
+    }
+
+    // Save FCM Token if provided
+    if (fcmToken) {
+        user.fcmToken = fcmToken; 
+        await user.save();
     }
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, user._id);
@@ -222,7 +228,10 @@ export const logoutUser = asyncHandler(async (req: CustomRequest, res: Response)
     await UserModel.findByIdAndUpdate(
         userId,
         {
-            $set: { refreshToken: "" }
+            $set: {
+                refreshToken: "",
+                fcmToken: ""
+            }
         },
         { new: true }
     );

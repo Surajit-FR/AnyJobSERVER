@@ -15,6 +15,7 @@ export interface IUser extends Document {
     isVerified: boolean;
     userType: string;
     refreshToken?: string;
+    fcmToken?: string;
     isPasswordCorrect(password: string): Promise<boolean>;
     generateAccessToken(): string;
     generateRefreshToken(): string;
@@ -27,9 +28,8 @@ export interface IAdditionalUserInfo extends Document {
     userId: ObjectId;
     companyName: string;
     companyIntroduction: string;
-    DOB: Date;
-    driverLicense:string;
-    driverLicenseImages:  Array<string>;
+    driverLicense: string;
+    driverLicenseImages: Array<string>;
     EIN: string;
     socialSecurity: string;
     companyLicense: string;
@@ -232,4 +232,16 @@ export interface IIPLogSchema extends Document {
     userId: string;
     userType: string;
     timestamp: Date;
+}
+
+export interface INotificationSchema extends Document {
+    _id: ObjectId;
+    recipientId: ObjectId;
+    senderId?: ObjectId;
+    title: string; 
+    message: string;
+    type: string;
+    isRead: boolean;
+    createdAt: Date;
+    updatedAt?: Date;
 }

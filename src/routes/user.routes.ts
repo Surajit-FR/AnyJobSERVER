@@ -57,8 +57,8 @@ router.route('/get-admin-users').get(getAdminUsersList);
 router.route('/get-users').get(getUsers);
 
 //fetch associate List
-router.route('/get-associates/:serviceProviderId').get(verifyUserType(["SuperAdmin", "ServiceProvider"]), captureIPMiddleware, fetchAssociates);
-router.route('/get-agent-engagement').get(verifyUserType(["SuperAdmin", "ServiceProvider"]), captureIPMiddleware, getAgentEngagementStatus);
+router.route('/get-associates/:serviceProviderId').get(verifyUserType(["SuperAdmin", "ServiceProvider"]), fetchAssociates);
+router.route('/get-agent-engagement').get(verifyUserType(["SuperAdmin", "ServiceProvider"]), getAgentEngagementStatus);
 
 
 router.route('/u/:userId')
@@ -78,7 +78,7 @@ router.route('/assign-teamlead').post(
 );
 
 router.route("/give-permission").post(verifyUserType(['SuperAdmin', 'ServiceProvider']), captureIPMiddleware, givePermission);
-router.route("/fetch-permission").get(verifyUserType(['SuperAdmin', 'ServiceProvider']), captureIPMiddleware, getUserPermissions);
+router.route("/fetch-permission").get(verifyUserType(['SuperAdmin', 'ServiceProvider']), getUserPermissions);
 
 
 export default router;

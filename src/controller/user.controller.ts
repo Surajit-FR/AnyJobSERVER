@@ -64,7 +64,7 @@ export const getUser = asyncHandler(async (req: CustomRequest, res: Response) =>
 export const addAddress = asyncHandler(async (req: CustomRequest, res: Response) => {
 
     // Extract address details from request body
-    const { street, city, state, zipCode, country, latitude, longitude, addressType } = req.body;
+    const { zipCode, latitude, longitude, addressType, location } = req.body;
 
     // Validate required fields (you can use Joi or other validation if needed)
     if (!zipCode || !latitude || !longitude) {
@@ -85,6 +85,7 @@ export const addAddress = asyncHandler(async (req: CustomRequest, res: Response)
         latitude,
         longitude,
         addressType,
+        location
     });
 
     // Save the address to the database
@@ -158,7 +159,7 @@ export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Re
     }
 
     //save phone number and dob in user data
-    const updateUser = await UserModel.findByIdAndUpdate({ _id: req.user?._id }, { $set: { phone, dob: DOB }, }, { new: true });    
+    const updateUser = await UserModel.findByIdAndUpdate({ _id: req.user?._id }, { $set: { phone, dob: DOB }, }, { new: true });
 
     // Create a new additional info record
     const newAdditionalInfo = new additionalInfoModel({

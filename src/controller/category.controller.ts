@@ -44,7 +44,7 @@ export const addCategory = asyncHandler(async (req: CustomRequest, res: Response
 
     const newCategory = await CategoryModel.create({
         name: trimmedName,
-        categoryImage: catImg?.url,
+        categoryImage: catImg?.secure_url,
         owner: req.user?._id,
     });
 
@@ -87,7 +87,7 @@ export const updateCategory = asyncHandler(async (req: Request, res: Response) =
         const catImgFile = categoryImageFile?.categoryImage ? categoryImageFile.categoryImage[0] : undefined;
 
         if (catImgFile) {
-            deleteUploadedFiles({ categoryImage: categoryImageFile?.categoryImage })      
+            deleteUploadedFiles({ categoryImage: categoryImageFile?.categoryImage })
         }
 
         return sendErrorResponse(res, new ApiError(400, "Category with the same name already exists."));
@@ -99,7 +99,7 @@ export const updateCategory = asyncHandler(async (req: Request, res: Response) =
     let catImgUrl;
     if (catImgFile) {
         const catImg = await uploadOnCloudinary(catImgFile.path);
-        catImgUrl = catImg?.url;
+        catImgUrl = catImg?.secure_url;
     }
 
     const updatedCategory = await CategoryModel.findByIdAndUpdate(
@@ -141,7 +141,7 @@ export const deleteCategory = asyncHandler(async (req: Request, res: Response) =
 
     await QuestionModel.deleteMany({
         $or: [
-            { categoryId: CategoryId }, 
+            { categoryId: CategoryId },
         ]
     });
 

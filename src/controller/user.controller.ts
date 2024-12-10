@@ -176,11 +176,11 @@ export const addAddress = asyncHandler(async (req: CustomRequest, res: Response)
 //         companyLicense,
 //         insurancePolicy,
 //         businessName,
-//         driverLicenseImage: driverLicenseImage?.url,
-//         companyLicenseImage: companyLicenseImage?.url,
-//         licenseProofImage: licenseProofImage?.url,
-//         businessLicenseImage: businessLicenseImage?.url,
-//         businessImage: businessImage?.url
+//         driverLicenseImage: driverLicenseImage?.secure_url,
+//         companyLicenseImage: companyLicenseImage?.secure_url,
+//         licenseProofImage: licenseProofImage?.secure_url,
+//         businessLicenseImage: businessLicenseImage?.secure_url,
+//         businessImage: businessImage?.secure_url
 //     });
 
 //     // Save the additional info to the database
@@ -237,7 +237,7 @@ export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Re
         if (!uploadResult) {
             return sendErrorResponse(res, new ApiError(400, "Error uploading driver license images"));
         }
-        uploadedDriverLicenseImages.push(uploadResult.url);
+        uploadedDriverLicenseImages.push(uploadResult.secure_url);
     }
 
     // Upload other files to Cloudinary
@@ -263,10 +263,10 @@ export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Re
         insurancePolicy,
         businessName,
         driverLicenseImages: uploadedDriverLicenseImages,
-        companyLicenseImage: companyLicenseImage.url,
-        licenseProofImage: licenseProofImage.url,
-        businessLicenseImage: businessLicenseImage.url,
-        businessImage: businessImage.url,
+        companyLicenseImage: companyLicenseImage.secure_url,
+        licenseProofImage: licenseProofImage.secure_url,
+        businessLicenseImage: businessLicenseImage.secure_url,
+        businessImage: businessImage.secure_url,
     });
 
     // Save the additional info to the database

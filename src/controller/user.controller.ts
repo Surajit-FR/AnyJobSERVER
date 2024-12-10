@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { Request, Response } from "express";
 import UserModel from "../models/user.model";
-import addressModel from "../models/address.model";
+import AddressModel from "../models/address.model";
 import additionalInfoModel from "../models/userAdditionalInfo.model";
 import TeamModel from '../models/teams.model';
 import { ApiError } from "../utils/ApisErrors";
@@ -64,7 +64,7 @@ export const getUser = asyncHandler(async (req: CustomRequest, res: Response) =>
 export const addAddress = asyncHandler(async (req: CustomRequest, res: Response) => {
 
     // Extract address details from request body
-    const { street, city, state, zipCode, country, latitude, longitude } = req.body;
+    const { street, city, state, zipCode, country, latitude, longitude, addressType } = req.body;
 
     // Validate required fields (you can use Joi or other validation if needed)
     if (!zipCode || !latitude || !longitude) {
@@ -72,18 +72,19 @@ export const addAddress = asyncHandler(async (req: CustomRequest, res: Response)
     }
 
     // Check if user already has an address
-    const existingAddress = await addressModel.findOne({ userId: req.user?._id });
+    const existingAddress = await AddressModel.findOne({ userId: req.user?._id });
 
     if (existingAddress) {
         return sendErrorResponse(res, new ApiError(400, "Address already exists for this user"));
     }
 
     // Create a new address
-    const newAddress = new addressModel({
+    const newAddress = new AddressModel({
         userId: req.user?._id,
         zipCode,
         latitude,
         longitude,
+        addressType,
     });
 
     // Save the address to the database

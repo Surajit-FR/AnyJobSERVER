@@ -10,6 +10,9 @@ import { IAddServicePayloadReq } from "../../types/requests_responseType";
 import PermissionModel from "../models/permission.model";
 import TeamModel from "../models/teams.model";
 import UserModel from "../models/user.model";
+import { PipelineStage } from 'mongoose';
+import axios from "axios";
+
 
 
 // addService controller
@@ -403,6 +406,82 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
     return sendSuccessResponse(res, 200, serviceRequests, 'Service requests fetched successfully');
 });
 
+//fetch nearby service provider and assign request
+export const fetchNearByServiceProvider = asyncHandler(async (req: Request, res: Response) => {
+    const { serviceRequestId } = req.params;
+
+    if (!serviceRequestId) {
+        return sendErrorResponse(res, new ApiError(400, `Invalid ServiceRequest ID`));
+    }
+
+    const serviceRequest = await ServiceModel.findById(serviceRequestId);
+    if (!serviceRequest) {
+        return sendErrorResponse(res, new ApiError(400, `Service request not found`));
+    }
+
+    // Extract coordinates and validate
+    const serviceRequestLongitude: number = parseFloat(serviceRequest.serviceLongitude);
+    const serviceRequestLatitude: number = parseFloat(serviceRequest.serviceLatitude);
+
+    if (isNaN(serviceRequestLongitude) || isNaN(serviceRequestLatitude)) {
+        return sendErrorResponse(res, new ApiError(400, `Invalid longitude or latitude`));
+    }
+
+    const radius = 40000; // Radius in meters
+
+    const pipeline: PipelineStage[] = [
+        {
+            $geoNear: {
+                near: { type: 'Point', coordinates: [serviceRequestLongitude, serviceRequestLatitude] },
+                distanceField: 'distance',
+                spherical: true,
+                maxDistance: radius,
+                query: {
+                    userType: 'ServiceProvider',
+                    isDeleted: false
+                }
+
+            }
+        },
+        {
+            $lookup: {
+                from: "additionalinfos",
+                foreignField: "userId",
+                localField: "_id",
+                as: "additionalInfo"
+            }
+        },
+        {
+            $project: {
+                __v: 0,
+                isDeleted: 0,
+                refreshToken: 0,
+                password: 0,
+                'additionalInfo.__v': 0,
+                'additionalInfo.isDeleted': 0,
+            }
+        },
+        // {
+        //     $sort: { distance: -1 }
+        // }
+    ];
+
+    const serviceProviders = await UserModel.aggregate(pipeline) as Array<any>;
+    if (!serviceProviders.length) {
+        return sendErrorResponse(res, new ApiError(404, 'No nearby service providers found.'));
+    }
+
+    const updatePayload = {
+        isReqAcceptedByServiceProvider: true,
+        requestProgress: 'Pending',
+        serviceProviderId: serviceProviders[0]._id
+    };
+
+    const acceptRequest = await ServiceModel.findByIdAndUpdate({ _id: serviceRequestId }, updatePayload, { new: true })
+
+    return sendSuccessResponse(res, 200, serviceProviders[0], 'Nearby Service Providers assigned successfully');
+});
+
 // fetchSingleServiceRequest controller
 export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: Response) => {
     const { serviceId } = req.params;
@@ -487,7 +566,7 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
                 preserveNullAndEmptyArrays: true,
                 path: "$serviceShifftId"
             }
-        },      
+        },
         {
             $project: {
                 isDeleted: 0,

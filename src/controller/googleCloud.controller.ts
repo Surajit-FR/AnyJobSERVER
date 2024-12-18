@@ -6,7 +6,7 @@ import { sendErrorResponse, sendSuccessResponse } from "../utils/response";
 import { ApiError } from "../utils/ApisErrors";
 
 
-// reverseGeocode 
+// reverseGeocode to fetch address or location string from coordinates
 export const reverseGeocode = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { latitude, longitude } = req.query;
 
@@ -44,6 +44,45 @@ export const reverseGeocode = asyncHandler(async (req: CustomRequest, res: Respo
                 "Failed to fetch address.",
                 errorData
             )
+        );
+    }
+});
+
+//get coordinates from zipcode
+export const getCoordinatesFromZip = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const { zipCode } = req.query;
+
+    const apiKey = process.env.GOOGLE_API_KEY;
+
+    if (!zipCode) {
+        return sendErrorResponse(
+            res,
+            new ApiError(400, "ZIP code is required.", [], null)
+        );
+    }
+
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${zipCode}&key=${apiKey}`;
+
+    try {
+        const response = await axios.get(url);
+
+        if (!response.data.results || response.data.results.length === 0) {
+            throw new ApiError(404, "No coordinates found for the given ZIP code.", [], response.data);
+        }
+
+        const location = response.data.results[0].geometry.location;
+
+        const coordinates = {
+            latitude: location.lat,
+            longitude: location.lng,
+        };
+
+        return sendSuccessResponse(res, 200, coordinates, "Coordinates fetched successfully.");
+    } catch (error: any) {
+        const errorData = error.response?.data || error.message || error;
+        return sendErrorResponse(
+            res,
+            new ApiError(400, "Failed to fetch coordinates.", errorData)
         );
     }
 });

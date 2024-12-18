@@ -1,6 +1,6 @@
 import express, { Router } from "express";
 // import { VerifyJWTToken } from "../middlewares/auth/userAuth";
-import { reverseGeocode } from "../controller/googleCloud.controller";
+import { reverseGeocode, getCoordinatesFromZip } from "../controller/googleCloud.controller";
 
 
 const router: Router = express.Router();
@@ -11,6 +11,9 @@ const router: Router = express.Router();
 
 // fetch current address
 router.route('/fetch-current-address').get(reverseGeocode);
+
+//fetch coordinates
+router.route('/fetch-coordinates').get(getCoordinatesFromZip);
 
 
 export default router;

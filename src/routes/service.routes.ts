@@ -11,7 +11,7 @@ import {
     fetchSingleServiceRequest,
     getServiceRequestByStatus,
     assignJob,
-    totalJobCount
+    totalJobCount,
 } from "../controller/service.controller";
 import { captureIPMiddleware } from "../middlewares/IP.middleware";
 

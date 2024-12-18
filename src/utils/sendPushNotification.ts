@@ -27,7 +27,6 @@ export default async function sendNotification(token: string, title: string, bod
         data: data || {},
         token,
     };
-
     try {
         const response = await admin.messaging().send(message);
         console.log("Notification sent successfully:", response);

@@ -2,16 +2,26 @@ import { Response, NextFunction } from 'express';
 import { asyncHandler } from '../utils/asyncHandler';
 import { CustomRequest } from '../../types/commonType';
 import IPLog from '../models/IP.model';
+import os from 'os';
+
 
 
 export const captureIPMiddleware = asyncHandler(async (req: CustomRequest, res: Response, next: NextFunction) => {
-    console.log("Middleware runs...");
+    // console.log("Middleware runs...");
 
     // Extract the IP address
     const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
 
     // Standardize localhost IP
     const standardizedIp = ip === "::1" ? "127.0.0.1" : (ip as string);
+
+    const networkInterfaces = os.networkInterfaces();
+
+    const serverIP = networkInterfaces['Ethernet']
+        ? networkInterfaces['Ethernet'][0].address
+        : 'localhost';
+
+    console.log('Server IP:', serverIP);
 
     // Determine if it's IPv4 or IPv6
     const isIPv4 = /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/.test(standardizedIp);
@@ -36,7 +46,6 @@ export const captureIPMiddleware = asyncHandler(async (req: CustomRequest, res: 
         timestamp: new Date(),
     };
 
-    // console.log(logDetails);
 
     // Save the details in the database
     const logEntry = new IPLog(logDetails);

@@ -11,6 +11,7 @@ import { uploadOnCloudinary } from "../utils/cloudinary";
 import { asyncHandler } from "../utils/asyncHandler";
 import mongoose from 'mongoose';
 import { deleteUploadedFiles } from '../middlewares/multer.middleware';
+import IPLog from '../models/IP.model';
 
 
 // get loggedin user
@@ -63,22 +64,30 @@ export const getUser = asyncHandler(async (req: CustomRequest, res: Response) =>
 // Add address for the user
 export const addAddress = asyncHandler(async (req: CustomRequest, res: Response) => {
 
-    // Extract address details from request body
     const { zipCode, latitude, longitude, addressType, location } = req.body;
 
-    // Validate required fields (you can use Joi or other validation if needed)
     if (!zipCode || !latitude || !longitude) {
         return sendErrorResponse(res, new ApiError(400, "All address fields are required"));
     }
 
-    // Check if user already has an address
     const existingAddress = await AddressModel.findOne({ userId: req.user?._id });
 
     if (existingAddress) {
         return sendErrorResponse(res, new ApiError(400, "Address already exists for this user"));
     }
 
-    // Create a new address
+    const geoLocation = {
+        type: "Point",
+        coordinates: [longitude, latitude] // [longitude, latitude]
+    };
+    if (!geoLocation) return sendErrorResponse(res, new ApiError(400, "Location is required."));
+
+    const updateUser = await UserModel.findByIdAndUpdate(
+        { _id: req.user?._id },
+        { $set: { geoLocation: geoLocation } },
+        { new: true }
+    );
+
     const newAddress = new AddressModel({
         userId: req.user?._id,
         zipCode,
@@ -88,7 +97,6 @@ export const addAddress = asyncHandler(async (req: CustomRequest, res: Response)
         location
     });
 
-    // Save the address to the database
     const savedAddress = await newAddress.save();
 
     return sendSuccessResponse(res, 201, savedAddress, "Address added successfully");
@@ -97,10 +105,14 @@ export const addAddress = asyncHandler(async (req: CustomRequest, res: Response)
 
 export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { companyName, companyIntroduction, DOB, driverLicense, EIN, socialSecurity, companyLicense, insurancePolicy, businessName, phone } = req.body;
+    console.log(req.body);
 
+
+    // Check if additional info already exists for the user
     const existingAdditionalInfo = await additionalInfoModel.findOne({ userId: req.user?._id });
 
     if (existingAdditionalInfo) {
+        // Delete uploaded files if they exist
         const files = req.files as { [key: string]: Express.Multer.File[] } | undefined;
         if (files) {
             deleteUploadedFiles(files);
@@ -108,37 +120,36 @@ export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Re
         return sendErrorResponse(res, new ApiError(400, "Additional info already exists for this user"));
     }
 
+    // Extract files from the request
     const files = req.files as { [key: string]: Express.Multer.File[] } | undefined;
 
     if (!files) {
         return sendErrorResponse(res, new ApiError(400, "No files were uploaded"));
     }
 
-    const driverLicenseImages = files.driverLicenseImage || [];
     const companyLicenseImageFile = files.companyLicenseImage?.[0];
     const licenseProofImageFile = files.licenseProofImage?.[0];
     const businessLicenseImageFile = files.businessLicenseImage?.[0];
     const businessImageFile = files.businessImage?.[0];
-
+    const driverLicenseImages = files.driverLicenseImage || [];
 
     // Ensure all required files are provided
     if (
-        driverLicenseImages.length < 2 ||
         !companyLicenseImageFile ||
         !licenseProofImageFile ||
         !businessLicenseImageFile ||
-        !businessImageFile
+        !businessImageFile ||
+        driverLicenseImages.length < 2
     ) {
-        const files = req.files as { [key: string]: Express.Multer.File[] } | undefined;
+        // Delete uploaded files if they exist
         if (files) {
             deleteUploadedFiles(files);
         }
         return sendErrorResponse(res, new ApiError(400, "All files are required, including two driver license images"));
     }
 
-    // Upload driverLicenseImage files to Cloudinary
+    // Upload driver license images to Cloudinary
     const uploadedDriverLicenseImages = [];
-
     for (const file of driverLicenseImages) {
         const uploadResult = await uploadOnCloudinary(file.path);
         if (!uploadResult) {
@@ -146,7 +157,6 @@ export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Re
         }
         uploadedDriverLicenseImages.push(uploadResult.secure_url);
     }
-    console.log(uploadedDriverLicenseImages);
 
     // Upload other files to Cloudinary
     const companyLicenseImage = await uploadOnCloudinary(companyLicenseImageFile.path);
@@ -154,14 +164,19 @@ export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Re
     const businessLicenseImage = await uploadOnCloudinary(businessLicenseImageFile.path);
     const businessImage = await uploadOnCloudinary(businessImageFile.path);
 
+    // Ensure all files were uploaded successfully
     if (!companyLicenseImage || !licenseProofImage || !businessLicenseImage || !businessImage) {
         return sendErrorResponse(res, new ApiError(400, "Error uploading other files"));
     }
 
-    //save phone number and dob in user data
-    const updateUser = await UserModel.findByIdAndUpdate({ _id: req.user?._id }, { $set: { phone, dob: DOB }, }, { new: true });
+    // Update phone number and DOB in user data
+    const updateUser = await UserModel.findByIdAndUpdate(
+        { _id: req.user?._id },
+        { $set: { phone, dob: DOB } },
+        { new: true }
+    );
 
-    // Create a new additional info record
+    // Create new additional info record
     const newAdditionalInfo = new additionalInfoModel({
         userId: req.user?._id,
         companyName,
@@ -180,11 +195,12 @@ export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Re
         businessImage: businessImage.secure_url,
     });
 
-    // Save the additional info to the database
+    // Save the new additional info record
     const savedAdditionalInfo = await newAdditionalInfo.save();
 
     return sendSuccessResponse(res, 201, savedAdditionalInfo, "Additional info added successfully");
 });
+
 
 //get serviceProvider List
 export const getServiceProviderList = asyncHandler(async (req: Request, res: Response) => {
@@ -750,3 +766,21 @@ export const getAgentEngagementStatus = asyncHandler(async (req: CustomRequest, 
 
     return sendSuccessResponse(res, 200, results, "Field Agent list with engagement status retrieved successfully.");
 });
+
+// fetch IPlogs for admin
+export const fetchIPlogs = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const userId = req.user?._id
+    if (!userId) {
+        return sendErrorResponse(res, new ApiError(400, "User does not exist"));
+    }
+
+    const iplogs = await IPLog.find({ userId: userId })
+        .populate({
+            path: 'userId',
+            select: 'firstName lastName email phone'
+        });
+    return sendSuccessResponse(res, 200,
+        iplogs,
+        "IPlogs retrieved successfully.");
+
+})

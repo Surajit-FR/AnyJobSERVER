@@ -75,6 +75,15 @@ const UserSchema: Schema<IUser> = new Schema({
         type: Boolean,
         default: false,
     },
+    geoLocation: {
+        type: {
+            type: String,
+            enum: ["Point"],
+        },
+        coordinates: {
+            type: [Number],
+        },
+    },
 }, { timestamps: true });
 
 //pre - save hook for hashing password
@@ -109,6 +118,8 @@ UserSchema.methods.generateRefreshToken = function (): string {
     }, process.env.REFRESH_TOKEN_SECRET as string, { expiresIn: process.env.REFRESH_TOKEN_EXPIRY })
 };
 
+//adding geospatial index
+UserSchema.index({ geoLocation: "2dsphere" });
 
 const UserModel: Model<IUser> = mongoose.model<IUser>("user", UserSchema);
 export default UserModel;

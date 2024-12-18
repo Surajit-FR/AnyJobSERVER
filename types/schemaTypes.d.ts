@@ -1,4 +1,8 @@
 import { Document, ObjectId } from "mongoose";
+export interface IGeoJSONPoint {
+    type: "Point";
+    coordinates: [number, number]; // [longitude, latitude]
+}
 
 export interface IUser extends Document {
     _id: string | ObjectId;
@@ -22,6 +26,7 @@ export interface IUser extends Document {
     isDeleted?: boolean;
     createdAt?: Date;
     updatedAt?: Date;
+    geoLocation: IGeoJSONPoint;
 };
 export interface IAdditionalUserInfo extends Document {
     _id: string | ObjectId;
@@ -88,10 +93,7 @@ export interface ISubCategorySchema extends Document {
     updatedAt?: Date;
 };
 
-export interface IGeoJSONPoint {
-    type: "Point";
-    coordinates: [number, number]; // [longitude, latitude]
-}
+
 
 export interface IServiceSchema extends Document {
     _id: ObjectId;
@@ -238,7 +240,7 @@ export interface INotificationSchema extends Document {
     _id: ObjectId;
     recipientId: ObjectId;
     senderId?: ObjectId;
-    title: string; 
+    title: string;
     message: string;
     type: string;
     isRead: boolean;

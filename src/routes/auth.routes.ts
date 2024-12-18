@@ -11,7 +11,8 @@ import {
     addAssociate,
     forgetPassword,
     resetPassword,
-    createAdminUsers
+    createAdminUsers,
+    saveFcmToken
 } from "../controller/auth/auth.controller";
 
 
@@ -43,6 +44,12 @@ router.route('/signin').post(
 );
 
 /***************************** secured routes *****************************/
+// Logout
+router.route('/save-fcm-token').post(
+    rateLimiter,
+    [VerifyJWTToken],
+    saveFcmToken
+);
 // Logout
 router.route('/logout').post(
     rateLimiter,

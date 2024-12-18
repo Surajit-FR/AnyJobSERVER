@@ -18,6 +18,7 @@ import { sendMail } from "../../utils/sendMail";
 import { generateVerificationCode } from "../otp.controller";
 import OTPModel from "../../models/otp.model";
 import AddressModel from "../../models/address.model";
+import AdditionalInfoModel from "../../models/userAdditionalInfo.model";
 
 
 // fetchUserData func.
@@ -185,7 +186,7 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
 
     // Save FCM Token if provided
     if (fcmToken) {
-        user.fcmToken = fcmToken; 
+        user.fcmToken = fcmToken;
         await user.save();
     }
 
@@ -194,7 +195,8 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
 
     if (user.userType === "ServiceProvider") {
         const userAddress = await AddressModel.findOne({ userId: user._id });
-        if (!userAddress) {
+        const userAdditionalInfo = await AdditionalInfoModel.findOne({ userId: user._id })
+        if (!userAddress && !userAdditionalInfo) {
             return sendErrorResponse(res, new ApiError(403, "Your account is created but please add address & your additional information.", [], { accessToken }));
         } else {
             if (!user.isVerified) {
@@ -215,6 +217,28 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
                     "User logged In successfully"
                 )
         );
+});
+
+//save fcm token in user data
+export const saveFcmToken = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const userId = req.user?._id;
+    const { fcmToken } = req.body;
+
+    if (!fcmToken || !userId) {
+        return sendErrorResponse(res, new ApiError(400, 'Missing FCM token or user ID'))
+    }
+
+    const user = await UserModel.findById(userId);
+
+    if (!user) {
+        return sendErrorResponse(res, new ApiError(400, "User does not exist"))
+    }
+
+    user.fcmToken = fcmToken;
+
+    await user.save();
+
+    return sendSuccessResponse(res, 200, 'FCM token saved successfully');
 });
 
 // logout user controller

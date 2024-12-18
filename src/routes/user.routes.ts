@@ -14,10 +14,12 @@ import {
     fetchAssociates,
     assignTeamLead,
     getAgentEngagementStatus,
-    getAdminUsersList
+    getAdminUsersList,
+    fetchIPlogs
 } from "../controller/user.controller";
 import { givePermission, getUserPermissions } from "../controller/permission.controller";
 import { captureIPMiddleware } from "../middlewares/IP.middleware";
+import { fetchNearByServiceProvider } from "../controller/service.controller";
 
 
 const router: Router = express.Router();
@@ -36,10 +38,10 @@ router.route('/add-address').post(verifyUserType(["ServiceProvider"]), addAddres
 router.route('/add-additional-info').post(
     upload.fields([
         { name: "driverLicenseImage", maxCount: 2 },
-        { name: "companyLicenseImage" },
-        { name: "licenseProofImage" },
-        { name: "businessLicenseImage" },
-        { name: "businessImage" },
+        { name: "companyLicenseImage", maxCount: 1 },
+        { name: "licenseProofImage", maxCount: 1 },
+        { name: "businessLicenseImage", maxCount: 1 },
+        { name: "businessImage", maxCount: 1 },
     ]),
     verifyUserType(["ServiceProvider"]),
     addAdditionalInfo);
@@ -78,7 +80,11 @@ router.route('/assign-teamlead').post(
 );
 
 router.route("/give-permission").post(verifyUserType(['SuperAdmin', 'ServiceProvider']), captureIPMiddleware, givePermission);
+
 router.route("/fetch-permission").get(verifyUserType(['SuperAdmin', 'ServiceProvider']), getUserPermissions);
+
+router.route("/fetch-iplogs").get(verifyUserType(['SuperAdmin']), fetchIPlogs);
+
 
 
 export default router;

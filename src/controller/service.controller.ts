@@ -11,7 +11,6 @@ import PermissionModel from "../models/permission.model";
 import TeamModel from "../models/teams.model";
 import UserModel from "../models/user.model";
 import { PipelineStage } from 'mongoose';
-import axios from "axios";
 
 
 

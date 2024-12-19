@@ -26,7 +26,7 @@ router.route('/get-accepted-service-request')
     .get(getAcceptedServiceRequestInJobQueue);
 
 router.route('/get-service-request')
-    .get(getServiceRequestByStatus);
+    .get(verifyUserType([ "Customer"]), getServiceRequestByStatus);
 
 router.route('/get-job-count')
     .get(verifyUserType(['ServiceProvider', 'TeamLead']), totalJobCount);
@@ -39,8 +39,8 @@ router.route('/assign-job')
 
 router.route("/c/:serviceId")
     .get(verifyUserType(['SuperAdmin', "ServiceProvider", "Customer"]), fetchSingleServiceRequest)
-    .delete(verifyUserType(['SuperAdmin']),captureIPMiddleware, deleteService)
-    .put(verifyUserType(['SuperAdmin', 'ServiceProvider']),captureIPMiddleware, updateServiceRequest)
-    .patch(verifyUserType(["ServiceProvider", 'TeamLead','FieldAgent']), handleServiceRequestState);
+    .delete(verifyUserType(['SuperAdmin']), captureIPMiddleware, deleteService)
+    .put(verifyUserType(['SuperAdmin', 'ServiceProvider']), captureIPMiddleware, updateServiceRequest)
+    .patch(verifyUserType(["ServiceProvider", 'TeamLead', 'FieldAgent']), handleServiceRequestState);
 
 export default router;

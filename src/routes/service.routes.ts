@@ -9,7 +9,6 @@ import {
     fetchServiceRequest,
     handleServiceRequestState,
     fetchSingleServiceRequest,
-    getServiceRequestByStatus,
     assignJob,
     totalJobCount,
 } from "../controller/service.controller";
@@ -25,8 +24,7 @@ router.route('/')
 router.route('/get-accepted-service-request')
     .get(getAcceptedServiceRequestInJobQueue);
 
-router.route('/get-service-request')
-    .get(verifyUserType([ "Customer"]), getServiceRequestByStatus);
+
 
 router.route('/get-job-count')
     .get(verifyUserType(['ServiceProvider', 'TeamLead']), totalJobCount);

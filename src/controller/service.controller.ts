@@ -639,12 +639,14 @@ export const fetchAssociatedCustomer = async (serviceId: string) => {
 
 //
 export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest, res: Response) => {
+    console.log("api runs");
+    
+    const userId = req.user?._id
     const { requestProgress } = req.body;
     const progressFilter =
         requestProgress === "InProgress"
             ? { requestProgress: { $in: ["NotStarted", "Pending", "Started"] } }
             : { requestProgress };
-    const userId = req.user?._id
 
     const results = await ServiceModel.aggregate([
         {

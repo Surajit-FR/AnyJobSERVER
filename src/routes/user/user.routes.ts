@@ -13,7 +13,7 @@ import {
     fetchSingleQuestion
 } from "../../controller/question.controller"
 import { VerifyJWTToken, verifyUserType } from "../../middlewares/auth/userAuth";
-import { fetchNearByServiceProvider } from "../../controller/service.controller";
+import { fetchNearByServiceProvider,getServiceRequestByStatus } from "../../controller/service.controller";
 
 const router: Router = express.Router();
 
@@ -34,6 +34,14 @@ router.route('/fetch-shift/:shiftId').get(fetchShiftbyId);
 
 router.route('/nearby-services-providers/:serviceRequestId')
     .get(fetchNearByServiceProvider);
+
+
+// protected customer routes------------
+
+router.use(VerifyJWTToken);
+router.route('/get-service-request')
+    .post(verifyUserType([ "Customer"]), getServiceRequestByStatus);    
+
 
 
 

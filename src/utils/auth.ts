@@ -63,7 +63,7 @@ export const addUser = async (userData: IRegisterCredentials) => {
         const to = savedUser.email;
         const subject = "Welcome to Any Job - Your Login Credentials";
         const html = `Dear ${savedUser.firstName} ${savedUser.lastName}, your login credentials for AnyJob are: <b>Password: ${generatedPass}</b> or you can directly log in using your registered <b>Phone Number: ${savedUser.phone}</b>.`;
-        await sendMail(to, subject, html);
+        // await sendMail(to, subject, html);
     }
 
     return savedUser;

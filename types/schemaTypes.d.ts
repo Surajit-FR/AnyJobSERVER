@@ -247,3 +247,24 @@ export interface INotificationSchema extends Document {
     createdAt: Date;
     updatedAt?: Date;
 }
+
+export interface IChatSchema {
+    fromUserId: ObjectId;
+    toUserId: ObjectId;
+    content: string;
+    isRead?: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
+export interface IChatListSchema {
+    userId: ObjectId;
+    chatWithUserId: ObjectId;
+    lastMessage: string;
+    lastMessageAt: Date;
+    isRead?: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
+

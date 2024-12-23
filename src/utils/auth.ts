@@ -59,12 +59,14 @@ export const addUser = async (userData: IRegisterCredentials) => {
 
     const userPermissionSet = await new PermissionModel(permission).save();
 
-    if (userType === "FieldAgent" || userType === "Admin" || userType === "Finance") {
-        const to = savedUser.email;
-        const subject = "Welcome to Any Job - Your Login Credentials";
-        const html = `Dear ${savedUser.firstName} ${savedUser.lastName}, your login credentials for AnyJob are: <b>Password: ${generatedPass}</b> or you can directly log in using your registered <b>Phone Number: ${savedUser.phone}</b>.`;
-        // await sendMail(to, subject, html);
-    }
+
+    //temporary disable due to no credentials
+    // if (userType === "FieldAgent" || userType === "Admin" || userType === "Finance") {
+    //     const to = savedUser.email;
+    //     const subject = "Welcome to Any Job - Your Login Credentials";
+    //     const html = `Dear ${savedUser.firstName} ${savedUser.lastName}, your login credentials for AnyJob are: <b>Password: ${generatedPass}</b> or you can directly log in using your registered <b>Phone Number: ${savedUser.phone}</b>.`;
+    //     // await sendMail(to, subject, html);
+    // }
 
     return savedUser;
 };

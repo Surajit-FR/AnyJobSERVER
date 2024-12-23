@@ -2,6 +2,8 @@ import { Server as HttpServer } from "http";
 import { Server, Socket } from "socket.io";
 import { socketAuthMiddleware } from "../middlewares/auth/socketAuth";
 import { handleServiceRequestState, fetchAssociatedCustomer } from "../controller/service.controller";
+import { saveChatMessage, updateChatList } from "../controller/chat.controller";
+
 
 
 // Function to initialize Socket.io
@@ -17,6 +19,7 @@ export const initSocket = (server: HttpServer) => {
 
     // Store connected customers
     const connectedCustomers: { [key: string]: string } = {};
+    const connectedProviders: { [key: string]: string } = {};
 
     io.on("connection", (socket: Socket) => {
         const userId = socket.data.userId;
@@ -25,6 +28,8 @@ export const initSocket = (server: HttpServer) => {
 
         if (usertype === "Customer") {
             connectedCustomers[userId] = socket.id;
+        } else if (usertype === "ServiceProvider") {
+            connectedProviders[userId] = socket.id;
         }
 
         socket.on("acceptServiceRequest", async (requestId: string) => {
@@ -35,7 +40,7 @@ export const initSocket = (server: HttpServer) => {
             //execute get single service request to get  associated userId
             const customerId = await fetchAssociatedCustomer(requestId);
 
-            
+
 
             // Notify the customer that the service provider is on the way
             console.log(connectedCustomers);
@@ -50,16 +55,47 @@ export const initSocket = (server: HttpServer) => {
             socket.on("locationUpdate", async (location: { latitude: number; longitude: number }) => {
 
                 if (customerId && connectedCustomers[customerId]) {
-                    io.to(connectedCustomers[customerId]).emit("serviceProviderLocationUpdate", {                          
+                    io.to(connectedCustomers[customerId]).emit("serviceProviderLocationUpdate", {
                         latitude: location.latitude,
                         longitude: location.longitude,
                     });
                     console.log("Service provider location update =>");
-                    
+
                 }
             });
         });
 
+        // Handle chat messages
+        socket.on("chatMessage", async (message: { toUserId: string; content: string }) => {
+            const { toUserId, content } = message;
+
+            // Save the chat message in the database
+            await saveChatMessage({
+                fromUserId: userId,
+                toUserId,
+                content,
+                timestamp: new Date(),
+            });
+            const now = new Date();
+
+            await updateChatList(userId, toUserId, content, now);
+            await updateChatList(toUserId, userId, content, now);
+
+            // Send the chat message to the recipient if they're connected
+            if (usertype === "Customer" || connectedProviders[toUserId]) {
+                io.to(connectedProviders[toUserId]).emit("chatMessage", {
+                    fromUserId: userId,
+                    content,
+                    timestamp: new Date(),
+                });
+            } else if (usertype === "ServiceProvider" || connectedCustomers[toUserId]) {
+                io.to(connectedCustomers[toUserId]).emit("chatMessage", {
+                    fromUserId: userId,
+                    content,
+                    timestamp: new Date(),
+                });
+            }
+        });
         socket.on("disconnect", () => {
             console.log(`User with socket ID ${socket.id} disconnected`);
 

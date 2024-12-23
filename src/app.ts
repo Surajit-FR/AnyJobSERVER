@@ -32,6 +32,7 @@ import shiftRouter from './routes/shift.routes';
 import otpRouter from './routes/otp.routes';
 import ratingRouter from './routes/rating.routes';
 import googleCloudRouter from './routes/googleCloud.routes';
+import chatRouter from './routes/chat.routes';
 
 //Admin routes
 app.use("/api/v1/healthcheck", healthcheckRouter);
@@ -42,6 +43,7 @@ app.use('/api/v1/service', serviceRouter);
 app.use('/api/v1/question', questionRouter);
 app.use('/api/v1/shift', shiftRouter);
 app.use('/api/v1/google-cloud', googleCloudRouter);
+app.use('/api/v1/chat', chatRouter);
 
 // Customer routes
 app.use('/api/v1/customer', customerRouter);

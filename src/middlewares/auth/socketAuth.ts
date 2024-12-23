@@ -16,7 +16,6 @@ export const socketAuthMiddleware = (socket: Socket, next: (err?: ExtendedError)
     // Verify the token
     jwt.verify(token as string, JWT_SECRET as string, async (err, decoded) => {
         if (err) {
-            console.log({ JWT_SECRET });
             return next(new Error("Authentication error: Invalid token"));
         }
         const connectedUser = await UserModel.findById((decoded as any) ._id).select("-password -refreshToken");

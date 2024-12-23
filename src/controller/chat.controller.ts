@@ -14,7 +14,7 @@ export const saveChatMessage = async (message: {
     const chat = new ChatModel(message);
     await chat.save();
 };
-
+//fetch chat controller
 export const fetchChatHistory = asyncHandler(async (req: Request, res: Response) => {
     const { userId1, userId2 } = req.query;
 
@@ -38,8 +38,51 @@ export const fetchChatHistory = asyncHandler(async (req: Request, res: Response)
             }
         },
         {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "toUserId",
+                as: "toUserId"
+            }
+        },
+        {
+            $unwind: {
+                path: "$toUserId",
+                preserveNullAndEmptyArrays: true
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "fromUserId",
+                as: "fromUserId"
+            }
+        },
+        {
+            $unwind: {
+                path: "$fromUserId",
+                preserveNullAndEmptyArrays: true
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                content: 1,
+                createdAt: 1,
+                'toUserId._id': 1,
+                'toUserId.firstName': 1,
+                'toUserId.lastName': 1,
+                'toUserId.avatar': 1,
+                'fromUserId._id': 1,
+                'fromUserId.firstName': 1,
+                'fromUserId.lastName': 1,
+                'fromUserId.avatar': 1
+            }
+        },
+        {
             $sort: {
-                _id: -1
+                createdAt: -1
             }
         }
     ])
@@ -47,6 +90,8 @@ export const fetchChatHistory = asyncHandler(async (req: Request, res: Response)
     return sendSuccessResponse(res, 200, chatHistory, "Chat history fetched successfully")
 });
 
+
+//update chat function
 export const updateChatList = async (
     userId: string,
     chatWithUserId: string,
@@ -76,6 +121,7 @@ export const updateChatList = async (
     }
 };
 
+//fetch chat list controller
 export const fetchChatList = asyncHandler(async (req: Request, res: Response) => {
     const { userId } = req.query;
 
@@ -91,6 +137,32 @@ export const fetchChatList = asyncHandler(async (req: Request, res: Response) =>
                 userId: userIdObj,
             },
         },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "chatWithUserId",
+                as: "chatWithUserId"
+            }
+        },
+        {
+            $unwind: {
+                path: "$chatWithUserId",
+                preserveNullAndEmptyArrays: true
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                userId: 1,
+                lastMessage: 1,
+                lastMessageAt: 1,
+                'chatWithUserId._id': 1,
+                'chatWithUserId.firstName': 1,
+                'chatWithUserId.lastName': 1,
+                'chatWithUserId.avatar': 1
+            }
+        }
 
     ]);
 

@@ -2,15 +2,25 @@ import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || '587', 10),
-    secure: process.env.SMTP_SECURE === 'true',
+// const transporter = nodemailer.createTransport({
+//     host: process.env.SMTP_HOST,
+//     port: parseInt(process.env.SMTP_PORT || '587', 10),
+//     secure: process.env.SMTP_SECURE === 'true',
+//     auth: {
+//         user: process.env.SMTP_USER,
+//         pass: process.env.SMTP_PASS,
+//     },
+// });
+
+//Testing Credentials...
+var transporter = nodemailer.createTransport({
+    host: "sandbox.smtp.mailtrap.io",
+    port: 2525,
     auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-    },
-});
+      user: "19024c0621b3e6",
+      pass: "c1a5ae6cf88e23"
+    }
+  });
 
 export const sendMail = async (to: string, subject: string, html?: string) => {
     try {

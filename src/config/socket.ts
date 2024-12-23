@@ -20,6 +20,8 @@ export const initSocket = (server: HttpServer) => {
     // Store connected customers
     const connectedCustomers: { [key: string]: string } = {};
     const connectedProviders: { [key: string]: string } = {};
+    const onlineUsers: { [userId: string]: boolean } = {};
+
 
     io.on("connection", (socket: Socket) => {
         const userId = socket.data.userId;
@@ -64,6 +66,12 @@ export const initSocket = (server: HttpServer) => {
                 }
             });
         });
+        console.log(connectedCustomers);
+        
+
+        // Mark user as online
+        onlineUsers[userId] = true;
+        io.emit("userStatusUpdate", { userId, isOnline: true }); // Notify others about online status
 
         // Handle chat messages
         socket.on("chatMessage", async (message: { toUserId: string; content: string }) => {
@@ -99,11 +107,26 @@ export const initSocket = (server: HttpServer) => {
         socket.on("disconnect", () => {
             console.log(`User with socket ID ${socket.id} disconnected`);
 
-            // Remove customer from connected list if they disconnect
+            // Mark user as offline
+            const userId = socket.data.userId;
+            if (userId) {
+                onlineUsers[userId] = false;
+                io.emit("userStatusUpdate", { userId, isOnline: false }); // Notify others about offline status
+            }
+
+            // Remove user from connected lists
             for (const customerId in connectedCustomers) {
                 if (connectedCustomers[customerId] === socket.id) {
                     delete connectedCustomers[customerId];
                     console.log(`Customer ${customerId} disconnected`);
+                    break;
+                }
+            }
+
+            for (const providerId in connectedProviders) {
+                if (connectedProviders[providerId] === socket.id) {
+                    delete connectedProviders[providerId];
+                    console.log(`ServiceProvider ${providerId} disconnected`);
                     break;
                 }
             }

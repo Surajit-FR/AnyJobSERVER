@@ -4,8 +4,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const modelAuth_1 = __importDefault(require("../middlewares/auth/modelAuth"));
-const user_validate_1 = __importDefault(require("../models/validator/user.validate"));
 const auth_controller_1 = require("../controller/auth/auth.controller");
 const multer_middleware_1 = require("../middlewares/multer.middleware");
 const userAuth_1 = require("../middlewares/auth/userAuth");
@@ -15,12 +13,14 @@ const router = express_1.default.Router();
 //sign-up
 router.route('/signup').post(rateLimiter_middleware_1.rateLimiter, multer_middleware_1.upload.fields([
     { name: "avatar", maxCount: 1 },
-]), [(0, modelAuth_1.default)(user_validate_1.default)], auth_controller_1.registerUser);
+]), auth_controller_1.registerUser);
 // Auth user (social)
 router.post('/user/social', rateLimiter_middleware_1.rateLimiter, [socialAuth_1.HandleSocialAuthError], auth_controller_1.AuthUserSocial);
 //login or sign-in route
 router.route('/signin').post(rateLimiter_middleware_1.rateLimiter, auth_controller_1.loginUser);
 /***************************** secured routes *****************************/
+// Logout
+router.route('/save-fcm-token').post(rateLimiter_middleware_1.rateLimiter, [userAuth_1.VerifyJWTToken], auth_controller_1.saveFcmToken);
 // Logout
 router.route('/logout').post(rateLimiter_middleware_1.rateLimiter, [userAuth_1.VerifyJWTToken], auth_controller_1.logoutUser);
 router.route('/add-associate').post(rateLimiter_middleware_1.rateLimiter, [userAuth_1.VerifyJWTToken], (0, userAuth_1.verifyUserType)(["ServiceProvider", 'TeamLead']), auth_controller_1.addAssociate);

@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.totalJobCount = exports.assignJob = exports.getServiceRequestByStatus = exports.fetchAssociatedCustomer = exports.fetchSingleServiceRequest = exports.fetchServiceRequest = exports.deleteService = exports.handleServiceRequestState = exports.updateServiceRequest = exports.getAcceptedServiceRequestInJobQueue = exports.getServiceRequestList = exports.addService = void 0;
+exports.totalJobCount = exports.assignJob = exports.getServiceRequestByStatus = exports.fetchAssociatedCustomer = exports.fetchSingleServiceRequest = exports.fetchNearByServiceProvider = exports.fetchServiceRequest = exports.deleteService = exports.handleServiceRequestState = exports.updateServiceRequest = exports.getAcceptedServiceRequestInJobQueue = exports.getServiceRequestList = exports.addService = void 0;
 const service_model_1 = __importDefault(require("../models/service.model"));
 const address_model_1 = __importDefault(require("../models/address.model"));
 const ApisErrors_1 = require("../utils/ApisErrors");
@@ -363,6 +363,70 @@ exports.fetchServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __a
     });
     return (0, response_1.sendSuccessResponse)(res, 200, serviceRequests, 'Service requests fetched successfully');
 }));
+//fetch nearby service provider and assign request
+exports.fetchNearByServiceProvider = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { serviceRequestId } = req.params;
+    if (!serviceRequestId) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, `Invalid ServiceRequest ID`));
+    }
+    const serviceRequest = yield service_model_1.default.findById(serviceRequestId);
+    if (!serviceRequest) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, `Service request not found`));
+    }
+    // Extract coordinates and validate
+    const serviceRequestLongitude = parseFloat(serviceRequest.serviceLongitude);
+    const serviceRequestLatitude = parseFloat(serviceRequest.serviceLatitude);
+    if (isNaN(serviceRequestLongitude) || isNaN(serviceRequestLatitude)) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, `Invalid longitude or latitude`));
+    }
+    const radius = 40000; // Radius in meters
+    const pipeline = [
+        {
+            $geoNear: {
+                near: { type: 'Point', coordinates: [serviceRequestLongitude, serviceRequestLatitude] },
+                distanceField: 'distance',
+                spherical: true,
+                maxDistance: radius,
+                query: {
+                    userType: 'ServiceProvider',
+                    isDeleted: false
+                }
+            }
+        },
+        {
+            $lookup: {
+                from: "additionalinfos",
+                foreignField: "userId",
+                localField: "_id",
+                as: "additionalInfo"
+            }
+        },
+        {
+            $project: {
+                __v: 0,
+                isDeleted: 0,
+                refreshToken: 0,
+                password: 0,
+                'additionalInfo.__v': 0,
+                'additionalInfo.isDeleted': 0,
+            }
+        },
+        // {
+        //     $sort: { distance: -1 }
+        // }
+    ];
+    const serviceProviders = yield user_model_1.default.aggregate(pipeline);
+    if (!serviceProviders.length) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, 'No nearby service providers found.'));
+    }
+    const updatePayload = {
+        isReqAcceptedByServiceProvider: true,
+        requestProgress: 'Pending',
+        serviceProviderId: serviceProviders[0]._id
+    };
+    const acceptRequest = yield service_model_1.default.findByIdAndUpdate({ _id: serviceRequestId }, updatePayload, { new: true });
+    return (0, response_1.sendSuccessResponse)(res, 200, serviceProviders[0], 'Nearby Service Providers assigned successfully');
+}));
 // fetchSingleServiceRequest controller
 exports.fetchSingleServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { serviceId } = req.params;
@@ -511,14 +575,18 @@ const fetchAssociatedCustomer = (serviceId) => __awaiter(void 0, void 0, void 0,
     return serviceRequest[0].userId;
 });
 exports.fetchAssociatedCustomer = fetchAssociatedCustomer;
-// getServiceRequestByStatus controller
+//
 exports.getServiceRequestByStatus = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    console.log("api runs");
+    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
     const { requestProgress } = req.body;
+    const progressFilter = requestProgress === "InProgress"
+        ? { requestProgress: { $in: ["NotStarted", "Pending", "Started"] } }
+        : { requestProgress };
     const results = yield service_model_1.default.aggregate([
         {
-            $match: {
-                requestProgress: requestProgress,
-            }
+            $match: Object.assign(Object.assign({}, progressFilter), { userId: userId })
         },
         {
             $lookup: {
@@ -568,7 +636,6 @@ exports.getServiceRequestByStatus = (0, asyncHandler_1.asyncHandler)((req, res) 
     const totalRequest = results.length;
     return (0, response_1.sendSuccessResponse)(res, 200, { results, totalRequest: totalRequest }, "Service request retrieved successfully.");
 }));
-// assignJob controller
 exports.assignJob = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c;
     const userType = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userType;
@@ -604,7 +671,6 @@ exports.assignJob = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
     ;
     return (0, response_1.sendSuccessResponse)(res, 200, updatedService, "Job assigned to the agent successfully.");
 }));
-// totalJobCount controller
 exports.totalJobCount = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const serviceProviderId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;

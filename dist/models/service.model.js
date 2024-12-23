@@ -152,6 +152,7 @@ const ServiceSchema = new mongoose_1.Schema({
     requestProgress: {
         type: String,
         enum: ["NotStarted", "Pending", "Started", "Completed", "Cancelled"],
+        //...."NotStarted"||"Pending"||"Started".....for all this state mark them inprogress//
         default: "NotStarted"
     },
     isDeleted: {

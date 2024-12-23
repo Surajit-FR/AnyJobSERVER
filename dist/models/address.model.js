@@ -28,16 +28,16 @@ const mongoose_1 = __importStar(require("mongoose"));
 const AddressSchema = new mongoose_1.Schema({
     userId: { type: mongoose_1.default.Schema.Types.ObjectId, require: true },
     street: { type: String, required: false, default: "" },
-    location: { type: String, required: false, default: "" },
-    addressType: { type: String, required: false, enum: ["home", "office", "other"], default: "office" },
+    zipCode: { type: String, required: [true, "Zipcode is Required"] },
+    addressType: { type: String, required: [true, "addressType is Required"], enum: ["home", "office", "others"], },
+    location: { type: String, required: [true, "location is Required"], },
+    latitude: { type: String, required: [true, "Latitude is Required"] },
+    longitude: { type: String, required: [true, "Longitude is Required"] },
     city: { type: String, required: false, default: "" },
     state: { type: String, required: false, default: "" },
     country: { type: String, required: false, default: "" },
-    zipCode: { type: String, required: [true, "Zipcode is Required"] },
     apartmentNumber: { type: String, default: "" },
     landmark: { type: String, default: "" },
-    latitude: { type: String, required: [true, "Latitude is Required"] },
-    longitude: { type: String, required: [true, "Longitude is Required"] }
 }, { timestamps: true });
 const AddressModel = mongoose_1.default.model("address", AddressSchema);
 exports.default = AddressModel;

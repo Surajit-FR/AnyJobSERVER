@@ -11,11 +11,9 @@ const router = express_1.default.Router();
 router.use(userAuth_1.VerifyJWTToken); // Apply verifyJWT middleware to all routes in this file
 router.route('/')
     .post((0, userAuth_1.verifyUserType)(['Customer']), service_controller_1.addService)
-    .get((0, userAuth_1.verifyUserType)(['SuperAdmin']), IP_middleware_1.captureIPMiddleware, service_controller_1.getServiceRequestList);
+    .get((0, userAuth_1.verifyUserType)(['SuperAdmin']), service_controller_1.getServiceRequestList);
 router.route('/get-accepted-service-request')
     .get(service_controller_1.getAcceptedServiceRequestInJobQueue);
-router.route('/get-service-request')
-    .get(service_controller_1.getServiceRequestByStatus);
 router.route('/get-job-count')
     .get((0, userAuth_1.verifyUserType)(['ServiceProvider', 'TeamLead']), service_controller_1.totalJobCount);
 router.route('/nearby-services-request')

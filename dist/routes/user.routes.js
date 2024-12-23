@@ -18,11 +18,11 @@ router.route('/get-user').get(user_controller_1.getUser);
 router.route('/add-address').post((0, userAuth_1.verifyUserType)(["ServiceProvider"]), user_controller_1.addAddress);
 //add user additional information
 router.route('/add-additional-info').post(multer_middleware_1.upload.fields([
-    { name: "driverLicenseImage" },
-    { name: "companyLicenseImage" },
-    { name: "licenseProofImage" },
-    { name: "businessLicenseImage" },
-    { name: "businessImage" },
+    { name: "driverLicenseImage", maxCount: 2 },
+    { name: "companyLicenseImage", maxCount: 1 },
+    { name: "licenseProofImage", maxCount: 1 },
+    { name: "businessLicenseImage", maxCount: 1 },
+    { name: "businessImage", maxCount: 1 },
 ]), (0, userAuth_1.verifyUserType)(["ServiceProvider"]), user_controller_1.addAdditionalInfo);
 //fetch serviceProvider List
 router.route('/get-service-providers').get(user_controller_1.getServiceProviderList);
@@ -33,13 +33,14 @@ router.route('/get-admin-users').get(user_controller_1.getAdminUsersList);
 //fetch users List
 router.route('/get-users').get(user_controller_1.getUsers);
 //fetch associate List
-router.route('/get-associates/:serviceProviderId').get((0, userAuth_1.verifyUserType)(["SuperAdmin", "ServiceProvider"]), IP_middleware_1.captureIPMiddleware, user_controller_1.fetchAssociates);
-router.route('/get-agent-engagement').get((0, userAuth_1.verifyUserType)(["SuperAdmin", "ServiceProvider"]), IP_middleware_1.captureIPMiddleware, user_controller_1.getAgentEngagementStatus);
+router.route('/get-associates/:serviceProviderId').get((0, userAuth_1.verifyUserType)(["SuperAdmin", "ServiceProvider"]), user_controller_1.fetchAssociates);
+router.route('/get-agent-engagement').get((0, userAuth_1.verifyUserType)(["SuperAdmin", "ServiceProvider"]), user_controller_1.getAgentEngagementStatus);
 router.route('/u/:userId')
     .get(user_controller_1.getSingleUser)
     .patch((0, userAuth_1.verifyUserType)(["SuperAdmin"]), IP_middleware_1.captureIPMiddleware, user_controller_1.banUser);
 router.route('/verify/:serviceProviderId').patch((0, userAuth_1.verifyUserType)(["SuperAdmin"]), IP_middleware_1.captureIPMiddleware, user_controller_1.verifyServiceProvider);
 router.route('/assign-teamlead').post([userAuth_1.VerifyJWTToken], (0, userAuth_1.verifyUserType)(["ServiceProvider"]), user_controller_1.assignTeamLead);
 router.route("/give-permission").post((0, userAuth_1.verifyUserType)(['SuperAdmin', 'ServiceProvider']), IP_middleware_1.captureIPMiddleware, permission_controller_1.givePermission);
-router.route("/fetch-permission").get((0, userAuth_1.verifyUserType)(['SuperAdmin', 'ServiceProvider']), IP_middleware_1.captureIPMiddleware, permission_controller_1.getUserPermissions);
+router.route("/fetch-permission").get((0, userAuth_1.verifyUserType)(['SuperAdmin', 'ServiceProvider']), permission_controller_1.getUserPermissions);
+router.route("/fetch-iplogs").get((0, userAuth_1.verifyUserType)(['SuperAdmin']), user_controller_1.fetchIPlogs);
 exports.default = router;

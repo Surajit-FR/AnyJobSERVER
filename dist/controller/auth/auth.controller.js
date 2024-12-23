@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.resetPassword = exports.forgetPassword = exports.AuthUserSocial = exports.refreshAccessToken = exports.logoutUser = exports.loginUser = exports.registerUser = exports.createAdminUsers = exports.addAssociate = exports.cookieOption = exports.fetchUserData = void 0;
+exports.resetPassword = exports.forgetPassword = exports.AuthUserSocial = exports.refreshAccessToken = exports.logoutUser = exports.saveFcmToken = exports.loginUser = exports.registerUser = exports.createAdminUsers = exports.addAssociate = exports.cookieOption = exports.fetchUserData = void 0;
 const user_model_1 = __importDefault(require("../../models/user.model"));
 const ApisErrors_1 = require("../../utils/ApisErrors");
 const auth_1 = require("../../utils/auth");
@@ -27,6 +27,8 @@ const permission_model_1 = __importDefault(require("../../models/permission.mode
 const sendMail_1 = require("../../utils/sendMail");
 const otp_controller_1 = require("../otp.controller");
 const otp_model_1 = __importDefault(require("../../models/otp.model"));
+const address_model_1 = __importDefault(require("../../models/address.model"));
+const userAdditionalInfo_model_1 = __importDefault(require("../../models/userAdditionalInfo.model"));
 // fetchUserData func.
 const fetchUserData = (userId) => __awaiter(void 0, void 0, void 0, function* () {
     const user = yield user_model_1.default.aggregate([
@@ -137,7 +139,7 @@ exports.registerUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(
 }));
 // login user controller
 exports.loginUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { email, password, userType, isAdminPanel } = req.body;
+    const { email, password, userType, fcmToken, isAdminPanel } = req.body;
     if (!email) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Email is required"));
     }
@@ -167,16 +169,47 @@ exports.loginUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
             return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(403, "Access denied. Only SuperAdmins can log in to the admin panel."));
         }
     }
+    // Save FCM Token if provided
+    if (fcmToken) {
+        user.fcmToken = fcmToken;
+        yield user.save();
+    }
     const { accessToken, refreshToken } = yield (0, createTokens_1.generateAccessAndRefreshToken)(res, user._id);
     const loggedInUser = yield (0, exports.fetchUserData)(user._id);
-    if (user.userType === "ServiceProvider" && !user.isVerified) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(403, "Your account verification is under process. Please wait for confirmation.", [], userId));
+    if (user.userType === "ServiceProvider") {
+        const userAddress = yield address_model_1.default.findOne({ userId: user._id });
+        const userAdditionalInfo = yield userAdditionalInfo_model_1.default.findOne({ userId: user._id });
+        if (!userAddress && !userAdditionalInfo) {
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(403, "Your account is created but please add address & your additional information.", [], { accessToken }));
+        }
+        else {
+            if (!user.isVerified) {
+                return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(403, "Your account verification is under process. Please wait for confirmation.", [], { accessToken }));
+            }
+            ;
+        }
     }
     ;
     return res.status(200)
         .cookie("accessToken", accessToken, exports.cookieOption)
         .cookie("refreshToken", refreshToken, exports.cookieOption)
         .json(new ApiResponse_1.ApiResponse(200, { user: loggedInUser[0], accessToken, refreshToken }, "User logged In successfully"));
+}));
+//save fcm token in user data
+exports.saveFcmToken = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+    const { fcmToken } = req.body;
+    if (!fcmToken || !userId) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, 'Missing FCM token or user ID'));
+    }
+    const user = yield user_model_1.default.findById(userId);
+    if (!user) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "User does not exist"));
+    }
+    user.fcmToken = fcmToken;
+    yield user.save();
+    return (0, response_1.sendSuccessResponse)(res, 200, 'FCM token saved successfully');
 }));
 // logout user controller
 exports.logoutUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -187,7 +220,10 @@ exports.logoutUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
     ;
     const userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
     yield user_model_1.default.findByIdAndUpdate(userId, {
-        $set: { refreshToken: "" }
+        $set: {
+            refreshToken: "",
+            fcmToken: ""
+        }
     }, { new: true });
     const cookieOptions = {
         httpOnly: true,

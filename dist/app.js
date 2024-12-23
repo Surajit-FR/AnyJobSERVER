@@ -31,6 +31,8 @@ const question_routes_1 = __importDefault(require("./routes/question.routes"));
 const shift_routes_1 = __importDefault(require("./routes/shift.routes"));
 const otp_routes_1 = __importDefault(require("./routes/otp.routes"));
 const rating_routes_1 = __importDefault(require("./routes/rating.routes"));
+const googleCloud_routes_1 = __importDefault(require("./routes/googleCloud.routes"));
+const chat_routes_1 = __importDefault(require("./routes/chat.routes"));
 //Admin routes
 app.use("/api/v1/healthcheck", healthcheck_routes_1.default);
 app.use("/api/v1/auth", auth_routes_1.default);
@@ -39,6 +41,8 @@ app.use('/api/v1/user', user_routes_1.default);
 app.use('/api/v1/service', service_routes_1.default);
 app.use('/api/v1/question', question_routes_1.default);
 app.use('/api/v1/shift', shift_routes_1.default);
+app.use('/api/v1/google-cloud', googleCloud_routes_1.default);
+app.use('/api/v1/chat', chat_routes_1.default);
 // Customer routes
 app.use('/api/v1/customer', user_routes_2.default);
 app.use('/api/v1/otp', otp_routes_1.default);

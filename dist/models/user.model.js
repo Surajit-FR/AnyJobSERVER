@@ -64,7 +64,8 @@ const UserSchema = new mongoose_1.Schema({
         lowercase: true,
     },
     dob: {
-        type: Date
+        type: Date,
+        default: null
     },
     phone: {
         type: String,
@@ -100,9 +101,22 @@ const UserSchema = new mongoose_1.Schema({
         type: String,
         default: "",
     },
+    fcmToken: {
+        type: String,
+        default: "",
+    },
     isDeleted: {
         type: Boolean,
         default: false,
+    },
+    geoLocation: {
+        type: {
+            type: String,
+            enum: ["Point"],
+        },
+        coordinates: {
+            type: [Number],
+        },
     },
 }, { timestamps: true });
 //pre - save hook for hashing password
@@ -139,5 +153,7 @@ UserSchema.methods.generateRefreshToken = function () {
         _id: this._id
     }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: process.env.REFRESH_TOKEN_EXPIRY });
 };
+//adding geospatial index
+UserSchema.index({ geoLocation: "2dsphere" });
 const UserModel = mongoose_1.default.model("user", UserSchema);
 exports.default = UserModel;

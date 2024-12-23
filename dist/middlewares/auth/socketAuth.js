@@ -25,7 +25,6 @@ const socketAuthMiddleware = (socket, next) => {
     // Verify the token
     jsonwebtoken_1.default.verify(token, JWT_SECRET, (err, decoded) => __awaiter(void 0, void 0, void 0, function* () {
         if (err) {
-            console.log({ JWT_SECRET });
             return next(new Error("Authentication error: Invalid token"));
         }
         const connectedUser = yield user_model_1.default.findById(decoded._id).select("-password -refreshToken");

@@ -26,13 +26,12 @@ const uploadOnCloudinary = (localFilePath) => __awaiter(void 0, void 0, void 0, 
     try {
         if (!localFilePath)
             return null;
-        // Upload the file to Cloudinary
+        // Upload the file to Cloudinary with secure URLs
         const response = yield cloudinary_1.v2.uploader.upload(localFilePath, {
             resource_type: "raw",
+            secure: true, // Ensure the URL is HTTPS
         });
-        // // File has been uploaded successfully
-        // console.log("File has been uploaded to Cloudinary", response.url);
-        // Remove the locally saved temporary file as the upload operation failed
+        // Remove the locally saved temporary file
         fs_1.default.unlinkSync(localFilePath);
         return response;
     }

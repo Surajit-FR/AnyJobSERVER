@@ -22,42 +22,32 @@ const category_model_1 = __importDefault(require("../models/category.model"));
 const subcategory_model_1 = __importDefault(require("../models/subcategory.model"));
 const question_model_1 = __importDefault(require("../models/question.model"));
 const cloudinary_1 = require("../utils/cloudinary");
-const fs_1 = __importDefault(require("fs"));
+const multer_middleware_1 = require("../middlewares/multer.middleware");
 // addCategory controller
 exports.addCategory = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const { name } = req.body;
-    // Trim and convert name to lowercase
     const trimmedName = name.trim();
-    // Check if a category with the same name already exists (case-insensitive)
     const existingCategory = yield category_model_1.default.findOne({ name: { $regex: new RegExp(`^${trimmedName}$`, 'i') } });
     if (existingCategory) {
         // Delete the local image if it exists
         const categoryImageFile = req.files;
         const catImgFile = (categoryImageFile === null || categoryImageFile === void 0 ? void 0 : categoryImageFile.categoryImage) ? categoryImageFile.categoryImage[0] : undefined;
         if (catImgFile) {
-            fs_1.default.unlink(catImgFile.path, (err) => {
-                if (err) {
-                    console.error("Error deleting local image:", err);
-                }
-            });
+            (0, multer_middleware_1.deleteUploadedFiles)({ categoryImage: categoryImageFile === null || categoryImageFile === void 0 ? void 0 : categoryImageFile.categoryImage });
         }
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Category with the same name already exists."));
     }
-    // console.log("--------");
     const categoryImageFile = req.files;
     if (!categoryImageFile) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "No files were uploaded"));
     }
     ;
     const catImgFile = categoryImageFile.categoryImage ? categoryImageFile.categoryImage[0] : undefined;
-    // console.log(catImgFile);
-    // Upload files to Cloudinary
     const catImg = yield (0, cloudinary_1.uploadOnCloudinary)(catImgFile === null || catImgFile === void 0 ? void 0 : catImgFile.path);
-    // console.log(catImg);
     const newCategory = yield category_model_1.default.create({
         name: trimmedName,
-        categoryImage: catImg === null || catImg === void 0 ? void 0 : catImg.url,
+        categoryImage: catImg === null || catImg === void 0 ? void 0 : catImg.secure_url,
         owner: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id,
     });
     if (!newCategory) {
@@ -72,10 +62,7 @@ exports.getCategories = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
         {
             $match: { isDeleted: false }
         },
-        // { $sort: { createdAt: -1 } },
     ]);
-    // console.log(results);
-    // Return the videos along with pagination details
     return (0, response_1.sendSuccessResponse)(res, 200, results, "Category retrieved successfully.");
 }));
 // updateCategory controller
@@ -86,36 +73,26 @@ exports.updateCategory = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Category ID is required."));
     }
     ;
-    // Trim and convert name to lowercase for case-insensitive comparison
     const trimmedName = name.trim();
-    // Check if a category with the same name already exists, excluding the current category being updated
     const existingCategory = yield category_model_1.default.findOne({
-        _id: { $ne: new mongoose_1.default.Types.ObjectId(CategoryId) }, // Exclude the current category
-        name: { $regex: new RegExp(`^${trimmedName}$`, 'i') } // Case-insensitive name comparison
+        _id: { $ne: new mongoose_1.default.Types.ObjectId(CategoryId) },
+        name: { $regex: new RegExp(`^${trimmedName}$`, 'i') }
     });
     if (existingCategory) {
-        // Delete the local image if it exists
         const categoryImageFile = req.files;
         const catImgFile = (categoryImageFile === null || categoryImageFile === void 0 ? void 0 : categoryImageFile.categoryImage) ? categoryImageFile.categoryImage[0] : undefined;
         if (catImgFile) {
-            fs_1.default.unlink(catImgFile.path, (err) => {
-                if (err) {
-                    console.error("Error deleting local image:", err);
-                }
-            });
+            (0, multer_middleware_1.deleteUploadedFiles)({ categoryImage: categoryImageFile === null || categoryImageFile === void 0 ? void 0 : categoryImageFile.categoryImage });
         }
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Category with the same name already exists."));
     }
-    // Check if a category image file was uploaded
     const categoryImageFile = req.files;
     const catImgFile = (categoryImageFile === null || categoryImageFile === void 0 ? void 0 : categoryImageFile.categoryImage) ? categoryImageFile.categoryImage[0] : undefined;
     let catImgUrl;
     if (catImgFile) {
-        // Upload the category image file to Cloudinary
         const catImg = yield (0, cloudinary_1.uploadOnCloudinary)(catImgFile.path);
-        catImgUrl = catImg === null || catImg === void 0 ? void 0 : catImg.url;
+        catImgUrl = catImg === null || catImg === void 0 ? void 0 : catImg.secure_url;
     }
-    // Update the category details with new name and image (if uploaded)
     const updatedCategory = yield category_model_1.default.findByIdAndUpdate(new mongoose_1.default.Types.ObjectId(CategoryId), {
         $set: Object.assign({ name: trimmedName }, (catImgUrl && { categoryImage: catImgUrl }) // Only update image if uploaded
         ),
@@ -133,33 +110,26 @@ exports.deleteCategory = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Category ID is required."));
     }
     ;
-    //  Find the category to delete
     const categoryToDelete = yield category_model_1.default.findById(CategoryId);
     if (!categoryToDelete) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, "Category not found for deleting."));
     }
     ;
     const imageUrls = [];
-    // Collect image from category
     if (categoryToDelete.categoryImage)
         imageUrls.push(categoryToDelete.categoryImage);
-    //Find SubCategories 
     const subcategories = yield subcategory_model_1.default.find({ CategoryId });
-    // Collect images from subcategories
     subcategories.forEach((subCategory) => {
         if (subCategory.subCategoryImage)
             imageUrls.push(subCategory.subCategoryImage);
     });
-    //  Delete all questions related to this category and its subcategories
     yield question_model_1.default.deleteMany({
         $or: [
-            { categoryId: CategoryId }, // Questions directly related to the main category
+            { categoryId: CategoryId },
         ]
     });
     yield subcategory_model_1.default.deleteMany({ categoryId: CategoryId });
-    //  Delete the category
     yield category_model_1.default.findByIdAndDelete(CategoryId);
-    // Remove images from Cloudinary
     const deleteImages = imageUrls.map((url) => {
         (0, cloudinary_1.deleteFromCloudinary)(url);
     });
@@ -172,7 +142,6 @@ exports.getCategorieById = (0, asyncHandler_1.asyncHandler)((req, res) => __awai
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Category ID is required."));
     }
     ;
-    //  Find the category to delete
     const categoryToFetch = yield category_model_1.default.findById(CategoryId);
     if (!categoryToFetch) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, "Category not found."));

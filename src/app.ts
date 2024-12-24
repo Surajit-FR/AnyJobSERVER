@@ -8,7 +8,7 @@ import { EXPRESS_CONFIG_LIMIT } from './constants';
 
 
 app.use(cors({
-    origin: process.env.CORS_ORIGIN,
+    origin: "https://frontend.theassure.co.uk",
     credentials: true,
 }));
 

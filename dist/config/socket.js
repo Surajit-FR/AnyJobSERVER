@@ -18,7 +18,7 @@ const chat_controller_1 = require("../controller/chat.controller");
 const initSocket = (server) => {
     const io = new socket_io_1.Server(server, {
         cors: {
-            origin: process.env.CORS_ORIGIN,
+            origin: "https://frontend.theassure.co.uk"
         }
     });
     // Use the JWT authentication middleware for all socket connections

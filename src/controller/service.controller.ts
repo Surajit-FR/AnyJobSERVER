@@ -400,7 +400,7 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
             path: "categoryId",
             select: "name categoryImage"
         }
-    );
+    ).sort({ isIncentiveGiven: -1, incentiveAmount: -1 });
 
     return sendSuccessResponse(res, 200, serviceRequests, 'Service requests fetched successfully');
 });
@@ -748,6 +748,7 @@ export const assignJob = asyncHandler(async (req: CustomRequest, res: Response) 
     };
 
     return sendSuccessResponse(res, 200, updatedService, "Job assigned to the agent successfully.");
+
 });
 
 export const totalJobCount = asyncHandler(async (req: CustomRequest, res: Response) => {
@@ -774,3 +775,4 @@ export const totalJobCount = asyncHandler(async (req: CustomRequest, res: Respon
     ]);
     return sendSuccessResponse(res, 200, jobData, "Job counts retrieved successfully.");
 });
+

@@ -639,8 +639,7 @@ export const fetchAssociatedCustomer = async (serviceId: string) => {
 
 //
 export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest, res: Response) => {
-    console.log("api runs");
-    
+
     const userId = req.user?._id
     const { requestProgress } = req.body;
     const progressFilter =
@@ -674,13 +673,69 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
                 from: "users",
                 foreignField: "_id",
                 localField: "userId",
-                as: "userId"
+                as: "userId",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "ratings",
+                            foreignField: "ratedTo",
+                            localField: "_id",
+                            as: "customerRatings",
+                        }
+                    },
+                    {
+                        $addFields: {
+                            customerAvgRating: {
+                                $cond: {
+                                    if: { $gt: [{ $size: "$customerRatings" }, 0] },
+                                    then: { $avg: "$customerRatings.rating" },
+                                    else: 0
+                                }
+                            }
+                        }
+                    }
+                ]
             }
         },
         {
             $unwind: {
                 preserveNullAndEmptyArrays: true,
                 path: "$userId"
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "serviceProviderId",
+                as: "serviceProviderId",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "ratings",
+                            foreignField: "ratedTo",
+                            localField: "_id",
+                            as: "serviceProviderIdRatings",
+                        }
+                    },
+                    {
+                        $addFields: {
+                            serviceProviderRatings: {
+                                $cond: {
+                                    if: { $gt: [{ $size: "$serviceProviderIdRatings" }, 0] },
+                                    then: { $avg: "$serviceProviderIdRatings.rating" },
+                                    else: 0
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$serviceProviderId"
             }
         },
         {
@@ -692,8 +747,17 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
                 'userId.isDeleted': 0,
                 'userId.__v': 0,
                 'userId.signupType': 0,
+                'userId.customerRatings': 0,
+                'serviceProviderId.password': 0,
+                'serviceProviderId.refreshToken': 0,
+                'serviceProviderId.isDeleted': 0,
+                'serviceProviderId.__v': 0,
+                'serviceProviderId.signupType': 0,
+                'serviceProviderId.customerRatings': 0,
+                'serviceProviderId.serviceProviderIdRatings': 0,
                 'subCategoryId.isDeleted': 0,
                 'subCategoryId.__v': 0,
+                // 'serviceProviderId.serviceProviderIdRatings':0
                 // 'categoryId.isDeleted': 0,
                 // 'categoryId.__v': 0,
             }

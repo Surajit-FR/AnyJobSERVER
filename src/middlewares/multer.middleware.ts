@@ -1,6 +1,7 @@
 import multer from 'multer';
-import { Request, Response } from 'express';
+import express, { Request, Response } from 'express';
 import fs from "fs";
+
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -45,3 +46,4 @@ export const deleteUploadedFiles = (filesMap: { [key: string]: Express.Multer.Fi
 };
 
 export const upload = multer({ storage: storage, fileFilter: fileFilter });
+

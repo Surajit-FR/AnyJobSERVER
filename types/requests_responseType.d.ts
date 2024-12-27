@@ -69,6 +69,7 @@ export interface IAddServicePayloadReq {
     serviceLongitude: number,
     isIncentiveGiven: boolean,
     incentiveAmount: number,
+    serviceProductImage:string;
     isTipGiven: boolean,
     tipAmount: number,
     otherInfo:object,

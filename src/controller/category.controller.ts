@@ -171,3 +171,15 @@ export const getCategorieById = asyncHandler(async (req: Request, res: Response)
 
     return sendSuccessResponse(res, 200, categoryToFetch, "Category retrieved successfully.");
 });
+
+export const searchCategories = asyncHandler(async (req: Request, res: Response) => {
+    const categoryData = await CategoryModel.aggregate([
+        {
+            $match:{
+                isDeleted:false,
+                 name: { $regex: name, $options: "i" } 
+                
+            }
+        }
+    ])
+})

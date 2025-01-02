@@ -88,6 +88,8 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
 // getServiceRequestList controller
 export const getServiceRequestList = asyncHandler(async (req: Request, res: Response) => {
     const { page = "1", limit = "10", query = '', sortBy = 'createdAt', sortType = 'desc' } = req.query;
+    console.log(req.query);
+
 
     const pageNumber = parseInt(page as string, 10) || 1;
     const limitNumber = parseInt(limit as string, 10) || 10;
@@ -122,8 +124,8 @@ export const getServiceRequestList = asyncHandler(async (req: Request, res: Resp
             }
         },
         { $unwind: '$userId' },
-        { $match: searchQuery }, // Apply query to populated user fields
-        { $sort: sortCriteria },
+        { $match: searchQuery }, 
+        { $sort: { createdAt: validSortType } },
         { $skip: skip },
         { $limit: limitNumber },
         {
@@ -143,21 +145,24 @@ export const getServiceRequestList = asyncHandler(async (req: Request, res: Resp
             }
         }
     ]);
-
+    // console.log({ results });
     const totalRecords = await ServiceModel.aggregate([
         { $match: { isDeleted: false } },
-        { $lookup: {
-            from: 'users',
-            localField: 'userId',
-            foreignField: '_id',
-            as: 'userId'
-        }},
+        {
+            $lookup: {
+                from: 'users',
+                localField: 'userId',
+                foreignField: '_id',
+                as: 'userId'
+            }
+        },
         { $unwind: '$userId' },
         { $match: searchQuery },
-        { $count: 'total' }
+        { $count: 'total' },
+        { $sort: { createdAt: -1 } }
     ]);
-    
-    
+
+
     const total = totalRecords[0]?.total || 0;
     // console.log(total);
 

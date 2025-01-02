@@ -11,6 +11,7 @@ import PermissionModel from "../models/permission.model";
 import TeamModel from "../models/teams.model";
 import UserModel from "../models/user.model";
 import { PipelineStage } from 'mongoose';
+import axios from "axios";
 
 
 
@@ -57,6 +58,11 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
     if (isTipGiven && (tipAmount === undefined || tipAmount <= 0)) {
         return sendErrorResponse(res, new ApiError(400, "Tip amount must be provided and more than zero if tip is given."));
     }
+    const apiKey = process.env.GOOGLE_API_KEY;
+    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${serviceLatitude},${serviceLongitude}&key=${apiKey}`;
+
+    const geocodeResponse = await axios.get(geocodeUrl);
+    const serviceAddress = geocodeResponse?.data?.results[0]?.formatted_address
 
     // Prepare the new service object
     const newService = await ServiceModel.create({
@@ -67,6 +73,7 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         serviceZipCode,
         serviceLatitude,
         serviceLongitude,
+        serviceAddress,
         location,
         isIncentiveGiven,
         incentiveAmount,
@@ -440,13 +447,15 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
         isDeleted: false
     }).populate({
         path: "userId",
-        select: "firstName lastName email phone avatar"
+        select: "firstName lastName email phone avatar",
+  
     }).populate(
         {
             path: "categoryId",
             select: "name categoryImage"
         }
-    ).sort({ isIncentiveGiven: -1, incentiveAmount: -1 });
+    )
+        .sort({ isIncentiveGiven: -1, incentiveAmount: -1 });
 
     return sendSuccessResponse(res, 200, serviceRequests, 'Service requests fetched successfully');
 });
@@ -691,7 +700,9 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
     const progressFilter =
         requestProgress === "InProgress"
             ? { requestProgress: { $in: ["Pending", "Started"] } }
-            : { requestProgress };
+            : requestProgress === "jobQueue"
+                ? { requestProgress: "NotStarted" }
+                : { requestProgress };
 
     const results = await ServiceModel.aggregate([
         {
@@ -731,6 +742,7 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
                     },
                     {
                         $addFields: {
+                            numberOfRatings: { $size: "$customerRatings" },
                             customerAvgRating: {
                                 $cond: {
                                     if: { $gt: [{ $size: "$customerRatings" }, 0] },
@@ -766,6 +778,7 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
                     },
                     {
                         $addFields: {
+                            numberOfRatings: { $size: "$serviceProviderIdRatings" },
                             serviceProviderRatings: {
                                 $cond: {
                                     if: { $gt: [{ $size: "$serviceProviderIdRatings" }, 0] },
@@ -786,26 +799,21 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
         },
         {
             $project: {
-                isDeleted: 0,
-                __v: 0,
-                'userId.password': 0,
-                'userId.refreshToken': 0,
-                'userId.isDeleted': 0,
-                'userId.__v': 0,
-                'userId.signupType': 0,
-                'userId.customerRatings': 0,
-                'serviceProviderId.password': 0,
-                'serviceProviderId.refreshToken': 0,
-                'serviceProviderId.isDeleted': 0,
-                'serviceProviderId.__v': 0,
-                'serviceProviderId.signupType': 0,
-                'serviceProviderId.customerRatings': 0,
-                'serviceProviderId.serviceProviderIdRatings': 0,
-                'subCategoryId.isDeleted': 0,
-                'subCategoryId.__v': 0,
-                // 'serviceProviderId.serviceProviderIdRatings':0
-                // 'categoryId.isDeleted': 0,
-                // 'categoryId.__v': 0,
+                _id: 1,
+                'categoryId.name': 1,
+                serviceStartDate: 1,
+                serviceAddress: 1,
+                startedAt: 1,
+                completedAt: 1,
+
+                requestProgress: 1,
+                'serviceProviderId.firstName': 1,
+                'serviceProviderId.lastName': 1,
+                'serviceProviderId.avatar': 1,
+                'serviceProviderId.numberOfRatings': 1,
+                'serviceProviderId.serviceProviderRatings': 1,
+                createdAt: 1
+
             }
         },
         { $sort: { createdAt: -1 } },

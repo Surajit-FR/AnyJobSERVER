@@ -97,8 +97,8 @@ export const getServiceRequestList = asyncHandler(async (req: Request, res: Resp
         isDeleted: false,
         ...(query && {
             $or: [
-                { firstName: { $regex: query, $options: "i" } },
-                { lastName: { $regex: query, $options: "i" } },
+                { 'userId.firstName': { $regex: query, $options: "i" } },
+                { 'userId.lastName': { $regex: query, $options: "i" } },
                 { requestProgress: { $regex: query, $options: "i" } },
                 { email: { $regex: query, $options: "i" } },
             ]
@@ -112,22 +112,42 @@ export const getServiceRequestList = asyncHandler(async (req: Request, res: Resp
     const sortCriteria: any = {};
     sortCriteria[validSortBy] = validSortType;
 
-    const results = await ServiceModel.find(searchQuery)
-        .populate({
-            path: 'userId',
-            select: 'firstName lastName email phone'
-        })
-        .sort(sortCriteria)
-        .skip(skip)
-        .limit(limitNumber)
-        .select('-isDeleted -createdAt -updatedAt -__v');
+    const results = await ServiceModel.aggregate([
+        { $match: { isDeleted: false } },
+        { $lookup: {
+            from: 'users', // The name of your UserModel collection
+            localField: 'userId',
+            foreignField: '_id',
+            as: 'userId'
+        }},
+        { $unwind: '$userId' }, // Flatten the user array
+        { $match: searchQuery }, // Apply query to populated user fields
+        { $sort: sortCriteria },
+        { $skip: skip },
+        { $limit: limitNumber },
+        { $project: {
+            // 'userId': 0, // Exclude original userId if needed
+            '__v': 0,    // Exclude version field
+            'isDeleted': 0,
+            'createdAt': 0,
+            'updatedAt': 0,
+            'userId.password': 0,
+            'userId.isVerified': 0,
+            'userId.refreshToken': 0,
+            'userId.isDeleted': 0,
+            'userId.createdAt': 0,
+            'userId.updatedAt': 0,
+            'userId.fcmToken': 0,
+            'userId.__v': 0,
+        }}
+    ]);
 
     const totalRecords = await ServiceModel.countDocuments(searchQuery);
 
     return sendSuccessResponse(res, 200, {
         serviceRequests: results,
         pagination: {
-            total: totalRecords,
+            totalRecords: totalRecords,
             page: pageNumber,
             limit: limitNumber
         }

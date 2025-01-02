@@ -105,7 +105,6 @@ export const getServiceRequestList = asyncHandler(async (req: Request, res: Resp
         })
     };
 
-    // Explicitly cast sortBy and sortType to string
     const validSortBy = (sortBy as string) || 'createdAt';
     const validSortType = (sortType as string).toLowerCase() === 'desc' ? -1 : 1;
 
@@ -114,40 +113,59 @@ export const getServiceRequestList = asyncHandler(async (req: Request, res: Resp
 
     const results = await ServiceModel.aggregate([
         { $match: { isDeleted: false } },
-        { $lookup: {
-            from: 'users', // The name of your UserModel collection
-            localField: 'userId',
-            foreignField: '_id',
-            as: 'userId'
-        }},
-        { $unwind: '$userId' }, // Flatten the user array
+        {
+            $lookup: {
+                from: 'users',
+                localField: 'userId',
+                foreignField: '_id',
+                as: 'userId'
+            }
+        },
+        { $unwind: '$userId' },
         { $match: searchQuery }, // Apply query to populated user fields
         { $sort: sortCriteria },
         { $skip: skip },
         { $limit: limitNumber },
-        { $project: {
-            // 'userId': 0, // Exclude original userId if needed
-            '__v': 0,    // Exclude version field
-            'isDeleted': 0,
-            'createdAt': 0,
-            'updatedAt': 0,
-            'userId.password': 0,
-            'userId.isVerified': 0,
-            'userId.refreshToken': 0,
-            'userId.isDeleted': 0,
-            'userId.createdAt': 0,
-            'userId.updatedAt': 0,
-            'userId.fcmToken': 0,
-            'userId.__v': 0,
-        }}
+        {
+            $project: {
+                '__v': 0,
+                'isDeleted': 0,
+                'createdAt': 0,
+                'updatedAt': 0,
+                'userId.password': 0,
+                'userId.isVerified': 0,
+                'userId.refreshToken': 0,
+                'userId.isDeleted': 0,
+                'userId.createdAt': 0,
+                'userId.updatedAt': 0,
+                'userId.fcmToken': 0,
+                'userId.__v': 0,
+            }
+        }
     ]);
 
-    const totalRecords = await ServiceModel.countDocuments(searchQuery);
+    const totalRecords = await ServiceModel.aggregate([
+        { $match: { isDeleted: false } },
+        { $lookup: {
+            from: 'users',
+            localField: 'userId',
+            foreignField: '_id',
+            as: 'userId'
+        }},
+        { $unwind: '$userId' },
+        { $match: searchQuery },
+        { $count: 'total' }
+    ]);
+    
+    
+    const total = totalRecords[0]?.total || 0;
+    // console.log(total);
+
 
     return sendSuccessResponse(res, 200, {
         serviceRequests: results,
         pagination: {
-            totalRecords: totalRecords,
+            totalRecords: total,
             page: pageNumber,
             limit: limitNumber
         }
@@ -329,13 +347,14 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
     }
 
     // Calculate total duration if completedAt is available
-    let totalExecutionTime: number = 0;
+    let totalExecutionTimeInMinutes: number = 0;
     if (updatedService.completedAt && updatedService.startedAt) {
-        totalExecutionTime = (new Date(updatedService.completedAt).getTime() - new Date(updatedService.startedAt).getTime()) / 1000;
+        totalExecutionTimeInMinutes = (new Date(updatedService.completedAt).getTime() - new Date(updatedService.startedAt).getTime()) / (1000 * 60);
     }
 
+
     return sendSuccessResponse(res, 200,
-        { updatedService, totalExecutionTime },
+        { updatedService, totalExecutionTimeInMinutes },
         isReqAcceptedByServiceProvider ? "Service Request accepted successfully." : "Service Request status updated successfully."
     )
 });

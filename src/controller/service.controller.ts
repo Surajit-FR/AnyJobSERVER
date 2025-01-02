@@ -124,7 +124,7 @@ export const getServiceRequestList = asyncHandler(async (req: Request, res: Resp
             }
         },
         { $unwind: '$userId' },
-        { $match: searchQuery }, 
+        { $match: searchQuery },
         { $sort: { createdAt: validSortType } },
         { $skip: skip },
         { $limit: limitNumber },
@@ -683,14 +683,14 @@ export const fetchAssociatedCustomer = async (serviceId: string) => {
     return serviceRequest[0].userId;
 };
 
-//
+//get service request for customer
 export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest, res: Response) => {
 
     const userId = req.user?._id
     const { requestProgress } = req.body;
     const progressFilter =
         requestProgress === "InProgress"
-            ? { requestProgress: { $in: ["NotStarted", "Pending", "Started"] } }
+            ? { requestProgress: { $in: ["Pending", "Started"] } }
             : { requestProgress };
 
     const results = await ServiceModel.aggregate([

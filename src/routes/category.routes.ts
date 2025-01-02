@@ -4,7 +4,8 @@ import {
     addCategory,
     deleteCategory,
     updateCategory,
-    getCategorieById
+    getCategorieById,
+    searchCategories
 } from "../controller/category.controller";
 import ModelAuth from "../middlewares/auth/modelAuth";
 import validateCategory from '../models/validator/category.validate';
@@ -32,6 +33,7 @@ router.route("/c/:CategoryId")
     ]), updateCategory);
 
 router.route('/').get(getCategories);
+router.route('/search-cat').post(searchCategories);
 
 
 export default router

@@ -11,6 +11,8 @@ import PermissionModel from "../models/permission.model";
 import TeamModel from "../models/teams.model";
 import UserModel from "../models/user.model";
 import { PipelineStage } from 'mongoose';
+import axios from "axios";
+import { date } from "joi";
 
 
 
@@ -29,6 +31,7 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         isTipGiven,
         tipAmount,
         otherInfo,
+        serviceProductImage,
         answerArray // Expecting answerArray instead of answers
     }: IAddServicePayloadReq = req.body;
 
@@ -56,6 +59,11 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
     if (isTipGiven && (tipAmount === undefined || tipAmount <= 0)) {
         return sendErrorResponse(res, new ApiError(400, "Tip amount must be provided and more than zero if tip is given."));
     }
+    const apiKey = process.env.GOOGLE_API_KEY;
+    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${serviceLatitude},${serviceLongitude}&key=${apiKey}`;
+
+    const geocodeResponse = await axios.get(geocodeUrl);
+    const serviceAddress = geocodeResponse?.data?.results[0]?.formatted_address
 
     // Prepare the new service object
     const newService = await ServiceModel.create({
@@ -66,6 +74,7 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         serviceZipCode,
         serviceLatitude,
         serviceLongitude,
+        serviceAddress,
         location,
         isIncentiveGiven,
         incentiveAmount,
@@ -73,6 +82,7 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         tipAmount,
         otherInfo,
         answerArray,
+        serviceProductImage,
         userId: req.user?._id
     });
 
@@ -86,6 +96,8 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
 // getServiceRequestList controller
 export const getServiceRequestList = asyncHandler(async (req: Request, res: Response) => {
     const { page = "1", limit = "10", query = '', sortBy = 'createdAt', sortType = 'desc' } = req.query;
+    console.log(req.query);
+
 
     const pageNumber = parseInt(page as string, 10) || 1;
     const limitNumber = parseInt(limit as string, 10) || 10;
@@ -95,44 +107,81 @@ export const getServiceRequestList = asyncHandler(async (req: Request, res: Resp
         isDeleted: false,
         ...(query && {
             $or: [
-                { firstName: { $regex: query, $options: "i" } },
-                { lastName: { $regex: query, $options: "i" } },
+                { 'userId.firstName': { $regex: query, $options: "i" } },
+                { 'userId.lastName': { $regex: query, $options: "i" } },
                 { requestProgress: { $regex: query, $options: "i" } },
                 { email: { $regex: query, $options: "i" } },
             ]
         })
     };
 
-    // Explicitly cast sortBy and sortType to string
     const validSortBy = (sortBy as string) || 'createdAt';
     const validSortType = (sortType as string).toLowerCase() === 'desc' ? -1 : 1;
 
     const sortCriteria: any = {};
     sortCriteria[validSortBy] = validSortType;
 
-    const results = await ServiceModel.find(searchQuery)
-        .populate({
-            path: 'userId',
-            select: 'firstName lastName email phone'
-        })
-        .sort(sortCriteria)
-        .skip(skip)
-        .limit(limitNumber)
-        .select('-isDeleted -createdAt -updatedAt -__v');
+    const results = await ServiceModel.aggregate([
+        { $match: { isDeleted: false } },
+        {
+            $lookup: {
+                from: 'users',
+                localField: 'userId',
+                foreignField: '_id',
+                as: 'userId'
+            }
+        },
+        { $unwind: '$userId' },
+        { $match: searchQuery },
+        { $sort: { createdAt: validSortType } },
+        { $skip: skip },
+        { $limit: limitNumber },
+        {
+            $project: {
+                "_id": 1,
+                "serviceStartDate": 1,
+                "requestProgress": 1,
+                "tipAmount": 1,
+                "userId.firstName": 1,
+                "userId.lastName": 1,
+                // userName: { $concat: ["$userId.firstName", " ", "$userId.lastName"] },
+                createdAt: 1
+            }
+        }
+    ]);
+    // console.log({ results });
+    const totalRecords = await ServiceModel.aggregate([
+        { $match: { isDeleted: false } },
+        {
+            $lookup: {
+                from: 'users',
+                localField: 'userId',
+                foreignField: '_id',
+                as: 'userId'
+            }
+        },
+        { $unwind: '$userId' },
+        { $match: searchQuery },
+        { $count: 'total' },
+        { $sort: { createdAt: -1 } }
+    ]);
 
-    const totalRecords = await ServiceModel.countDocuments(searchQuery);
+
+    const total = totalRecords[0]?.total || 0;
+    // console.log(total);
+
 
     return sendSuccessResponse(res, 200, {
         serviceRequests: results,
         pagination: {
-            total: totalRecords,
+            totalRecords: total,
             page: pageNumber,
             limit: limitNumber
         }
     }, "All Service requests retrieved successfully.");
 });
 
-// getPendingServiceRequest controller
+// get accepted ServiceRequest controller
 export const getAcceptedServiceRequestInJobQueue = asyncHandler(async (req: CustomRequest, res: Response) => {
     const results = await ServiceModel.aggregate([
         {
@@ -144,56 +193,73 @@ export const getAcceptedServiceRequestInJobQueue = asyncHandler(async (req: Cust
         },
         {
             $lookup: {
-                from: "categories",
-                foreignField: "_id",
-                localField: "categoryId",
-                as: "categoryId"
-            }
-        },
-        {
-            $unwind: {
-                // preserveNullAndEmptyArrays: true,
-                path: "$categoryId"
-            }
-        },
-        {
-            $lookup: {
-                from: "users",
-                foreignField: "_id",
-                localField: "userId",
-                as: "userId"
+                from: 'users',
+                localField: 'userId',
+                foreignField: '_id',
+                as: 'userId',
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: 'ratings',
+                            foreignField: "ratedTo",
+                            localField: "_id",
+                            as: "userRatings"
+                        }
+                    },
+                    {
+                        $addFields: {
+                            totalRatings: { $size: "$userRatings" },
+                            userAvgRating: { $avg: "$userRatings.rating" }
+                        }
+                    }
+                ]
             }
         },
         {
             $unwind: {
                 preserveNullAndEmptyArrays: true,
-                path: "$userId"
+                path: "$userId",
             }
         },
         {
-            $project: {
-                isDeleted: 0,
-                __v: 0,
-                'userId.password': 0,
-                'userId.refreshToken': 0,
-                'userId.isDeleted': 0,
-                'userId.createdAt': 0,
-                'userId.updatedAt': 0,
-                'userId.userType': 0,
-                'userId.isVerified': 0,
-                'userId.__v': 0,
-                'userId.signupType': 0,
-                'categoryId.isDeleted': 0,
-                'categoryId.__v': 0,
-                'categoryId.owner': 0,
-                'categoryId.createdAt': 0,
-                'categoryId.updatedAt': 0,
+            $lookup: {
+                from: 'categories',
+                localField: 'categoryId',
+                foreignField: '_id',
+                as: 'categoryDetails'
             }
         },
-        { $sort: { createdAt: -1 } },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$categoryDetails",
+            }
+        },
+
+        {
+            $project: {
+                categoryName: "$categoryDetails.name",
+                customerName: {
+                    $concat: ["$userId.firstName", " ", "$userId.lastName"]
+                },
+                distance: 1,
+                serviceStartDate: 1,
+                serviceAddress: 1,
+                isIncentiveGiven: 1,
+                incentiveAmount: 1,
+                requestProgress: 1,
+                totalRatings: '$userId.totalRatings',
+                userAvgRating: '$userId.userAvgRating',
+                userAvtar: '$userId.avatar',
+                serviceProviderId: 1,
+                updatedAt: 1
+
+            }
+        },
+        { $sort: { updatedAt: 1 } }
     ]);
 
-    return sendSuccessResponse(res, 200, results, "Service retrieved successfully.");
+    return sendSuccessResponse(res, 200, results, "Job queue retrieved successfully.");
 });
 
 // updateService controller
@@ -274,7 +340,7 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
         serviceProviderId = team.serviceProviderId;
     }
 
-    const updateData: any = { isReqAcceptedByServiceProvider };
+    const updateData: any = { isReqAcceptedByServiceProvider, updatedAt: Date.now() };
 
     if (isReqAcceptedByServiceProvider) {
         updateData.serviceProviderId = serviceProviderId;
@@ -307,13 +373,14 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
     }
 
     // Calculate total duration if completedAt is available
-    let totalExecutionTime: number = 0;
+    let totalExecutionTimeInMinutes: number = 0;
     if (updatedService.completedAt && updatedService.startedAt) {
-        totalExecutionTime = (new Date(updatedService.completedAt).getTime() - new Date(updatedService.startedAt).getTime()) / 1000;
+        totalExecutionTimeInMinutes = (new Date(updatedService.completedAt).getTime() - new Date(updatedService.startedAt).getTime()) / (1000 * 60);
     }
 
+
     return sendSuccessResponse(res, 200,
-        { updatedService, totalExecutionTime },
+        { updatedService, totalExecutionTimeInMinutes },
         isReqAcceptedByServiceProvider ? "Service Request accepted successfully." : "Service Request status updated successfully."
     )
 });
@@ -339,15 +406,11 @@ export const deleteService = asyncHandler(async (req: Request, res: Response) =>
 export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {
     const userId = req.user?._id as string;
     const userType = req.user?.userType;
-    let serviceProviderId, address;
 
-    if (userType === "TeamLead") {
-        const permissions = await PermissionModel.findOne({ userId }).select('acceptRequest');
+    let serviceProviderId: string | undefined;
+    let address: any;
 
-        if (!permissions || !permissions.acceptRequest) {
-            return sendErrorResponse(res, new ApiError(403, 'Permission denied: Accept Request not granted.'));
-        };
-
+    if (userType === 'TeamLead') {
         const team = await TeamModel.aggregate([
             {
                 $match: {
@@ -357,53 +420,120 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
             }
         ]);
 
-        if (team.length > 0) {
-            serviceProviderId = team[0].serviceProviderId;
-            if (!serviceProviderId) {
-                return sendErrorResponse(res, new ApiError(404, 'Service Provider ID not found in team.'));
-            };
-            address = await AddressModel.findOne({ userId: serviceProviderId });
-        } else {
+        if (team.length === 0) {
             return sendErrorResponse(res, new ApiError(404, 'Team not found.'));
-        };
+        }
+
+        serviceProviderId = team[0].serviceProviderId;
+        if (!serviceProviderId) {
+            return sendErrorResponse(res, new ApiError(404, 'Service Provider ID not found in team.'));
+        }
+
+        address = await AddressModel.findOne({ userId: serviceProviderId });
     } else {
         address = await AddressModel.findOne({ userId });
-    };
+    }
 
     if (!address || !address.zipCode || !address.longitude || !address.latitude) {
-        return sendErrorResponse(res, new ApiError(400, `User's Location not found`));
-    };
+        return sendErrorResponse(res, new ApiError(400, 'User\'s location not found.'));
+    }
 
-    const userZipcode = address.zipCode;
-    const userLongitude = address.longitude;
-    const userLatitude = address.latitude;
+    const longitude = address.longitude;
+    const latitude = address.latitude;
+    // Extract coordinates and validate
+    const serviceRequestLongitude: number = parseFloat(longitude);
+    const serviceRequestLatitude: number = parseFloat(latitude);
 
-    const radius = 4000 // in meter
-    // const minZipcode = userZipcode - 10;
-    // const maxZipcode = userZipcode + 10;
+    if (isNaN(serviceRequestLongitude) || isNaN(serviceRequestLatitude)) {
+        return sendErrorResponse(res, new ApiError(400, `Invalid longitude or latitude`));
+    }
+    const radius = 40000; // in meters
 
-    const serviceRequests = await ServiceModel.find({
-        location: {
-            $near: {
-                $geometry: { type: 'Point', coordinates: [userLongitude, userLatitude] },
-                $maxDistance: radius  // Maximum distance in meters
+    const pipeline: PipelineStage[] = [
+        {
+            $geoNear: {
+                near: { type: 'Point', coordinates: [serviceRequestLongitude, serviceRequestLatitude] },
+                distanceField: 'distance',
+                spherical: true,
+                maxDistance: radius,
+
             }
         },
-        isReqAcceptedByServiceProvider: false,
-        // serviceZipCode: { $gte: minZipcode, $lte: maxZipcode },
-        isDeleted: false
-    }).populate({
-        path: "userId",
-        select: "firstName lastName email phone avatar"
-    }).populate(
+        { $match: { isDeleted: false, isReqAcceptedByServiceProvider: false, requestProgress: "NotStarted" } },
         {
-            path: "categoryId",
-            select: "name categoryImage"
-        }
-    );
+            $lookup: {
+                from: 'users',
+                localField: 'userId',
+                foreignField: '_id',
+                as: 'userId',
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: 'ratings',
+                            foreignField: "ratedTo",
+                            localField: "_id",
+                            as: "userRatings"
+                        }
+                    },
+                    {
+                        $addFields: {
+                            totalRatings: { $size: "$userRatings" },
+                            userAvgRating: { $avg: "$userRatings.rating" }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$userId",
+            }
+        },
+        {
+            $lookup: {
+                from: 'categories',
+                localField: 'categoryId',
+                foreignField: '_id',
+                as: 'categoryDetails'
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$categoryDetails",
+            }
+        },
+
+        {
+            $project: {
+                categoryName: "$categoryDetails.name",
+                customerName: {
+                    $concat: ["$userId.firstName", " ", "$userId.lastName"]
+                },
+                distance: 1,
+                serviceStartDate: 1,
+                serviceAddress: 1,
+                isIncentiveGiven: 1,
+                incentiveAmount: 1,
+                requestProgress: 1,
+                totalRatings: '$userId.totalRatings',
+                userAvgRating: '$userId.userAvgRating',
+                userAvtar: '$userId.avatar',
+
+            }
+        },
+        { $sort: { isIncentiveGiven: -1, incentiveAmount: -1 } }
+    ];
+    const serviceRequests = await ServiceModel.aggregate(pipeline) as Array<any>;
+    if (!serviceRequests.length) {
+        return sendErrorResponse(res, new ApiError(404, 'No nearby service request found.'));
+    }
+
 
     return sendSuccessResponse(res, 200, serviceRequests, 'Service requests fetched successfully');
 });
+
 
 //fetch nearby service provider and assign request
 export const fetchNearByServiceProvider = asyncHandler(async (req: Request, res: Response) => {
@@ -515,7 +645,23 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
                 from: "users",
                 foreignField: "_id",
                 localField: "userId",
-                as: "userId"
+                as: "userId",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: 'ratings',
+                            foreignField: "ratedTo",
+                            localField: "_id",
+                            as: "userRatings"
+                        }
+                    },
+                    {
+                        $addFields: {
+                            totalRatings: { $size: "$userRatings" },
+                            userAvgRating: { $avg: "$userRatings.rating" }
+                        }
+                    }
+                ]
             }
         },
         {
@@ -567,45 +713,52 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
             }
         },
         {
+            $addFields: {
+                bookedTimeSlot: {
+                    $filter: {
+                        input: "$serviceShifftId.shiftTimes",
+                        as: "shiftTime",
+                        cond: { $eq: ["$$shiftTime._id", "$SelectedShiftTime.shiftTimeId"] }
+                    }
+                }
+            }
+        },
+        {
             $project: {
-                isDeleted: 0,
-                __v: 0,
-                'userId.password': 0,
-                'userId.refreshToken': 0,
-                'userId.isDeleted': 0,
-                'userId.createdAt': 0,
-                'userId.updatedAt': 0,
-                'userId.userType': 0,
-                'userId.isVerified': 0,
-                'serviceProviderId.password': 0,
-                'serviceProviderId.refreshToken': 0,
-                'serviceProviderId.isDeleted': 0,
-                'serviceProviderId.createdAt': 0,
-                'serviceProviderId.updatedAt': 0,
-                'serviceProviderId.userType': 0,
-                'serviceProviderId.isVerified': 0,
-                'serviceProviderId.__v': 0,
-                'serviceProviderId.signupType': 0,
-                'assignedAgentId.password': 0,
-                'assignedAgentId.refreshToken': 0,
-                'assignedAgentId.isDeleted': 0,
-                'assignedAgentId.createdAt': 0,
-                'assignedAgentId.updatedAt': 0,
-                'assignedAgentId.userType': 0,
-                'assignedAgentId.isVerified': 0,
-                'assignedAgentId.__v': 0,
-                'assignedAgentId.signupType': 0,
-                'categoryId.isDeleted': 0,
-                'categoryId.__v': 0,
-                'categoryId.owner': 0,
-                'categoryId.createdAt': 0,
-                'categoryId.updatedAt': 0,
-                // 'serviceShifftId.shiftTimes': 0,
-                'serviceShifftId.updatedAt': 0,
-                'serviceShifftId.createdBy': 0,
-                'serviceShifftId.__v': 0,
-                'serviceShifftId.isDeleted': 0,
-                'serviceShifftId.createdAt': 0,
+                categoryName: "$categoryId.name",
+                bookedServiceShift: "$serviceShifftId.shiftName",
+                bookedTimeSlot: 1,
+                serviceStartDate: 1,
+                customerName: {
+                    $concat: ["$userId.firstName", " ", "$userId.lastName"]
+                },
+                'customerEmail': "$userId.email",
+                'customerAvatar': "$userId.avatar",
+                'customerPhone': "$userId.phone",
+                totalCustomerRatings: '$userId.totalRatings',
+                customerAvgRating: '$userId.userAvgRating',
+                serviceProviderName: {
+                    $concat: ["$serviceProviderId.firstName", " ", "$serviceProviderId.lastName"]
+                },
+                'serviceProviderEmail': "$serviceProviderId.email",
+                'serviceProviderAvatar': "$serviceProviderId.avatar ",
+                'serviceProviderPhone': "$serviceProviderId.phone",
+                assignedAgentName: {
+                    $concat: ["$assignedAgentId.firstName", " ", "$assignedAgentId.lastName"]
+                },
+                'assignedAgentEmail': "$assignedAgentId.email",
+                'assignedAgentAvatar': "$assignedAgentId.avatar",
+                'assignedAgentPhone': "$assignedAgentId.phone",
+                serviceAddress: 1,
+                answerArray: 1,
+                serviceProductImage: 1,
+                serviceDescription: "$otherInfo.serviceDescription",
+                serviceProductSerialNumber: "$otherInfo.productSerialNumber",
+                requestProgress: 1,
+                isIncentiveGiven: 1,
+                incentiveAmount: 1,
+                createdAt: 1,
+                updatedAt: 1,
             }
         },
     ]);
@@ -637,16 +790,17 @@ export const fetchAssociatedCustomer = async (serviceId: string) => {
     return serviceRequest[0].userId;
 };
 
-//
+//get service request for customer
 export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest, res: Response) => {
-    console.log("api runs");
-    
+
     const userId = req.user?._id
     const { requestProgress } = req.body;
     const progressFilter =
         requestProgress === "InProgress"
-            ? { requestProgress: { $in: ["NotStarted", "Pending", "Started"] } }
-            : { requestProgress };
+            ? { requestProgress: { $in: ["Pending", "Started"] } }
+            : requestProgress === "jobQueue"
+                ? { requestProgress: "NotStarted" }
+                : { requestProgress };
 
     const results = await ServiceModel.aggregate([
         {
@@ -674,7 +828,29 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
                 from: "users",
                 foreignField: "_id",
                 localField: "userId",
-                as: "userId"
+                as: "userId",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "ratings",
+                            foreignField: "ratedTo",
+                            localField: "_id",
+                            as: "customerRatings",
+                        }
+                    },
+                    {
+                        $addFields: {
+                            numberOfRatings: { $size: "$customerRatings" },
+                            customerAvgRating: {
+                                $cond: {
+                                    if: { $gt: [{ $size: "$customerRatings" }, 0] },
+                                    then: { $avg: "$customerRatings.rating" },
+                                    else: 0
+                                }
+                            }
+                        }
+                    }
+                ]
             }
         },
         {
@@ -684,18 +860,58 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
             }
         },
         {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "serviceProviderId",
+                as: "serviceProviderId",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "ratings",
+                            foreignField: "ratedTo",
+                            localField: "_id",
+                            as: "serviceProviderIdRatings",
+                        }
+                    },
+                    {
+                        $addFields: {
+                            numberOfRatings: { $size: "$serviceProviderIdRatings" },
+                            serviceProviderRatings: {
+                                $cond: {
+                                    if: { $gt: [{ $size: "$serviceProviderIdRatings" }, 0] },
+                                    then: { $avg: "$serviceProviderIdRatings.rating" },
+                                    else: 0
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$serviceProviderId"
+            }
+        },
+        {
             $project: {
-                isDeleted: 0,
-                __v: 0,
-                'userId.password': 0,
-                'userId.refreshToken': 0,
-                'userId.isDeleted': 0,
-                'userId.__v': 0,
-                'userId.signupType': 0,
-                'subCategoryId.isDeleted': 0,
-                'subCategoryId.__v': 0,
-                // 'categoryId.isDeleted': 0,
-                // 'categoryId.__v': 0,
+                _id: 1,
+                'categoryId.name': 1,
+                serviceStartDate: 1,
+                serviceAddress: 1,
+                startedAt: 1,
+                completedAt: 1,
+
+                requestProgress: 1,
+                'serviceProviderId.firstName': 1,
+                'serviceProviderId.lastName': 1,
+                'serviceProviderId.avatar': 1,
+                'serviceProviderId.numberOfRatings': 1,
+                'serviceProviderId.serviceProviderRatings': 1,
+                createdAt: 1
+
             }
         },
         { $sort: { createdAt: -1 } },
@@ -748,6 +964,7 @@ export const assignJob = asyncHandler(async (req: CustomRequest, res: Response) 
     };
 
     return sendSuccessResponse(res, 200, updatedService, "Job assigned to the agent successfully.");
+
 });
 
 export const totalJobCount = asyncHandler(async (req: CustomRequest, res: Response) => {
@@ -774,3 +991,4 @@ export const totalJobCount = asyncHandler(async (req: CustomRequest, res: Respon
     ]);
     return sendSuccessResponse(res, 200, jobData, "Job counts retrieved successfully.");
 });
+

@@ -67,8 +67,10 @@ export interface IAddServicePayloadReq {
     serviceZipCode: number,
     serviceLatitude: number,
     serviceLongitude: number,
+    serviceAddress:string,
     isIncentiveGiven: boolean,
     incentiveAmount: number,
+    serviceProductImage:string;
     isTipGiven: boolean,
     tipAmount: number,
     otherInfo:object,

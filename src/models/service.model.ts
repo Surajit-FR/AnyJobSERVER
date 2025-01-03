@@ -58,6 +58,10 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
         type: String,
         required: [true, "Service Longitude is required"]
     },
+    serviceAddress: {
+        type: String,
+        required: [true, "Service Address is required"]
+    },
     location: {
         type: {
             type: String, // Always 'Point'

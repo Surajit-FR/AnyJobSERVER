@@ -105,6 +105,7 @@ export interface IServiceSchema extends Document {
     serviceZipCode: string;
     serviceLatitude: string;
     serviceLongitude: string;
+    serviceAddress:string;
     location: IGeoJSONPoint;
     startedAt: Date;
     completedAt: Date;

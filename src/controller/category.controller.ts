@@ -171,3 +171,27 @@ export const getCategorieById = asyncHandler(async (req: Request, res: Response)
 
     return sendSuccessResponse(res, 200, categoryToFetch, "Category retrieved successfully.");
 });
+
+export const searchCategories = asyncHandler(async (req: Request, res: Response) => {
+    const { serachKey } = req.body;
+    const categoryData = await CategoryModel.aggregate([
+        {
+            $match: {
+                isDeleted: false,
+                name: { $regex: serachKey, $options: "i" }
+
+            }
+        },
+        {
+            $project: {
+                isDeleted: 0,
+                owner: 0,
+                createdAt: 0,
+                updatedAt: 0,
+                __v: 0,
+            }
+        }
+    ])
+    return sendSuccessResponse(res, 200, categoryData, "Category retrieved successfully.");
+
+})

@@ -729,14 +729,23 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
                 bookedServiceShift: "$serviceShifftId.shiftName",
                 bookedTimeSlot: 1,
                 serviceStartDate: 1,
+                customerName: {
+                    $concat: ["$userId.firstName", " ", "$userId.lastName"]
+                },
                 'customerEmail': "$userId.email",
                 'customerAvatar': "$userId.avatar",
                 'customerPhone': "$userId.phone",
                 totalCustomerRatings: '$userId.totalRatings',
                 customerAvgRating: '$userId.userAvgRating',
+                serviceProviderName: {
+                    $concat: ["$serviceProviderId.firstName", " ", "$serviceProviderId.lastName"]
+                },
                 'serviceProviderEmail': "$serviceProviderId.email",
                 'serviceProviderAvatar': "$serviceProviderId.avatar ",
                 'serviceProviderPhone': "$serviceProviderId.phone",
+                assignedAgentName: {
+                    $concat: ["$assignedAgentId.firstName", " ", "$assignedAgentId.lastName"]
+                },
                 'assignedAgentEmail': "$assignedAgentId.email",
                 'assignedAgentAvatar': "$assignedAgentId.avatar",
                 'assignedAgentPhone': "$assignedAgentId.phone",

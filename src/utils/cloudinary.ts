@@ -3,7 +3,7 @@ import fs from "fs";
 
 // Configuration
 cloudinary.config({
-    cloud_name: "hj5yyosd",
+    cloud_name: "dhj5yyosd",
     api_key: "165417273536245",
     api_secret: "bhadtrccRbIK7TG6EjqNyr2Zc6Q"
 });

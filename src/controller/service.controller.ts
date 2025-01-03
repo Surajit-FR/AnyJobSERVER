@@ -753,6 +753,7 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
                 answerArray: 1,
                 serviceProductImage: 1,
                 serviceDescription: "$otherInfo.serviceDescription",
+                serviceProductSerialNumber: "$otherInfo.productSerialNumber",
                 requestProgress: 1,
                 isIncentiveGiven: 1,
                 incentiveAmount: 1,

@@ -590,6 +590,20 @@ export const fetchAssociates = asyncHandler(async (req: Request, res: Response) 
         {
             $lookup: {
                 from: "users",
+                localField: "serviceProviderId",
+                foreignField: "_id",
+                as: "serviceProviderId"
+            }
+        },
+        {
+            $unwind:{
+                preserveNullAndEmptyArrays:true,
+                path:"$serviceProviderId",
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
                 localField: "fieldAgentIds",
                 foreignField: "_id",
                 as: "teamMembers"
@@ -598,7 +612,9 @@ export const fetchAssociates = asyncHandler(async (req: Request, res: Response) 
         {
             $project: {
                 _id: 1,
-                serviceProviderId: 1,
+                serviceProviderName: {
+                    $concat: ["$serviceProviderId.firstName", " ", "$serviceProviderId.lastName"]
+                },
                 teamMembers: {
                     _id: 1,
                     firstName: 1,
@@ -687,6 +703,20 @@ export const getAgentEngagementStatus = asyncHandler(async (req: CustomRequest, 
         },
         {
             $lookup: {
+                from: "users",
+                localField: "serviceProviderId",
+                foreignField: "_id",
+                as: "serviceProviderId"
+            }
+        },
+        {
+            $unwind: {
+                path: "$serviceProviderId",
+                preserveNullAndEmptyArrays: true,
+            },
+        },
+        {
+            $lookup: {
                 from: "services",
                 let: { agentId: "$teamMembers._id" },
                 pipeline: [
@@ -715,6 +745,9 @@ export const getAgentEngagementStatus = asyncHandler(async (req: CustomRequest, 
         },
         {
             $addFields: {
+                serviceProviderName: {
+                    $concat: ["$serviceProviderId.firstName", " ", "$serviceProviderId.lastName"]
+                },
                 isEngaged: {
                     $cond: {
                         if: {
@@ -728,7 +761,7 @@ export const getAgentEngagementStatus = asyncHandler(async (req: CustomRequest, 
         {
             $group: {
                 _id: "$_id",
-                serviceProviderId: { $first: "$_id" },
+                serviceProviderName: { $first: "$$ROOT.serviceProviderName" },
                 teamMembers: {
                     $push: {
                         _id: "$teamMembers._id",

@@ -756,6 +756,8 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
                 requestProgress: 1,
                 isIncentiveGiven: 1,
                 incentiveAmount: 1,
+                createdAt: 1,
+                updatedAt: 1,
             }
         },
     ]);

@@ -21,6 +21,8 @@ import { VerifyJWTToken, verifyUserType } from "../middlewares/auth/userAuth";
 import { HandleSocialAuthError } from '../middlewares/auth/socialAuth';
 import { rateLimiter } from '../middlewares/rateLimiter.middleware';
 import { captureIPMiddleware } from "../middlewares/IP.middleware";
+import { CheckJWTTokenExpiration } from '../utils/auth';
+
 
 
 const router: Router = express.Router();
@@ -77,6 +79,9 @@ router.route('/refresh-token').post(
 
 router.route("/forget-password").post(forgetPassword);
 router.route("/reset-password").post([VerifyJWTToken], resetPassword);
+
+//check-token-expiration
+router.route("/check-token-expiration").get([VerifyJWTToken], CheckJWTTokenExpiration);
 
 
 

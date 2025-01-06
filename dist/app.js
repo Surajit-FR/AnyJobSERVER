@@ -12,7 +12,8 @@ const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const morgan_1 = __importDefault(require("morgan"));
 const constants_1 = require("./constants");
 app.use((0, cors_1.default)({
-    origin: ["https://frontend.theassure.co.uk", "http://localhost:3000"],
+    origin: ["https://frontend.theassure.co.uk", "http://localhost:3000", process.env.CORS_ORIGIN],
+    // origin: "*",
     credentials: true,
 }));
 app.use(function (req, res, next) {

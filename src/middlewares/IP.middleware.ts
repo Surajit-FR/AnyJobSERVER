@@ -14,7 +14,7 @@ export const captureIPMiddleware = asyncHandler(async (req: CustomRequest, res: 
 
     // Standardize localhost IP
     const standardizedIp = ip === "::1" ? "127.0.0.1" : (ip as string);
-
+    console.log("ip",ip)
     const networkInterfaces = os.networkInterfaces();
 
     const serverIP = networkInterfaces['Ethernet']

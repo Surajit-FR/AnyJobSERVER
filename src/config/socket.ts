@@ -10,7 +10,7 @@ import { saveChatMessage, updateChatList } from "../controller/chat.controller";
 export const initSocket = (server: HttpServer) => {
     const io = new Server(server, {
         cors: {
-            origin: "https://frontend.theassure.co.uk"
+            origin: process.env.CORS_ORIGIN as string
         }
     });
 

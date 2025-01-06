@@ -25,7 +25,7 @@ const user_model_1 = __importDefault(require("../models/user.model"));
 const axios_1 = __importDefault(require("axios"));
 // addService controller
 exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c;
+    var _a, _b, _c, _d, _e, _f;
     const { categoryId, serviceStartDate, serviceShifftId, SelectedShiftTime, serviceZipCode, serviceLatitude, serviceLongitude, isIncentiveGiven, incentiveAmount, isTipGiven, tipAmount, otherInfo, serviceProductImage, answerArray // Expecting answerArray instead of answers
      } = req.body;
     // Validate required fields
@@ -39,17 +39,9 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Selected shift time is required."));
     if (!serviceZipCode)
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service ZIP code is required."));
-    if (!serviceLatitude || !serviceLongitude)
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service location is required."));
+    // if (!serviceLatitude || !serviceLongitude) return sendErrorResponse(res, new ApiError(400, "Service location is required."));
     if (!answerArray || !Array.isArray(answerArray))
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Answer array is required and must be an array."));
-    //strcture location object for geospatial query
-    const location = {
-        type: "Point",
-        coordinates: [serviceLongitude, serviceLatitude] // [longitude, latitude]
-    };
-    if (!location)
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Location is required."));
     // Conditional checks for incentive and tip amounts
     if (isIncentiveGiven && (incentiveAmount === undefined || incentiveAmount <= 0)) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Incentive amount must be provided and more than zero if incentive is given."));
@@ -58,9 +50,22 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Tip amount must be provided and more than zero if tip is given."));
     }
     const apiKey = process.env.GOOGLE_API_KEY;
-    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${serviceLatitude},${serviceLongitude}&key=${apiKey}`;
+    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${serviceZipCode}&key=${apiKey}`;
     const geocodeResponse = yield axios_1.default.get(geocodeUrl);
-    const serviceAddress = (_b = (_a = geocodeResponse === null || geocodeResponse === void 0 ? void 0 : geocodeResponse.data) === null || _a === void 0 ? void 0 : _a.results[0]) === null || _b === void 0 ? void 0 : _b.formatted_address;
+    const locationDetails = (_a = geocodeResponse === null || geocodeResponse === void 0 ? void 0 : geocodeResponse.data) === null || _a === void 0 ? void 0 : _a.results[0];
+    if (!locationDetails)
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service ZIP code is invalid."));
+    const fetchedCoordinates = {
+        longitude: (_c = (_b = locationDetails === null || locationDetails === void 0 ? void 0 : locationDetails.geometry) === null || _b === void 0 ? void 0 : _b.location) === null || _c === void 0 ? void 0 : _c.lng,
+        latitude: (_e = (_d = locationDetails === null || locationDetails === void 0 ? void 0 : locationDetails.geometry) === null || _d === void 0 ? void 0 : _d.location) === null || _e === void 0 ? void 0 : _e.lat,
+    };
+    const formattedAddress = locationDetails === null || locationDetails === void 0 ? void 0 : locationDetails.formatted_address;
+    //strcture location object for geospatial query
+    const location = {
+        type: "Point",
+        coordinates: [fetchedCoordinates.longitude, fetchedCoordinates.latitude] // [longitude, latitude]
+    };
+    console.log("api runs");
     // Prepare the new service object
     const newService = yield service_model_1.default.create({
         categoryId,
@@ -68,10 +73,10 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
         SelectedShiftTime,
         serviceStartDate,
         serviceZipCode,
-        serviceLatitude,
-        serviceLongitude,
-        serviceAddress,
-        location,
+        serviceLatitude: fetchedCoordinates.latitude,
+        serviceLongitude: fetchedCoordinates.longitude,
+        serviceAddress: formattedAddress,
+        location: location,
         isIncentiveGiven,
         incentiveAmount,
         isTipGiven,
@@ -79,7 +84,7 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
         otherInfo,
         answerArray,
         serviceProductImage,
-        userId: (_c = req.user) === null || _c === void 0 ? void 0 : _c._id
+        userId: (_f = req.user) === null || _f === void 0 ? void 0 : _f._id
     });
     if (!newService) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(500, "Something went wrong while creating the Service Request."));
@@ -190,8 +195,8 @@ exports.getAcceptedServiceRequestInJobQueue = (0, asyncHandler_1.asyncHandler)((
                     },
                     {
                         $addFields: {
-                            totalRatings: { $size: "$userRatings" },
-                            userAvgRating: { $avg: "$userRatings.rating" }
+                            totalRatings: { $ifNull: [{ $size: "$userRatings" }, 0] },
+                            userAvgRating: { $ifNull: [{ $avg: "$userRatings.rating" }, 0] }
                         }
                     }
                 ]
@@ -423,10 +428,10 @@ exports.fetchServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __a
                     },
                     {
                         $addFields: {
-                            totalRatings: { $size: "$userRatings" },
-                            userAvgRating: { $avg: "$userRatings.rating" }
+                            totalRatings: { $ifNull: [{ $size: "$userRatings" }, 0] },
+                            userAvgRating: { $ifNull: [{ $avg: "$userRatings.rating" }, 0] }
                         }
-                    }
+                    },
                 ]
             }
         },
@@ -584,8 +589,8 @@ exports.fetchSingleServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) 
                     },
                     {
                         $addFields: {
-                            totalRatings: { $size: "$userRatings" },
-                            userAvgRating: { $avg: "$userRatings.rating" }
+                            totalRatings: { $ifNull: [{ $size: "$userRatings" }, 0] },
+                            userAvgRating: { $ifNull: [{ $avg: "$userRatings.rating" }, 0] }
                         }
                     }
                 ]

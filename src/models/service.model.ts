@@ -52,25 +52,23 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
     },
     serviceLatitude: {
         type: String,
-        required: [true, "Service Latitude is required"]
+        // required: [true, "Service Latitude is required"]
     },
     serviceLongitude: {
         type: String,
-        required: [true, "Service Longitude is required"]
+        // required: [true, "Service Longitude is required"]
     },
     serviceAddress: {
         type: String,
-        required: [true, "Service Address is required"]
+        // required: [true, "Service Address is required"]
     },
     location: {
         type: {
             type: String, // Always 'Point'
             enum: ["Point"], // GeoJSON format
-            required: true,
         },
         coordinates: {
             type: [Number], // [longitude, latitude]
-            required: true,
         },
     },
     isIncentiveGiven: {

@@ -70,11 +70,12 @@ export const getCoordinatesFromZip = asyncHandler(async (req: Request, res: Resp
             throw new ApiError(404, "No coordinates found for the given ZIP code.", [], response.data);
         }
 
-        const location = response.data.results[0].geometry.location;
+        const location = response.data.results[0];
 
         const coordinates = {
-            latitude: location.lat,
-            longitude: location.lng,
+            latitude: location.geometry.location.lat,
+            longitude: location.geometry.location.lng,
+            formattedAddress:location.formatted_address
         };
 
         return sendSuccessResponse(res, 200, coordinates, "Coordinates fetched successfully.");

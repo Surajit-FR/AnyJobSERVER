@@ -76,6 +76,10 @@ const ServiceSchema = new mongoose_1.Schema({
         type: String,
         required: [true, "Service Longitude is required"]
     },
+    serviceAddress: {
+        type: String,
+        required: [true, "Service Address is required"]
+    },
     location: {
         type: {
             type: String, // Always 'Point'

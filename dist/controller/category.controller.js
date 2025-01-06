@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCategorieById = exports.deleteCategory = exports.updateCategory = exports.getCategories = exports.addCategory = void 0;
+exports.searchCategories = exports.getCategorieById = exports.deleteCategory = exports.updateCategory = exports.getCategories = exports.addCategory = void 0;
 ;
 const mongoose_1 = __importDefault(require("mongoose"));
 const asyncHandler_1 = require("../utils/asyncHandler");
@@ -148,4 +148,25 @@ exports.getCategorieById = (0, asyncHandler_1.asyncHandler)((req, res) => __awai
     }
     ;
     return (0, response_1.sendSuccessResponse)(res, 200, categoryToFetch, "Category retrieved successfully.");
+}));
+exports.searchCategories = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { serachKey } = req.body;
+    const categoryData = yield category_model_1.default.aggregate([
+        {
+            $match: {
+                isDeleted: false,
+                name: { $regex: serachKey, $options: "i" }
+            }
+        },
+        {
+            $project: {
+                isDeleted: 0,
+                owner: 0,
+                createdAt: 0,
+                updatedAt: 0,
+                __v: 0,
+            }
+        }
+    ]);
+    return (0, response_1.sendSuccessResponse)(res, 200, categoryData, "Category retrieved successfully.");
 }));

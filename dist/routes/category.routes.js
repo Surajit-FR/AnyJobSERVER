@@ -22,4 +22,5 @@ router.route("/c/:CategoryId")
     { name: "categoryImage" },
 ]), category_controller_1.updateCategory);
 router.route('/').get(category_controller_1.getCategories);
+router.route('/search-cat').post(category_controller_1.searchCategories);
 exports.default = router;

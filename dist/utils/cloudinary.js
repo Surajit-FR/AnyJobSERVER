@@ -17,9 +17,9 @@ const cloudinary_1 = require("cloudinary");
 const fs_1 = __importDefault(require("fs"));
 // Configuration
 cloudinary_1.v2.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET
+    cloud_name: "dhj5yyosd",
+    api_key: "165417273536245",
+    api_secret: "bhadtrccRbIK7TG6EjqNyr2Zc6Q"
 });
 // Function to upload file in Cloudinary
 const uploadOnCloudinary = (localFilePath) => __awaiter(void 0, void 0, void 0, function* () {

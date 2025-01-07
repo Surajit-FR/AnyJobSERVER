@@ -1068,3 +1068,77 @@ export const totalJobCount = asyncHandler(async (req: CustomRequest, res: Respon
     return sendSuccessResponse(res, 200, jobData, "Job counts retrieved successfully.");
 });
 
+export const fetchAssignedserviceProvider = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const { serviceId } = req.params
+
+    if (!serviceId) {
+        return sendErrorResponse(res, new ApiError(400, "Service ID is required."));
+    };
+
+    const assignedSPDetails = await ServiceModel.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(serviceId)
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "serviceProviderId",
+                as: "SP_Details"
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$SP_Details"
+            }
+        },
+        {
+            $lookup: {
+                from: "additionalinfos",
+                foreignField: "userId",
+                localField: "serviceProviderId",
+                as: "SP_Additional_Details"
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$SP_Additional_Details"
+            }
+        },
+        {
+            $addFields: {
+                spFullName: { $concat: ["$SP_Details.firstName", " ", "$SP_Details.lastName"] },
+                companyDesc: "$SP_Additional_Details.companyIntroduction",
+                backgroundCheck: {
+                    $cond: ["$SP_Details.isVerified", true, false]
+                },
+                licenseVerified: {
+                    $cond: ["$SP_Details.isVerified", true, false]
+                },
+                insuranceVerified: {
+                    $cond: ["$SP_Details.isVerified", true, false]
+                },
+                arrivalFee: {
+                    $cond: ["$SP_Additional_Details.isAnyArrivalFee", "$SP_Additional_Details.arrivalFee", 0]
+                },
+            }
+        },
+        {
+            $project: {
+                spFullName: 1,
+                companyDesc:1,
+                backgroundCheck: 1,
+                licenseVerified: 1,
+                insuranceVerified: 1,
+                arrivalFee:1
+            }
+        }
+    ]);
+
+    return sendSuccessResponse(res, 200, assignedSPDetails[0], "Assigned service provider retrieved successfully.");
+
+})

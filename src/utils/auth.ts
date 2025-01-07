@@ -94,7 +94,7 @@ export const CheckJWTTokenExpiration = async (req: Request, res: Response) => {
         const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
         const remainingTimeInSeconds = decoded.exp - currentTime;
         
-        console.log(currentTime);
+        // console.log(currentTime);
         if (remainingTimeInSeconds <= 0) {
             return res.status(200).json({ isExpired: true, remainingTimeInSeconds: 0 });
         }

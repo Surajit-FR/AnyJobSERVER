@@ -104,8 +104,7 @@ export const addAddress = asyncHandler(async (req: CustomRequest, res: Response)
 
 
 export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const { companyName, companyIntroduction, DOB, driverLicense, EIN, socialSecurity, companyLicense, insurancePolicy, businessName, phone } = req.body;
-    console.log(req.body);
+    const { companyName, companyIntroduction, DOB, driverLicense, EIN, socialSecurity, companyLicense, insurancePolicy, businessName, phone, totalYearExperience } = req.body;
 
 
     // Check if additional info already exists for the user
@@ -188,6 +187,7 @@ export const addAdditionalInfo = asyncHandler(async (req: CustomRequest, res: Re
         companyLicense,
         insurancePolicy,
         businessName,
+        totalYearExperience,
         driverLicenseImages: uploadedDriverLicenseImages,
         companyLicenseImage: companyLicenseImage.secure_url,
         licenseProofImage: licenseProofImage.secure_url,
@@ -533,7 +533,7 @@ export const verifyServiceProvider = asyncHandler(async (req: Request, res: Resp
     ).select('-password -refreshToken -__V');
 
     if (!results) {
-        return sendErrorResponse(res, new ApiError(404, "Service Provider not found."));
+        return sendErrorResponse(res, new ApiError(400, "Service Provider not found."));
     }
 
     const message = isVerified
@@ -563,28 +563,24 @@ export const banUser = asyncHandler(async (req: Request, res: Response) => {
     ).select('-password -refreshToken -__V');
 
     if (!results) {
-        return sendErrorResponse(res, new ApiError(404, "User not found."));
+        return sendErrorResponse(res, new ApiError(400, "User not found."));
     };
 
     const message = isDeleted ? "User profile made banned." : "User profile made unbanned.";
     return sendSuccessResponse(res, 200, {}, message);
 });
 
-export const fetchAssociates = asyncHandler(async (req: Request, res: Response) => {
-    const { serviceProviderId } = req.params;
+export const fetchAssociates = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const  serviceProviderId  = req.user?._id;
     if (!serviceProviderId) {
         return sendErrorResponse(res, new ApiError(400, "Service provider ID is required."));
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(serviceProviderId)) {
-        return sendErrorResponse(res, new ApiError(400, "Invalid Service provider ID."));
-    }
+    }   
 
     const results = await TeamModel.aggregate([
         {
             $match: {
                 isDeleted: false,
-                serviceProviderId: new mongoose.Types.ObjectId(serviceProviderId)
+                serviceProviderId: serviceProviderId
             }
         },
         {
@@ -596,9 +592,9 @@ export const fetchAssociates = asyncHandler(async (req: Request, res: Response) 
             }
         },
         {
-            $unwind:{
-                preserveNullAndEmptyArrays:true,
-                path:"$serviceProviderId",
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$serviceProviderId",
             }
         },
         {
@@ -628,7 +624,7 @@ export const fetchAssociates = asyncHandler(async (req: Request, res: Response) 
     ]);
 
     if (!results || results.length === 0) {
-        return sendErrorResponse(res, new ApiError(404, "Field agents not found."));
+        return sendErrorResponse(res, new ApiError(400, "Field agents not found."));
     }
 
     return sendSuccessResponse(res, 200, results, "Field Agent list retrieved successfully.");
@@ -646,7 +642,7 @@ export const assignTeamLead = asyncHandler(async (req: CustomRequest, res: Respo
 
 
         if (!team) {
-            return res.status(404).json({ message: "Field agent not found in the service provider's team." });
+            return res.status(400).json({ message: "Field agent not found in the service provider's team." });
         }
 
         const fieldAgent = await UserModel.findById(fieldAgentId);
@@ -794,7 +790,7 @@ export const getAgentEngagementStatus = asyncHandler(async (req: CustomRequest, 
     ]);
 
     if (!results || results.length === 0) {
-        return sendErrorResponse(res, new ApiError(404, "Field agents not found."));
+        return sendErrorResponse(res, new ApiError(400, "Field agents not found."));
     }
 
     return sendSuccessResponse(res, 200, results, "Field Agent list with engagement status retrieved successfully.");
@@ -816,4 +812,5 @@ export const fetchIPlogs = asyncHandler(async (req: CustomRequest, res: Response
         iplogs,
         "IPlogs retrieved successfully.");
 
-})
+});
+

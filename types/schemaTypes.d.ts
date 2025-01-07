@@ -47,6 +47,7 @@ export interface IAdditionalUserInfo extends Document {
     isReadAggrement: boolean;
     isAnyArrivalFee?: boolean;
     arrivalFee: number;
+    totalYearExperience:Number,
     isDeleted?: boolean;
     createdAt?: Date;
     updatedAt?: Date;

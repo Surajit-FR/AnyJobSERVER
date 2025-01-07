@@ -19,7 +19,7 @@ import {
 } from "../controller/user.controller";
 import { givePermission, getUserPermissions } from "../controller/permission.controller";
 import { captureIPMiddleware } from "../middlewares/IP.middleware";
-import { fetchNearByServiceProvider } from "../controller/service.controller";
+import { getJobByStatus } from "../controller/service.controller";
 
 
 const router: Router = express.Router();
@@ -59,7 +59,7 @@ router.route('/get-admin-users').get(getAdminUsersList);
 router.route('/get-users').get(getUsers);
 
 //fetch associate List
-router.route('/get-associates/:serviceProviderId').get(verifyUserType(["SuperAdmin", "ServiceProvider"]), fetchAssociates);
+router.route('/get-associates').get(verifyUserType(["SuperAdmin", "ServiceProvider"]), fetchAssociates);
 router.route('/get-agent-engagement').get(verifyUserType(["SuperAdmin", "ServiceProvider"]), getAgentEngagementStatus);
 
 
@@ -84,6 +84,12 @@ router.route("/give-permission").post(verifyUserType(['SuperAdmin', 'ServiceProv
 router.route("/fetch-permission").get(verifyUserType(['SuperAdmin', 'ServiceProvider']), getUserPermissions);
 
 router.route("/fetch-iplogs").get(verifyUserType(['SuperAdmin']), fetchIPlogs);
+
+router.route('/fetch-job-by-status').post(
+    [VerifyJWTToken],
+    verifyUserType(["ServiceProvider"]),
+    getJobByStatus
+);
 
 
 

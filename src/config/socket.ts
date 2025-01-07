@@ -3,6 +3,7 @@ import { Server, Socket } from "socket.io";
 import { socketAuthMiddleware } from "../middlewares/auth/socketAuth";
 import { handleServiceRequestState, fetchAssociatedCustomer } from "../controller/service.controller";
 import { saveChatMessage, updateChatList } from "../controller/chat.controller";
+import { emit } from "process";
 
 
 
@@ -67,7 +68,7 @@ export const initSocket = (server: HttpServer) => {
             });
         });
         console.log(connectedCustomers);
-        
+
 
         // Mark user as online
         onlineUsers[userId] = true;
@@ -76,6 +77,14 @@ export const initSocket = (server: HttpServer) => {
         // Handle chat messages
         socket.on("chatMessage", async (message: { toUserId: string; content: string }) => {
             const { toUserId, content } = message;
+
+            // Validate payload
+            if (!toUserId || !content) {
+                return socket.emit("error", {
+                    error: "Invalid payload: toUserId and content are required.",
+                });
+            }
+
 
             // Save the chat message in the database
             await saveChatMessage({
@@ -88,6 +97,14 @@ export const initSocket = (server: HttpServer) => {
 
             await updateChatList(userId, toUserId, content, now);
             await updateChatList(toUserId, userId, content, now);
+            io.emit("chatMessage", {
+                text: "hello"
+            })
+
+
+
+            // console.log("chatMessage event run");
+
 
             // Send the chat message to the recipient if they're connected
             if (usertype === "Customer" || connectedProviders[toUserId]) {

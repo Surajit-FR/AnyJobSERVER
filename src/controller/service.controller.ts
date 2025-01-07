@@ -291,7 +291,7 @@ export const updateServiceRequest = asyncHandler(async (req: Request, res: Respo
     );
 
     if (!updatedService) {
-        return sendErrorResponse(res, new ApiError(404, "Service not found for updating."));
+        return sendErrorResponse(res, new ApiError(400, "Service not found for updating."));
     };
 
     return sendSuccessResponse(res, 200, updatedService, "Service Request updated Successfully");
@@ -309,7 +309,7 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
     }
     const serviceRequest = await ServiceModel.findById(serviceId);
     if (!serviceRequest) {
-        return sendErrorResponse(res, new ApiError(404, "Service not found."));
+        return sendErrorResponse(res, new ApiError(400, "Service not found."));
     }
 
     let serviceProviderId = userId;
@@ -322,7 +322,7 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
 
         const team = await TeamModel.findOne({ isDeleted: false, fieldAgentIds: userId }).select('serviceProviderId');
         if (!team || !team.serviceProviderId) {
-            return sendErrorResponse(res, new ApiError(404, 'Service Provider ID not found for team.'));
+            return sendErrorResponse(res, new ApiError(400, 'Service Provider ID not found for team.'));
         }
         serviceProviderId = team.serviceProviderId;
     };
@@ -344,7 +344,7 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
 
         const team = await TeamModel.findOne({ isDeleted: false, fieldAgentIds: userId }).select('serviceProviderId');
         if (!team || !team.serviceProviderId) {
-            return sendErrorResponse(res, new ApiError(404, 'Service Provider ID not found for team.'));
+            return sendErrorResponse(res, new ApiError(400, 'Service Provider ID not found for team.'));
         }
         serviceProviderId = team.serviceProviderId;
     }
@@ -378,7 +378,7 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
 
     const updatedService = await ServiceModel.findByIdAndUpdate(serviceId, { $set: updateData }, { new: true });
     if (!updatedService) {
-        return sendErrorResponse(res, new ApiError(404, "Service not found for updating."));
+        return sendErrorResponse(res, new ApiError(400, "Service not found for updating."));
     }
 
     // Calculate total duration if completedAt is available
@@ -405,7 +405,7 @@ export const deleteService = asyncHandler(async (req: Request, res: Response) =>
     const deletedService = await ServiceModel.findByIdAndUpdate(serviceId, { $set: { isDeleted: true } });
 
     if (!deletedService) {
-        return sendErrorResponse(res, new ApiError(404, "Service  not found for deleting."));
+        return sendErrorResponse(res, new ApiError(400, "Service  not found for deleting."));
     };
 
     return sendSuccessResponse(res, 200, {}, "Service deleted successfully");
@@ -430,12 +430,12 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
         ]);
 
         if (team.length === 0) {
-            return sendErrorResponse(res, new ApiError(404, 'Team not found.'));
+            return sendErrorResponse(res, new ApiError(400, 'Team not found.'));
         }
 
         serviceProviderId = team[0].serviceProviderId;
         if (!serviceProviderId) {
-            return sendErrorResponse(res, new ApiError(404, 'Service Provider ID not found in team.'));
+            return sendErrorResponse(res, new ApiError(400, 'Service Provider ID not found in team.'));
         }
 
         address = await AddressModel.findOne({ userId: serviceProviderId });
@@ -536,7 +536,7 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
     ];
     const serviceRequests = await ServiceModel.aggregate(pipeline) as Array<any>;
     if (!serviceRequests.length) {
-        return sendErrorResponse(res, new ApiError(404, 'No nearby service request found.'));
+        return sendErrorResponse(res, new ApiError(400, 'No nearby service request found.'));
     }
 
 
@@ -544,7 +544,7 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
 });
 
 
-//fetch nearby service provider and assign request
+//fetch nearby service provider 
 export const fetchNearByServiceProvider = asyncHandler(async (req: Request, res: Response) => {
     const { serviceRequestId } = req.params;
 
@@ -606,7 +606,7 @@ export const fetchNearByServiceProvider = asyncHandler(async (req: Request, res:
 
     const serviceProviders = await UserModel.aggregate(pipeline) as Array<any>;
     if (!serviceProviders.length) {
-        return sendErrorResponse(res, new ApiError(404, 'No nearby service providers found.'));
+        return sendErrorResponse(res, new ApiError(400, 'No nearby service providers found.'));
     }
 
     const updatePayload = {
@@ -931,6 +931,73 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
     return sendSuccessResponse(res, 200, { results, totalRequest: totalRequest }, "Service request retrieved successfully.");
 });
 
+//get service request for service provider
+export const getJobByStatus = asyncHandler(async (req: CustomRequest, res: Response) => {
+
+    const serviceProviderId = req.user?._id
+    const { requestProgress } = req.body;
+    const progressFilter =
+        requestProgress === "Accepted"
+            ? { requestProgress: { $in: ["Pending",] } }
+            : requestProgress === "Started"
+                ? { requestProgress: "Started" }
+                : { requestProgress };
+
+    const results = await ServiceModel.aggregate([
+        {
+            $match: {
+                ...progressFilter,
+                serviceProviderId: serviceProviderId
+            }
+        },
+        {
+            $lookup: {
+                from: "categories",
+                foreignField: "_id",
+                localField: "categoryId",
+                as: "categoryId"
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$categoryId"
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "userId",
+                as: "userId",
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$userId"
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                categoryName: '$categoryId.name',
+                requestProgress: 1,
+                custFirstName: '$userId.firstName',
+                custLastName: '$userId.lastName',
+                custAvatar: '$userId.avatar',
+                createdAt: 1
+
+            }
+        },
+        { $sort: { createdAt: -1 } },
+    ]);
+
+    const totalRequest = results.length;
+
+    return sendSuccessResponse(res, 200, { results, totalRequest: totalRequest }, "Service request retrieved successfully.");
+});
+
 
 export const assignJob = asyncHandler(async (req: CustomRequest, res: Response) => {
     const userType = req.user?.userType;
@@ -969,7 +1036,7 @@ export const assignJob = asyncHandler(async (req: CustomRequest, res: Response) 
     );
 
     if (!updatedService) {
-        return sendErrorResponse(res, new ApiError(404, "Service not found for updating."));
+        return sendErrorResponse(res, new ApiError(400, "Service not found for updating."));
     };
 
     return sendSuccessResponse(res, 200, updatedService, "Job assigned to the agent successfully.");

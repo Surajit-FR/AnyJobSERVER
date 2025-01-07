@@ -43,7 +43,7 @@ export const deleteRating = asyncHandler(async (req: CustomRequest, res: Respons
     });
 
     if (!deletedRating) {
-        return sendErrorResponse(res, new ApiError(404, "Rating not found."));
+        return sendErrorResponse(res, new ApiError(400, "Rating not found."));
     }
 
     return sendSuccessResponse(res, 201, {}, "Rating deleted successfully");

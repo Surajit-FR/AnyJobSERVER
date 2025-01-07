@@ -83,7 +83,7 @@ export const addAssociate = asyncHandler(async (req: CustomRequest, res: Respons
 
         const team = await TeamModel.findOne({ isDeleted: false, fieldAgentIds: userId }).select('serviceProviderId');
         if (!team || !team.serviceProviderId) {
-            return sendErrorResponse(res, new ApiError(404, 'Service Provider ID not found in team.'));
+            return sendErrorResponse(res, new ApiError(400, 'Service Provider ID not found in team.'));
         }
 
         serviceProviderId = team.serviceProviderId;
@@ -433,7 +433,7 @@ export const resetPassword = asyncHandler(async (req: CustomRequest, res: Respon
     const userDetails = await UserModel.findById(userId);
 
     if (!userDetails) {
-        return sendErrorResponse(res, new ApiError(404, "User not found"));
+        return sendErrorResponse(res, new ApiError(400, "User not found"));
     };
 
     // Update the password

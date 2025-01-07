@@ -18,7 +18,7 @@ export const givePermission = asyncHandler(async (req: CustomRequest, res: Respo
     });
 
     if (!team) {
-        return sendErrorResponse(res, new ApiError(404, "Agent not found in the service provider's team."))
+        return sendErrorResponse(res, new ApiError(400, "Agent not found in the service provider's team."))
     }
 
     // Create or update permissions for the user

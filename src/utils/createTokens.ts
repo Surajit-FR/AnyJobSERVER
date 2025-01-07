@@ -10,7 +10,7 @@ export const generateAccessAndRefreshToken = async (res: Response, userId: strin
         const refreshToken = user?.generateRefreshToken();
 
         if (!user) {
-            throw new ApiError(404, "User Not Found");
+            throw new ApiError(400, "User Not Found");
         }
         user.refreshToken = refreshToken;
         await user?.save({ validateBeforeSave: false });

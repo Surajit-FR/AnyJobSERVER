@@ -571,10 +571,10 @@ export const banUser = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const fetchAssociates = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const  serviceProviderId  = req.user?._id;
+    const serviceProviderId = req.user?._id;
     if (!serviceProviderId) {
         return sendErrorResponse(res, new ApiError(400, "Service provider ID is required."));
-    }   
+    }
 
     const results = await TeamModel.aggregate([
         {
@@ -766,6 +766,7 @@ export const getAgentEngagementStatus = asyncHandler(async (req: CustomRequest, 
                         email: "$teamMembers.email",
                         phone: "$teamMembers.phone",
                         userType: "$teamMembers.userType",
+                        agentAvatar: "$teamMembers.avatar",
                         // engagement: "$teamMembers.engagement",
                         isEngaged: "$isEngaged"
 

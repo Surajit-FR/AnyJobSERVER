@@ -4,6 +4,7 @@ import { socketAuthMiddleware } from "../middlewares/auth/socketAuth";
 import { handleServiceRequestState, fetchAssociatedCustomer } from "../controller/service.controller";
 import { saveChatMessage, updateChatList } from "../controller/chat.controller";
 import { emit } from "process";
+import axios from "axios";
 
 
 
@@ -11,7 +12,7 @@ import { emit } from "process";
 export const initSocket = (server: HttpServer) => {
     const io = new Server(server, {
         cors: {
-            origin: process.env.CORS_ORIGIN,
+            origin: '*',
         }
     });
 
@@ -25,15 +26,24 @@ export const initSocket = (server: HttpServer) => {
 
 
     io.on("connection", (socket: Socket) => {
+        // console.log(socket.handshake.headers.accesstoken);
+
+
         const userId = socket.data.userId;
         const usertype = socket.data.userType;
+        const userToken = socket.handshake.headers.accesstoken;
         console.log(`A ${usertype} with userId ${userId} connected on socket ${socket.id}`);
 
         if (usertype === "Customer") {
             connectedCustomers[userId] = socket.id;
         } else if (usertype === "ServiceProvider") {
             connectedProviders[userId] = socket.id;
+            const serviceProvidersRoom = "ProvidersRoom";
+            socket.join(serviceProvidersRoom);
+            console.log(`A Service Provider ${userId} joined to ${serviceProvidersRoom}`);
         }
+
+
 
         socket.on("acceptServiceRequest", async (requestId: string) => {
             console.log(`Service provider with _id ${userId} accepted the request ${requestId}`);
@@ -42,6 +52,9 @@ export const initSocket = (server: HttpServer) => {
 
             //execute get single service request to get  associated userId
             const customerId = await fetchAssociatedCustomer(requestId);
+
+
+
 
 
 
@@ -67,7 +80,36 @@ export const initSocket = (server: HttpServer) => {
                 }
             });
         });
-        console.log(connectedCustomers);
+
+
+        // update fetch nearby service requests list
+        socket.on("updateNearbyServices",async () => {
+            try {
+                console.log(`Fetching nearby service requests `);
+                // console.log({userToken});
+                
+                // Make an HTTP GET request to fetch nearby services
+                const response = await axios.get(`${process.env.BASE_URL}/service/nearby-services-request`, {
+                    headers: {
+                        Authorization: `Bearer ${userToken}`,
+                    },
+                });
+
+                console.log({ response: response.data.data });
+
+
+                // Send the updated array of service requests back to the client
+                io.to('ProvidersRoom').emit("nearbyServicesUpdate", {
+                    success: true,
+                    services: response.data,
+                });
+            } catch (error) {
+                socket.emit("nearbyServicesUpdate", {
+                    success: false,
+                    error: "Failed to fetch nearby services. Please try again.",
+                });
+            }
+        });
 
 
         // Mark user as online
@@ -84,8 +126,6 @@ export const initSocket = (server: HttpServer) => {
                     error: "Invalid payload: toUserId and content are required.",
                 });
             }
-
-
             // Save the chat message in the database
             await saveChatMessage({
                 fromUserId: userId,
@@ -122,8 +162,6 @@ export const initSocket = (server: HttpServer) => {
             }
         });
         socket.on("disconnect", () => {
-            console.log(`User with socket ID ${socket.id} disconnected`);
-
             // Mark user as offline
             const userId = socket.data.userId;
             if (userId) {

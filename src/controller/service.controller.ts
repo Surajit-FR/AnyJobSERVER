@@ -412,7 +412,7 @@ export const deleteService = asyncHandler(async (req: Request, res: Response) =>
 });
 
 // fetch nearby ServiceRequest controller
-export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {  
+export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {
     const userId = req.user?._id as string;
     const userType = req.user?.userType;
 
@@ -456,7 +456,7 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
     if (isNaN(serviceRequestLongitude) || isNaN(serviceRequestLatitude)) {
         return sendErrorResponse(res, new ApiError(400, `Invalid longitude or latitude`));
     }
-    const radius = 40000; // in meters
+    const radius = 4000000; // in meters
 
     const pipeline: PipelineStage[] = [
         {
@@ -979,18 +979,35 @@ export const getJobByStatus = asyncHandler(async (req: CustomRequest, res: Respo
             }
         },
         {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "assignedAgentId",
+                as: "assignedAgentId",
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$userId"
+            }
+        },
+        {
             $project: {
                 _id: 1,
                 categoryName: '$categoryId.name',
                 requestProgress: 1,
                 customerFirstName: '$userId.firstName',
                 customerLastName: '$userId.lastName',
+                'assignedAgentId.firstName': 1,
+                'assignedAgentId.lastName': 1,
                 customerAvatar: '$userId.avatar',
                 createdAt: 1
 
             }
         },
         { $sort: { createdAt: -1 } },
+
     ]);
 
     const totalRequest = results.length;
@@ -1036,7 +1053,7 @@ export const assignJob = asyncHandler(async (req: CustomRequest, res: Response) 
     );
 
     if (!updatedService) {
-        return sendErrorResponse(res, new ApiError(400, "Service not found for updating."));
+        return sendErrorResponse(res, new ApiError(400, "Service not found for assigning."));
     };
 
     return sendSuccessResponse(res, 200, updatedService, "Job assigned to the agent successfully.");
@@ -1130,11 +1147,11 @@ export const fetchAssignedserviceProvider = asyncHandler(async (req: CustomReque
         {
             $project: {
                 spFullName: 1,
-                companyDesc:1,
+                companyDesc: 1,
                 backgroundCheck: 1,
                 licenseVerified: 1,
                 insuranceVerified: 1,
-                arrivalFee:1
+                arrivalFee: 1
             }
         }
     ]);

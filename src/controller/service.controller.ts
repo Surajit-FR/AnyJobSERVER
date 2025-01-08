@@ -412,7 +412,7 @@ export const deleteService = asyncHandler(async (req: Request, res: Response) =>
 });
 
 // fetch nearby ServiceRequest controller
-export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {
+export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {  
     const userId = req.user?._id as string;
     const userType = req.user?.userType;
 
@@ -983,8 +983,8 @@ export const getJobByStatus = asyncHandler(async (req: CustomRequest, res: Respo
                 _id: 1,
                 categoryName: '$categoryId.name',
                 requestProgress: 1,
-                custFirstName: '$userId.firstName',
-                custLastName: '$userId.lastName',
+                customerFirstName: '$userId.firstName',
+                customerLastName: '$userId.lastName',
                 custAvatar: '$userId.avatar',
                 createdAt: 1
 
@@ -1141,4 +1141,4 @@ export const fetchAssignedserviceProvider = asyncHandler(async (req: CustomReque
 
     return sendSuccessResponse(res, 200, assignedSPDetails[0], "Assigned service provider retrieved successfully.");
 
-})
+});

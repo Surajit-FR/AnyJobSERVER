@@ -985,7 +985,7 @@ export const getJobByStatus = asyncHandler(async (req: CustomRequest, res: Respo
                 requestProgress: 1,
                 customerFirstName: '$userId.firstName',
                 customerLastName: '$userId.lastName',
-                custAvatar: '$userId.avatar',
+                customerAvatar: '$userId.avatar',
                 createdAt: 1
 
             }

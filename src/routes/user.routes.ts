@@ -64,7 +64,7 @@ router.route('/get-agent-engagement').get(verifyUserType(["SuperAdmin", "Service
 
 
 router.route('/u/:userId')
-    .get(getSingleUser)
+    .get(verifyUserType(["SuperAdmin", "ServiceProvider"]), getSingleUser)
     .patch(verifyUserType(["SuperAdmin"]), captureIPMiddleware, banUser);
 
 router.route('/verify/:serviceProviderId').patch(

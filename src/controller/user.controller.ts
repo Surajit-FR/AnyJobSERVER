@@ -495,6 +495,66 @@ export const getSingleUser = asyncHandler(async (req: Request, res: Response) =>
             }
         },
         {
+            $lookup: {
+                from: "teams",
+                foreignField: "serviceProviderId",
+                localField: "_id",
+                as: "teamDetails"
+            }
+        },
+        {
+            $lookup: {
+                from: "services",
+                foreignField: "serviceProviderId",
+                localField: "_id",
+                as: "Services",
+                pipeline: [
+                    {
+                        // requestProgress:{$or:["Completed","Pending"]}
+                        $match: {
+                            $or: [
+                                { requestProgress: "Completed" },
+                                { requestProgress: "Pending" }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+
+        {
+            $addFields: {
+                totalFieldAgent: {
+                    $reduce: {
+                        input: "$teamDetails",
+                        initialValue: 0,
+                        in: { $add: ["$$value", { $size: "$$this.fieldAgentIds" }] }
+                    }
+                },
+                CompletedServices: {
+                    $filter: {
+                        input: "$Services",
+                        as: "completedServices",
+                        cond: { $eq: ["$$completedServices.requestProgress", "Completed"] },
+                    }
+                },
+                newServices: {
+                    $filter: {
+                        input: "$Services",
+                        as: "completedServices",
+                        cond: { $eq: ["$$completedServices.requestProgress", "Pending"] },
+                    }
+                },
+            },
+
+        },
+        {
+            $addFields: {
+                totalCompletedServices: { $size: "$CompletedServices" },
+                totalNewServices: { $size: "$newServices" }
+            }
+        },
+        {
             $project: {
                 __v: 0,
                 isDeleted: 0,
@@ -504,6 +564,10 @@ export const getSingleUser = asyncHandler(async (req: Request, res: Response) =>
                 'additionalInfo.isDeleted': 0,
                 'userAddress.__v': 0,
                 'userAddress.isDeleted': 0,
+                teamDetails: 0,
+                CompletedServices: 0,
+                Services: 0,
+                newServices: 0,
             }
         }
     ]);

@@ -31,7 +31,9 @@ export const initSocket = (server: HttpServer) => {
 
         const userId = socket.data.userId;
         const usertype = socket.data.userType;
-        const userToken = socket.handshake.headers.accesstoken;
+        console.log({ usertype });
+
+        const userToken = socket.handshake.headers.accesstoken || socket.handshake.auth.accessToken;
         console.log(`A ${usertype} with userId ${userId} connected on socket ${socket.id}`);
 
         if (usertype === "Customer") {
@@ -82,31 +84,42 @@ export const initSocket = (server: HttpServer) => {
         });
 
 
-        // update fetch nearby service requests list
-        socket.on("updateNearbyServices",async () => {
+        // update fetch nearby service requests list when service is accepted
+        socket.on("updateNearbyServices", async () => {
             try {
                 console.log(`Fetching nearby service requests `);
-                // console.log({userToken});
-                
-                // Make an HTTP GET request to fetch nearby services
-                const response = await axios.get(`${process.env.BASE_URL}/service/nearby-services-request`, {
-                    headers: {
-                        Authorization: `Bearer ${userToken}`,
-                    },
-                });
+                const date = new Date();
 
-                console.log({ response: response.data.data });
-
-
-                // Send the updated array of service requests back to the client
+                // Send the event back to the client
                 io.to('ProvidersRoom').emit("nearbyServicesUpdate", {
                     success: true,
-                    services: response.data,
+                    message: "Service list is need a update",
+                    date: date
                 });
             } catch (error) {
                 socket.emit("nearbyServicesUpdate", {
                     success: false,
                     error: "Failed to fetch nearby services. Please try again.",
+                });
+            }
+        });
+
+        // update fetch nearby service requests list when service is assigned
+        socket.on("serviceAssigned", async () => {
+            try {
+                console.log(`Accepted service is assigned to field agent`);
+                const date = new Date();
+
+                // Send the event back to the client
+                io.to('ProvidersRoom').emit("jobListUpdate", {
+                    success: true,
+                    message: "Service list is need a update",
+                    date: date
+                });
+            } catch (error) {
+                socket.emit("jobListUpdate", {
+                    success: false,
+                    error: "Failed to assign field agent. Please try again.",
                 });
             }
         });

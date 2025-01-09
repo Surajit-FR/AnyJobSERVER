@@ -413,6 +413,31 @@ export const deleteService = asyncHandler(async (req: Request, res: Response) =>
 
 // fetch nearby ServiceRequest controller
 export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const { page = "1", limit = "10", query = '', sortBy = 'createdAt', sortType = 'desc', categoryName = '' } = req.query;
+    const pageNumber = parseInt(page as string, 10) || 1;
+    const limitNumber = parseInt(limit as string, 10) || 10;
+    const skip = (pageNumber - 1) * limitNumber;
+    console.log(categoryName);
+
+    const searchQuery = {
+        isDeleted: false,
+        ...(query && {
+            $or: [
+                { serviceAddress: { $regex: query, $options: "i" } },
+                { categoryName: { $regex: query, $options: "i" } },
+                { requestProgress: { $regex: query, $options: "i" } },
+                { customerName: { $regex: query, $options: "i" } },
+            ]
+        })
+    };
+
+    const validSortBy = (sortBy as string) || 'isIncentiveGiven' || 'incentiveAmount';
+    const validSortType = (sortType as string).toLowerCase() === 'desc' ? -1 : 1;
+
+    const sortCriteria: any = {};
+    sortCriteria[validSortBy] = validSortType;
+
+
     const userId = req.user?._id as string;
     const userType = req.user?.userType;
 
@@ -456,7 +481,7 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
     if (isNaN(serviceRequestLongitude) || isNaN(serviceRequestLatitude)) {
         return sendErrorResponse(res, new ApiError(400, `Invalid longitude or latitude`));
     }
-    const radius = 4000000; // in meters
+    const radius = 400000000; // in meters
 
     const pipeline: PipelineStage[] = [
         {
@@ -513,7 +538,10 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
                 path: "$categoryDetails",
             }
         },
-
+        { $match: searchQuery },
+        { $sort: { isIncentiveGiven: validSortType } },
+        { $skip: skip },
+        { $limit: limitNumber },
         {
             $project: {
                 categoryName: "$categoryDetails.name",
@@ -534,13 +562,21 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
         },
         { $sort: { isIncentiveGiven: -1, incentiveAmount: -1 } }
     ];
+
     const serviceRequests = await ServiceModel.aggregate(pipeline) as Array<any>;
     if (!serviceRequests.length) {
-        return sendErrorResponse(res, new ApiError(400, 'No nearby service request found.'));
+        return sendSuccessResponse(res, 200, serviceRequests, 'No nearby service request found');
     }
 
+    const total = serviceRequests[0] ? serviceRequests.length : 0
+    return sendSuccessResponse(res, 200, {
+        serviceRequests, pagination: {
+            totalRecords: total,
+            page: pageNumber,
+            limit: limitNumber
+        }
+    }, 'Service requests fetched successfully');
 
-    return sendSuccessResponse(res, 200, serviceRequests, 'Service requests fetched successfully');
 });
 
 

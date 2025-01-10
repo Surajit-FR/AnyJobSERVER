@@ -387,7 +387,7 @@ export const forgetPassword = asyncHandler(async (req: Request, res: Response) =
     };
     const checkEmail = await UserModel.findOne({ email });
     if (!checkEmail) {
-        return sendErrorResponse(res, new ApiError(400, "Email does not exist"));
+        return sendSuccessResponse(res, 200, "Email does not exist");
     };
     const receiverEmail = checkEmail.email;
     const verificationCode = generateVerificationCode(5);
@@ -434,7 +434,7 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response) =>
     const userDetails = await UserModel.findOne({ email });
 
     if (!userDetails) {
-        return sendErrorResponse(res, new ApiError(400, "User not found"));
+        return sendSuccessResponse(res, 200, "User not found");
     };
 
     // Update the password
@@ -442,5 +442,5 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response) =>
     userDetails.rawPassword = req.body.password;
 
     await userDetails.save();
-    return sendSuccessResponse(res, 200, {}, "Password reset Successfull");
+    return sendSuccessResponse(res, 200,  "Password reset Successfull");
 });

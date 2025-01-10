@@ -413,7 +413,7 @@ export const deleteService = asyncHandler(async (req: Request, res: Response) =>
 
 // fetch nearby ServiceRequest controller
 export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const { page = "1", limit = "10", query = '', sortBy = 'createdAt', sortType = 'desc', categoryName = '' } = req.query;
+    const { page = "1", limit = "10", query = '', sortBy = 'isIncentiveGiven', sortType = 'desc', categoryName = '' } = req.query;
     const pageNumber = parseInt(page as string, 10) || 1;
     const limitNumber = parseInt(limit as string, 10) || 10;
     const skip = (pageNumber - 1) * limitNumber;
@@ -424,9 +424,9 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
         ...(query && {
             $or: [
                 { serviceAddress: { $regex: query, $options: "i" } },
-                { categoryName: { $regex: query, $options: "i" } },
-                { requestProgress: { $regex: query, $options: "i" } },
-                { customerName: { $regex: query, $options: "i" } },
+                { 'userId.firstName': { $regex: query, $options: "i" } },
+                { 'userId.lastName': { $regex: query, $options: "i" } },
+                { 'categoryDetails.name': { $regex: query, $options: "i" } },
             ]
         })
     };

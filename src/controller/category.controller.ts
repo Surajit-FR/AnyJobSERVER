@@ -114,7 +114,7 @@ export const updateCategory = asyncHandler(async (req: Request, res: Response) =
     );
 
     if (!updatedCategory) {
-        return sendErrorResponse(res, new ApiError(404, "Category not found for updating."));
+        return sendErrorResponse(res, new ApiError(400, "Category not found for updating."));
     };
 
     return sendSuccessResponse(res, 200, updatedCategory, "Category updated Successfully");
@@ -129,7 +129,7 @@ export const deleteCategory = asyncHandler(async (req: Request, res: Response) =
 
     const categoryToDelete = await CategoryModel.findById(CategoryId);
     if (!categoryToDelete) {
-        return sendErrorResponse(res, new ApiError(404, "Category not found for deleting."));
+        return sendErrorResponse(res, new ApiError(400, "Category not found for deleting."));
     };
     const imageUrls = [];
     if (categoryToDelete.categoryImage) imageUrls.push(categoryToDelete.categoryImage);
@@ -166,7 +166,7 @@ export const getCategorieById = asyncHandler(async (req: Request, res: Response)
 
     const categoryToFetch = await CategoryModel.findById(CategoryId);
     if (!categoryToFetch) {
-        return sendErrorResponse(res, new ApiError(404, "Category not found."));
+        return sendErrorResponse(res, new ApiError(400, "Category not found."));
     };
 
     return sendSuccessResponse(res, 200, categoryToFetch, "Category retrieved successfully.");

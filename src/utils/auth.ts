@@ -4,8 +4,7 @@ import { IRegisterCredentials } from "../../types/requests_responseType";
 import PermissionModel from "../models/permission.model";
 import { sendMail } from "./sendMail";
 import { fetchUserData } from "../controller/auth/auth.controller";
-import { CustomRequest } from "../../types/commonType";
-import { NextFunction, Response } from "express";
+import {  Request, Response } from "express";
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { sendErrorResponse } from "./response";
 
@@ -19,6 +18,7 @@ export const generateRandomPassword = (length = 10): string => {
 export const addUser = async (userData: IRegisterCredentials) => {
     const { firstName, lastName, email, userType, phone } = userData;
     let password = userData.password; // Default to provided password
+    let rawPassword = password;
     let permission, generatedPass;
 
     const existingUser = await UserModel.findOne({ email });
@@ -38,6 +38,7 @@ export const addUser = async (userData: IRegisterCredentials) => {
         lastName,
         email,
         password,
+        rawPassword:rawPassword,
         userType,
         phone,
     });
@@ -76,7 +77,7 @@ export const addUser = async (userData: IRegisterCredentials) => {
     return savedUser;
 };
 
-export const CheckJWTTokenExpiration = async (req: CustomRequest, res: Response) => {
+export const CheckJWTTokenExpiration = async (req: Request, res: Response) => {
     try {
         let token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
 
@@ -86,14 +87,16 @@ export const CheckJWTTokenExpiration = async (req: CustomRequest, res: Response)
         }
 
         const decoded = jwt.decode(token) as JwtPayload | null;
-
+        
+        
         if (!decoded || !decoded.exp) {
             return sendErrorResponse(res, new ApiError(400, "Invalid token or missing expiration"));
         }
-
+        
         const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
         const remainingTimeInSeconds = decoded.exp - currentTime;
-
+        
+        // console.log(currentTime);
         if (remainingTimeInSeconds <= 0) {
             return res.status(200).json({ isExpired: true, remainingTimeInSeconds: 0 });
         }

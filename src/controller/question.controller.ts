@@ -225,7 +225,7 @@ export const fetchSingleQuestion = asyncHandler(async (req: Request, res: Respon
     ])
 
     if (!results) {
-        return sendErrorResponse(res, new ApiError(404, "Question not found."));
+        return sendErrorResponse(res, new ApiError(400, "Question not found."));
     };
 
     if (results.length) {
@@ -267,7 +267,7 @@ export const updateSingleQuestion = asyncHandler(async (req: Request, res: Respo
     ).select('-isDeleted -__v');
 
     if (!updatedQuestion) {
-        return sendErrorResponse(res, new ApiError(404, "Question not found."));
+        return sendErrorResponse(res, new ApiError(400, "Question not found."));
     }
 
     return sendSuccessResponse(res, 200, updatedQuestion, "Question updated successfully.");
@@ -287,7 +287,7 @@ export const deleteSingleQuestion = asyncHandler(async (req: Request, res: Respo
     );
 
     if (!deletedQuestion) {
-        return sendErrorResponse(res, new ApiError(404, "Question not found."));
+        return sendErrorResponse(res, new ApiError(400, "Question not found."));
     }
 
     return sendSuccessResponse(res, 200, {}, "Question deleted successfully.");

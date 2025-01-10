@@ -6,8 +6,10 @@ import { log } from 'console';
 
 // Middleware function to verify JWT token for socket connections
 export const socketAuthMiddleware = (socket: Socket, next: (err?: ExtendedError) => void) => {
-    const JWT_SECRET = process.env.REFRESH_TOKEN_SECRET;
-    const token = socket.handshake.headers.accesstoken;
+    const JWT_SECRET = process.env.ACCESS_TOKEN_SECRET;
+    const token = socket.handshake.headers.accesstoken || socket.handshake.auth.accessToken;
+    console.log(token);
+
 
     if (!token) {
         return next(new Error("Authentication error: No token provided"));
@@ -18,14 +20,13 @@ export const socketAuthMiddleware = (socket: Socket, next: (err?: ExtendedError)
         if (err) {
             return next(new Error("Authentication error: Invalid token"));
         }
-        const connectedUser = await UserModel.findById((decoded as any) ._id).select("-password -refreshToken");
+        const connectedUser = await UserModel.findById((decoded as any)._id).select("-password -refreshToken");
         if (!connectedUser) {
-            console.log("---");            
             return next(new Error("Authentication error: User not found"));
         }
-        socket.data.userId = connectedUser ._id; 
+        socket.data.userId = connectedUser._id;
         socket.data.userType = connectedUser.userType;
 
-        next(); 
+        next();
     });
 };

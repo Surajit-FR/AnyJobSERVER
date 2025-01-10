@@ -25,7 +25,7 @@ export const reverseGeocode = asyncHandler(async (req: Request, res: Response) =
         const response = await axios.get(url);
 
         if (!response.data.results || response.data.results.length === 0) {
-            throw new ApiError(404, "No address found for the given coordinates.", [], response.data);
+            throw new ApiError(400, "No address found for the given coordinates.", [], response.data);
         }
 
         const address = {
@@ -67,7 +67,7 @@ export const getCoordinatesFromZip = asyncHandler(async (req: Request, res: Resp
         const response = await axios.get(url);
 
         if (!response.data.results || response.data.results.length === 0) {
-            throw new ApiError(404, "No coordinates found for the given ZIP code.", [], response.data);
+            throw new ApiError(400, "No coordinates found for the given ZIP code.", [], response.data);
         }
 
         const location = response.data.results[0];

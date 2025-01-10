@@ -9,6 +9,7 @@ const multer_middleware_1 = require("../middlewares/multer.middleware");
 const userAuth_1 = require("../middlewares/auth/userAuth");
 const socialAuth_1 = require("../middlewares/auth/socialAuth");
 const rateLimiter_middleware_1 = require("../middlewares/rateLimiter.middleware");
+const auth_1 = require("../utils/auth");
 const router = express_1.default.Router();
 //sign-up
 router.route('/signup').post(rateLimiter_middleware_1.rateLimiter, multer_middleware_1.upload.fields([
@@ -28,5 +29,7 @@ router.route('/add-admin-user').post(rateLimiter_middleware_1.rateLimiter, [user
 // Refresh token routes
 router.route('/refresh-token').post(rateLimiter_middleware_1.rateLimiter, auth_controller_1.refreshAccessToken);
 router.route("/forget-password").post(auth_controller_1.forgetPassword);
-router.route("/reset-password").post([userAuth_1.VerifyJWTToken], auth_controller_1.resetPassword);
+router.route("/reset-password").post(auth_controller_1.resetPassword);
+//check-token-expiration
+router.route("/check-token-expiration").get([userAuth_1.VerifyJWTToken], auth_1.CheckJWTTokenExpiration);
 exports.default = router;

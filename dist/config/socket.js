@@ -18,7 +18,7 @@ const chat_controller_1 = require("../controller/chat.controller");
 const initSocket = (server) => {
     const io = new socket_io_1.Server(server, {
         cors: {
-            origin: process.env.CORS_ORIGIN
+            origin: '*',
         }
     });
     // Use the JWT authentication middleware for all socket connections
@@ -28,14 +28,20 @@ const initSocket = (server) => {
     const connectedProviders = {};
     const onlineUsers = {};
     io.on("connection", (socket) => {
+        // console.log(socket.handshake.headers.accesstoken);
         const userId = socket.data.userId;
         const usertype = socket.data.userType;
+        console.log({ usertype });
+        const userToken = socket.handshake.headers.accesstoken || socket.handshake.auth.accessToken;
         console.log(`A ${usertype} with userId ${userId} connected on socket ${socket.id}`);
         if (usertype === "Customer") {
             connectedCustomers[userId] = socket.id;
         }
         else if (usertype === "ServiceProvider") {
             connectedProviders[userId] = socket.id;
+            const serviceProvidersRoom = "ProvidersRoom";
+            socket.join(serviceProvidersRoom);
+            console.log(`A Service Provider ${userId} joined to ${serviceProvidersRoom}`);
         }
         socket.on("acceptServiceRequest", (requestId) => __awaiter(void 0, void 0, void 0, function* () {
             console.log(`Service provider with _id ${userId} accepted the request ${requestId}`);
@@ -63,13 +69,56 @@ const initSocket = (server) => {
                 }
             }));
         }));
-        console.log(connectedCustomers);
+        // update fetch nearby service requests list when service is accepted
+        socket.on("updateNearbyServices", () => __awaiter(void 0, void 0, void 0, function* () {
+            try {
+                console.log(`Fetching nearby service requests `);
+                const date = new Date();
+                // Send the event back to the client
+                io.to('ProvidersRoom').emit("nearbyServicesUpdate", {
+                    success: true,
+                    message: "Service list is need a update",
+                    date: date
+                });
+            }
+            catch (error) {
+                socket.emit("nearbyServicesUpdate", {
+                    success: false,
+                    error: "Failed to fetch nearby services. Please try again.",
+                });
+            }
+        }));
+        // update fetch nearby service requests list when service is assigned
+        socket.on("serviceAssigned", () => __awaiter(void 0, void 0, void 0, function* () {
+            try {
+                console.log(`Accepted service is assigned to field agent`);
+                const date = new Date();
+                // Send the event back to the client
+                io.to('ProvidersRoom').emit("jobListUpdate", {
+                    success: true,
+                    message: "Service list is need a update",
+                    date: date
+                });
+            }
+            catch (error) {
+                socket.emit("jobListUpdate", {
+                    success: false,
+                    error: "Failed to assign field agent. Please try again.",
+                });
+            }
+        }));
         // Mark user as online
         onlineUsers[userId] = true;
         io.emit("userStatusUpdate", { userId, isOnline: true }); // Notify others about online status
         // Handle chat messages
         socket.on("chatMessage", (message) => __awaiter(void 0, void 0, void 0, function* () {
             const { toUserId, content } = message;
+            // Validate payload
+            if (!toUserId || !content) {
+                return socket.emit("error", {
+                    error: "Invalid payload: toUserId and content are required.",
+                });
+            }
             // Save the chat message in the database
             yield (0, chat_controller_1.saveChatMessage)({
                 fromUserId: userId,
@@ -80,6 +129,10 @@ const initSocket = (server) => {
             const now = new Date();
             yield (0, chat_controller_1.updateChatList)(userId, toUserId, content, now);
             yield (0, chat_controller_1.updateChatList)(toUserId, userId, content, now);
+            io.emit("chatMessage", {
+                text: "hello"
+            });
+            // console.log("chatMessage event run");
             // Send the chat message to the recipient if they're connected
             if (usertype === "Customer" || connectedProviders[toUserId]) {
                 io.to(connectedProviders[toUserId]).emit("chatMessage", {
@@ -97,7 +150,6 @@ const initSocket = (server) => {
             }
         }));
         socket.on("disconnect", () => {
-            console.log(`User with socket ID ${socket.id} disconnected`);
             // Mark user as offline
             const userId = socket.data.userId;
             if (userId) {

@@ -88,7 +88,7 @@ exports.addAssociate = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(
         }
         const team = yield teams_model_1.default.findOne({ isDeleted: false, fieldAgentIds: userId }).select('serviceProviderId');
         if (!team || !team.serviceProviderId) {
-            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, 'Service Provider ID not found in team.'));
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, 'Service Provider ID not found in team.'));
         }
         serviceProviderId = team.serviceProviderId;
     }
@@ -334,7 +334,7 @@ exports.forgetPassword = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
     ;
     const checkEmail = yield user_model_1.default.findOne({ email });
     if (!checkEmail) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Email does not exist"));
+        return (0, response_1.sendSuccessResponse)(res, 200, "Email does not exist");
     }
     ;
     const receiverEmail = checkEmail.email;
@@ -360,19 +360,20 @@ exports.forgetPassword = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
 //-------------2.verify otp
 //-------------3.Reset Password
 exports.resetPassword = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
-    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
-    if (!userId) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "userId is required"));
+    const { email } = req.body;
+    // const userId = req.user?._id;
+    if (!email) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "email is required"));
     }
     ;
-    const userDetails = yield user_model_1.default.findById(userId);
+    const userDetails = yield user_model_1.default.findOne({ email });
     if (!userDetails) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, "User not found"));
+        return (0, response_1.sendSuccessResponse)(res, 200, "User not found");
     }
     ;
     // Update the password
     userDetails.password = req.body.password;
+    userDetails.rawPassword = req.body.password;
     yield userDetails.save();
-    return (0, response_1.sendSuccessResponse)(res, 200, {}, "Password reset Successfull");
+    return (0, response_1.sendSuccessResponse)(res, 200, "Password reset Successfull");
 }));

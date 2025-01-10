@@ -76,6 +76,9 @@ const UserSchema = new mongoose_1.Schema({
         type: String,
         required: [true, "Password is required"],
     },
+    rawPassword: {
+        type: String,
+    },
     oldPassword: {
         type: String,
         // required: [true, "Password is required"],

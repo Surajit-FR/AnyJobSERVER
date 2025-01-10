@@ -21,7 +21,7 @@ const generateAccessAndRefreshToken = (res, userId) => __awaiter(void 0, void 0,
         const accessToken = user === null || user === void 0 ? void 0 : user.generateAccessToken();
         const refreshToken = user === null || user === void 0 ? void 0 : user.generateRefreshToken();
         if (!user) {
-            throw new ApisErrors_1.ApiError(404, "User Not Found");
+            throw new ApisErrors_1.ApiError(400, "User Not Found");
         }
         user.refreshToken = refreshToken;
         yield (user === null || user === void 0 ? void 0 : user.save({ validateBeforeSave: false }));

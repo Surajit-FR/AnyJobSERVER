@@ -78,7 +78,7 @@ app.use((err, req, res, next) => {
 //page not found middleware handling
 app.use((req, res, next) => {
     res.status(404).json({
-        sattus: 404,
+        status: 404,
         message: "Endpoint Not Found"
     });
 });

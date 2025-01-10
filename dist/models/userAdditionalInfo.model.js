@@ -43,6 +43,7 @@ const AdditionalUserInfoSchema = new mongoose_1.Schema({
     isReadAggrement: { type: Boolean, default: false },
     isAnyArrivalFee: { type: Boolean, default: false },
     arrivalFee: { type: Number },
+    totalYearExperience: { type: Number, require: [true, "Total Year of Experience is Required."] },
     isDeleted: { type: Boolean, default: false }
 }, { timestamps: true });
 const AdditionalInfoModel = mongoose_1.default.model("additionalInfo", AdditionalUserInfoSchema);

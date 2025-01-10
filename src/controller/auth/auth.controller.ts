@@ -83,7 +83,7 @@ export const addAssociate = asyncHandler(async (req: CustomRequest, res: Respons
 
         const team = await TeamModel.findOne({ isDeleted: false, fieldAgentIds: userId }).select('serviceProviderId');
         if (!team || !team.serviceProviderId) {
-            return sendErrorResponse(res, new ApiError(404, 'Service Provider ID not found in team.'));
+            return sendErrorResponse(res, new ApiError(400, 'Service Provider ID not found in team.'));
         }
 
         serviceProviderId = team.serviceProviderId;
@@ -387,7 +387,7 @@ export const forgetPassword = asyncHandler(async (req: Request, res: Response) =
     };
     const checkEmail = await UserModel.findOne({ email });
     if (!checkEmail) {
-        return sendErrorResponse(res, new ApiError(400, "Email does not exist"));
+        return sendSuccessResponse(res, 200, "Email does not exist");
     };
     const receiverEmail = checkEmail.email;
     const verificationCode = generateVerificationCode(5);
@@ -422,23 +422,25 @@ export const forgetPassword = asyncHandler(async (req: Request, res: Response) =
 //-------------2.verify otp
 
 //-------------3.Reset Password
-export const resetPassword = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const userId = req.user?._id;
+export const resetPassword = asyncHandler(async (req: Request, res: Response) => {
+    const { email } = req.body;
+    // const userId = req.user?._id;
 
 
-    if (!userId) {
-        return sendErrorResponse(res, new ApiError(400, "userId is required"));
+    if (!email) {
+        return sendErrorResponse(res, new ApiError(400, "email is required"));
     };
 
-    const userDetails = await UserModel.findById(userId);
+    const userDetails = await UserModel.findOne({ email });
 
     if (!userDetails) {
-        return sendErrorResponse(res, new ApiError(404, "User not found"));
+        return sendSuccessResponse(res, 200, "User not found");
     };
 
     // Update the password
     userDetails.password = req.body.password;
+    userDetails.rawPassword = req.body.password;
 
     await userDetails.save();
-    return sendSuccessResponse(res, 200, {}, "Password reset Successfull");
+    return sendSuccessResponse(res, 200,  "Password reset Successfull");
 });

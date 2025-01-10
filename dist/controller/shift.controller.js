@@ -62,7 +62,7 @@ exports.fetchShiftbyId = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
     ]);
     const responseData = results.length
         ? (0, response_1.sendSuccessResponse)(res, 200, results[0], "Shift Timings retrieved successfully.")
-        : (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, "Shift not found."));
+        : (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Shift not found."));
     return responseData;
 }));
 // fetchShifs controller
@@ -70,7 +70,7 @@ exports.fetchShifs = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
     const results = yield shift_model_1.default.find({ isDeleted: false }).select('-__v -isDeleted');
     const responseData = results.length
         ? (0, response_1.sendSuccessResponse)(res, 200, results, "Shift Timings retrieved successfully.")
-        : (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, "Shift not found."));
+        : (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Shift not found."));
     return responseData;
 }));
 // updateShift Controller
@@ -103,7 +103,7 @@ exports.updateShift = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(v
         },
     }, { new: true });
     if (!updatedShift) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, "Shift not found for updating."));
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Shift not found for updating."));
     }
     ;
     return (0, response_1.sendSuccessResponse)(res, 200, updatedShift, "Shift updated Successfully");
@@ -124,7 +124,7 @@ exports.deleteShift = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(v
         $set: { isDeleted: true }
     });
     if (!deletedShift) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, "Shift not found for deleting."));
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Shift not found for deleting."));
     }
     ;
     return (0, response_1.sendSuccessResponse)(res, 200, {}, "Shift deleted Successfully");

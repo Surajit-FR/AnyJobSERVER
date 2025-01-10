@@ -3,6 +3,8 @@ import { Server, Socket } from "socket.io";
 import { socketAuthMiddleware } from "../middlewares/auth/socketAuth";
 import { handleServiceRequestState, fetchAssociatedCustomer } from "../controller/service.controller";
 import { saveChatMessage, updateChatList } from "../controller/chat.controller";
+import { emit } from "process";
+import axios from "axios";
 
 
 
@@ -10,7 +12,7 @@ import { saveChatMessage, updateChatList } from "../controller/chat.controller";
 export const initSocket = (server: HttpServer) => {
     const io = new Server(server, {
         cors: {
-            origin: process.env.CORS_ORIGIN as string
+            origin: '*',
         }
     });
 
@@ -24,15 +26,26 @@ export const initSocket = (server: HttpServer) => {
 
 
     io.on("connection", (socket: Socket) => {
+        // console.log(socket.handshake.headers.accesstoken);
+
+
         const userId = socket.data.userId;
         const usertype = socket.data.userType;
+        console.log({ usertype });
+
+        const userToken = socket.handshake.headers.accesstoken || socket.handshake.auth.accessToken;
         console.log(`A ${usertype} with userId ${userId} connected on socket ${socket.id}`);
 
         if (usertype === "Customer") {
             connectedCustomers[userId] = socket.id;
         } else if (usertype === "ServiceProvider") {
             connectedProviders[userId] = socket.id;
+            const serviceProvidersRoom = "ProvidersRoom";
+            socket.join(serviceProvidersRoom);
+            console.log(`A Service Provider ${userId} joined to ${serviceProvidersRoom}`);
         }
+
+
 
         socket.on("acceptServiceRequest", async (requestId: string) => {
             console.log(`Service provider with _id ${userId} accepted the request ${requestId}`);
@@ -41,6 +54,9 @@ export const initSocket = (server: HttpServer) => {
 
             //execute get single service request to get  associated userId
             const customerId = await fetchAssociatedCustomer(requestId);
+
+
+
 
 
 
@@ -66,8 +82,48 @@ export const initSocket = (server: HttpServer) => {
                 }
             });
         });
-        console.log(connectedCustomers);
-        
+
+
+        // update fetch nearby service requests list when service is accepted
+        socket.on("updateNearbyServices", async () => {
+            try {
+                console.log(`Fetching nearby service requests `);
+                const date = new Date();
+
+                // Send the event back to the client
+                io.to('ProvidersRoom').emit("nearbyServicesUpdate", {
+                    success: true,
+                    message: "Service list is need a update",
+                    date: date
+                });
+            } catch (error) {
+                socket.emit("nearbyServicesUpdate", {
+                    success: false,
+                    error: "Failed to fetch nearby services. Please try again.",
+                });
+            }
+        });
+
+        // update fetch nearby service requests list when service is assigned
+        socket.on("serviceAssigned", async () => {
+            try {
+                console.log(`Accepted service is assigned to field agent`);
+                const date = new Date();
+
+                // Send the event back to the client
+                io.to('ProvidersRoom').emit("jobListUpdate", {
+                    success: true,
+                    message: "Service list is need a update",
+                    date: date
+                });
+            } catch (error) {
+                socket.emit("jobListUpdate", {
+                    success: false,
+                    error: "Failed to assign field agent. Please try again.",
+                });
+            }
+        });
+
 
         // Mark user as online
         onlineUsers[userId] = true;
@@ -77,6 +133,12 @@ export const initSocket = (server: HttpServer) => {
         socket.on("chatMessage", async (message: { toUserId: string; content: string }) => {
             const { toUserId, content } = message;
 
+            // Validate payload
+            if (!toUserId || !content) {
+                return socket.emit("error", {
+                    error: "Invalid payload: toUserId and content are required.",
+                });
+            }
             // Save the chat message in the database
             await saveChatMessage({
                 fromUserId: userId,
@@ -88,6 +150,14 @@ export const initSocket = (server: HttpServer) => {
 
             await updateChatList(userId, toUserId, content, now);
             await updateChatList(toUserId, userId, content, now);
+            io.emit("chatMessage", {
+                text: "hello"
+            })
+
+
+
+            // console.log("chatMessage event run");
+
 
             // Send the chat message to the recipient if they're connected
             if (usertype === "Customer" || connectedProviders[toUserId]) {
@@ -105,8 +175,6 @@ export const initSocket = (server: HttpServer) => {
             }
         });
         socket.on("disconnect", () => {
-            console.log(`User with socket ID ${socket.id} disconnected`);
-
             // Mark user as offline
             const userId = socket.data.userId;
             if (userId) {

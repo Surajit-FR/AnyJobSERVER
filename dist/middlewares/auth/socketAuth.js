@@ -17,8 +17,9 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const user_model_1 = __importDefault(require("../../models/user.model"));
 // Middleware function to verify JWT token for socket connections
 const socketAuthMiddleware = (socket, next) => {
-    const JWT_SECRET = process.env.REFRESH_TOKEN_SECRET;
-    const token = socket.handshake.headers.accesstoken;
+    const JWT_SECRET = process.env.ACCESS_TOKEN_SECRET;
+    const token = socket.handshake.headers.accesstoken || socket.handshake.auth.accessToken;
+    console.log(token);
     if (!token) {
         return next(new Error("Authentication error: No token provided"));
     }
@@ -29,7 +30,6 @@ const socketAuthMiddleware = (socket, next) => {
         }
         const connectedUser = yield user_model_1.default.findById(decoded._id).select("-password -refreshToken");
         if (!connectedUser) {
-            console.log("---");
             return next(new Error("Authentication error: User not found"));
         }
         socket.data.userId = connectedUser._id;

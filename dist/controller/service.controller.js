@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.totalJobCount = exports.assignJob = exports.getServiceRequestByStatus = exports.fetchAssociatedCustomer = exports.fetchSingleServiceRequest = exports.fetchNearByServiceProvider = exports.fetchServiceRequest = exports.deleteService = exports.handleServiceRequestState = exports.updateServiceRequest = exports.getAcceptedServiceRequestInJobQueue = exports.getServiceRequestList = exports.addService = void 0;
+exports.fetchAssignedserviceProvider = exports.totalJobCount = exports.assignJob = exports.getJobByStatus = exports.getServiceRequestByStatus = exports.fetchAssociatedCustomer = exports.fetchSingleServiceRequest = exports.fetchNearByServiceProvider = exports.fetchServiceRequest = exports.deleteService = exports.handleServiceRequestState = exports.updateServiceRequest = exports.getAcceptedServiceRequestInJobQueue = exports.getServiceRequestList = exports.addService = void 0;
 const service_model_1 = __importDefault(require("../models/service.model"));
 const address_model_1 = __importDefault(require("../models/address.model"));
 const ApisErrors_1 = require("../utils/ApisErrors");
@@ -260,7 +260,7 @@ exports.updateServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __
         }
     }, { new: true });
     if (!updatedService) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, "Service not found for updating."));
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service not found for updating."));
     }
     ;
     return (0, response_1.sendSuccessResponse)(res, 200, updatedService, "Service Request updated Successfully");
@@ -277,7 +277,7 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
     }
     const serviceRequest = yield service_model_1.default.findById(serviceId);
     if (!serviceRequest) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, "Service not found."));
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service not found."));
     }
     let serviceProviderId = userId;
     //|| userType === "FieldAgent"
@@ -288,7 +288,7 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
         }
         const team = yield teams_model_1.default.findOne({ isDeleted: false, fieldAgentIds: userId }).select('serviceProviderId');
         if (!team || !team.serviceProviderId) {
-            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, 'Service Provider ID not found for team.'));
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, 'Service Provider ID not found for team.'));
         }
         serviceProviderId = team.serviceProviderId;
     }
@@ -307,7 +307,7 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
         ;
         const team = yield teams_model_1.default.findOne({ isDeleted: false, fieldAgentIds: userId }).select('serviceProviderId');
         if (!team || !team.serviceProviderId) {
-            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, 'Service Provider ID not found for team.'));
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, 'Service Provider ID not found for team.'));
         }
         serviceProviderId = team.serviceProviderId;
     }
@@ -337,7 +337,7 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
     }
     const updatedService = yield service_model_1.default.findByIdAndUpdate(serviceId, { $set: updateData }, { new: true });
     if (!updatedService) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, "Service not found for updating."));
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service not found for updating."));
     }
     // Calculate total duration if completedAt is available
     let totalExecutionTimeInMinutes = 0;
@@ -356,7 +356,7 @@ exports.deleteService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
     // Remove the Category from the database
     const deletedService = yield service_model_1.default.findByIdAndUpdate(serviceId, { $set: { isDeleted: true } });
     if (!deletedService) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, "Service  not found for deleting."));
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service  not found for deleting."));
     }
     ;
     return (0, response_1.sendSuccessResponse)(res, 200, {}, "Service deleted successfully");
@@ -364,6 +364,23 @@ exports.deleteService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
 // fetch nearby ServiceRequest controller
 exports.fetchServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
+    const { page = "1", limit = "10", query = '', sortBy = 'isIncentiveGiven', sortType = 'desc', categoryName = '' } = req.query;
+    const pageNumber = parseInt(page, 10) || 1;
+    const limitNumber = parseInt(limit, 10) || 10;
+    const skip = (pageNumber - 1) * limitNumber;
+    console.log(categoryName);
+    const searchQuery = Object.assign({ isDeleted: false }, (query && {
+        $or: [
+            { serviceAddress: { $regex: query, $options: "i" } },
+            { 'userId.firstName': { $regex: query, $options: "i" } },
+            { 'userId.lastName': { $regex: query, $options: "i" } },
+            { 'categoryDetails.name': { $regex: query, $options: "i" } },
+        ]
+    }));
+    const validSortBy = sortBy || 'isIncentiveGiven' || 'incentiveAmount';
+    const validSortType = sortType.toLowerCase() === 'desc' ? -1 : 1;
+    const sortCriteria = {};
+    sortCriteria[validSortBy] = validSortType;
     const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
     const userType = (_b = req.user) === null || _b === void 0 ? void 0 : _b.userType;
     let serviceProviderId;
@@ -378,11 +395,11 @@ exports.fetchServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __a
             }
         ]);
         if (team.length === 0) {
-            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, 'Team not found.'));
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, 'Team not found.'));
         }
         serviceProviderId = team[0].serviceProviderId;
         if (!serviceProviderId) {
-            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, 'Service Provider ID not found in team.'));
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, 'Service Provider ID not found in team.'));
         }
         address = yield address_model_1.default.findOne({ userId: serviceProviderId });
     }
@@ -400,8 +417,8 @@ exports.fetchServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __a
     if (isNaN(serviceRequestLongitude) || isNaN(serviceRequestLatitude)) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, `Invalid longitude or latitude`));
     }
-    const radius = 40000; // in meters
-    const pipeline = [
+    const radius = 400000000; // in meters
+    const serviceRequests = yield service_model_1.default.aggregate([
         {
             $geoNear: {
                 near: { type: 'Point', coordinates: [serviceRequestLongitude, serviceRequestLatitude] },
@@ -455,6 +472,10 @@ exports.fetchServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __a
                 path: "$categoryDetails",
             }
         },
+        { $match: searchQuery },
+        { $sort: { isIncentiveGiven: validSortType } },
+        { $skip: skip },
+        { $limit: limitNumber },
         {
             $project: {
                 categoryName: "$categoryDetails.name",
@@ -473,14 +494,20 @@ exports.fetchServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __a
             }
         },
         { $sort: { isIncentiveGiven: -1, incentiveAmount: -1 } }
-    ];
-    const serviceRequests = yield service_model_1.default.aggregate(pipeline);
+    ]);
     if (!serviceRequests.length) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, 'No nearby service request found.'));
+        return (0, response_1.sendSuccessResponse)(res, 200, serviceRequests, 'No nearby service request found');
     }
-    return (0, response_1.sendSuccessResponse)(res, 200, serviceRequests, 'Service requests fetched successfully');
+    const total = serviceRequests[0] ? serviceRequests.length : 0;
+    return (0, response_1.sendSuccessResponse)(res, 200, {
+        serviceRequests, pagination: {
+            totalRecords: total,
+            page: pageNumber,
+            limit: limitNumber
+        }
+    }, 'Service requests fetched successfully');
 }));
-//fetch nearby service provider and assign request
+//fetch nearby service provider 
 exports.fetchNearByServiceProvider = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { serviceRequestId } = req.params;
     if (!serviceRequestId) {
@@ -534,7 +561,7 @@ exports.fetchNearByServiceProvider = (0, asyncHandler_1.asyncHandler)((req, res)
     ];
     const serviceProviders = yield user_model_1.default.aggregate(pipeline);
     if (!serviceProviders.length) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, 'No nearby service providers found.'));
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, 'No nearby service providers found.'));
     }
     const updatePayload = {
         isReqAcceptedByServiceProvider: true,
@@ -837,6 +864,80 @@ exports.getServiceRequestByStatus = (0, asyncHandler_1.asyncHandler)((req, res) 
     const totalRequest = results.length;
     return (0, response_1.sendSuccessResponse)(res, 200, { results, totalRequest: totalRequest }, "Service request retrieved successfully.");
 }));
+//get service request for service provider
+exports.getJobByStatus = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const serviceProviderId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+    const { requestProgress } = req.body;
+    const progressFilter = requestProgress === "Accepted"
+        ? { requestProgress: { $in: ["Pending",] } }
+        : requestProgress === "Started"
+            ? { requestProgress: "Started" }
+            : { requestProgress };
+    const results = yield service_model_1.default.aggregate([
+        {
+            $match: Object.assign(Object.assign({}, progressFilter), { serviceProviderId: serviceProviderId })
+        },
+        {
+            $lookup: {
+                from: "categories",
+                foreignField: "_id",
+                localField: "categoryId",
+                as: "categoryId"
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$categoryId"
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "userId",
+                as: "userId",
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$userId"
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "assignedAgentId",
+                as: "assignedAgentId",
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$userId"
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                categoryName: '$categoryId.name',
+                requestProgress: 1,
+                customerFirstName: '$userId.firstName',
+                customerLastName: '$userId.lastName',
+                'assignedAgentId.firstName': 1,
+                'assignedAgentId.lastName': 1,
+                customerAvatar: '$userId.avatar',
+                createdAt: 1
+            }
+        },
+        { $sort: { createdAt: -1 } },
+    ]);
+    const totalRequest = results.length;
+    return (0, response_1.sendSuccessResponse)(res, 200, { results, totalRequest: totalRequest }, "Service request retrieved successfully.");
+}));
 exports.assignJob = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c;
     const userType = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userType;
@@ -848,26 +949,29 @@ exports.assignJob = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
     ;
     let isAssignable = true;
     if (userType === "TeamLead") {
-        const teamInfo = yield teams_model_1.default.findOne({ fieldAgentIds: (_c = req.user) === null || _c === void 0 ? void 0 : _c._id });
-        if (teamInfo) {
-            serviceProviderId = teamInfo === null || teamInfo === void 0 ? void 0 : teamInfo.serviceProviderId;
+        const permissions = yield permission_model_1.default.findOne({ userId: (_c = req.user) === null || _c === void 0 ? void 0 : _c._id }).select('assignJob');
+        if (!(permissions === null || permissions === void 0 ? void 0 : permissions.fieldAgentManagement)) {
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(403, 'Permission denied: Assign Job not granted.'));
         }
-        const agentUser = yield user_model_1.default.findById(assignedAgentId).select('userType');
-        isAssignable = (agentUser === null || agentUser === void 0 ? void 0 : agentUser.userType) === "FieldAgent" || (agentUser === null || agentUser === void 0 ? void 0 : agentUser.userType) === "TeamLead";
+        // const teamInfo = await TeamModel.findOne({ fieldAgentIds: req.user?._id });
+        // if (teamInfo) {
+        //     serviceProviderId = teamInfo?.serviceProviderId;
+        // }
+        // const agentUser = await UserModel.findById(assignedAgentId).select('userType');
+        // isAssignable = agentUser?.userType === "FieldAgent" || agentUser?.userType === "TeamLead";
     }
     ;
-    if (!isAssignable) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(403, "Assigned agent must be a FieldAgent."));
-    }
-    ;
+    // if (!isAssignable) {
+    //     return sendErrorResponse(res, new ApiError(403, "Assigned agent must be a FieldAgent."));
+    // };
     const updatedService = yield service_model_1.default.findByIdAndUpdate(serviceId, {
         $set: {
             assignedAgentId: new mongoose_1.default.Types.ObjectId(assignedAgentId),
-            serviceProviderId: serviceProviderId
+            // serviceProviderId: serviceProviderId
         }
     }, { new: true });
     if (!updatedService) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, "Service not found for updating."));
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service not found for assigning."));
     }
     ;
     return (0, response_1.sendSuccessResponse)(res, 200, updatedService, "Job assigned to the agent successfully.");
@@ -895,4 +999,75 @@ exports.totalJobCount = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
         }
     ]);
     return (0, response_1.sendSuccessResponse)(res, 200, jobData, "Job counts retrieved successfully.");
+}));
+exports.fetchAssignedserviceProvider = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { serviceId } = req.params;
+    if (!serviceId) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service ID is required."));
+    }
+    ;
+    const assignedSPDetails = yield service_model_1.default.aggregate([
+        {
+            $match: {
+                _id: new mongoose_1.default.Types.ObjectId(serviceId)
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "serviceProviderId",
+                as: "SP_Details"
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$SP_Details"
+            }
+        },
+        {
+            $lookup: {
+                from: "additionalinfos",
+                foreignField: "userId",
+                localField: "serviceProviderId",
+                as: "SP_Additional_Details"
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$SP_Additional_Details"
+            }
+        },
+        {
+            $addFields: {
+                spFullName: { $concat: ["$SP_Details.firstName", " ", "$SP_Details.lastName"] },
+                companyDesc: "$SP_Additional_Details.companyIntroduction",
+                backgroundCheck: {
+                    $cond: ["$SP_Details.isVerified", true, false]
+                },
+                licenseVerified: {
+                    $cond: ["$SP_Details.isVerified", true, false]
+                },
+                insuranceVerified: {
+                    $cond: ["$SP_Details.isVerified", true, false]
+                },
+                arrivalFee: {
+                    $cond: ["$SP_Additional_Details.isAnyArrivalFee", "$SP_Additional_Details.arrivalFee", 0]
+                },
+            }
+        },
+        {
+            $project: {
+                spFullName: 1,
+                companyDesc: 1,
+                backgroundCheck: 1,
+                licenseVerified: 1,
+                insuranceVerified: 1,
+                arrivalFee: 1
+            }
+        }
+    ]);
+    return (0, response_1.sendSuccessResponse)(res, 200, assignedSPDetails[0], "Assigned service provider retrieved successfully.");
 }));

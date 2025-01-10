@@ -12,6 +12,7 @@ export interface IUser extends Document {
     email: string;
     phone: string;
     dob: Date;
+    rawPassword: string;
     oldPassword: string;
     password: string;
     avatar: string;
@@ -47,6 +48,7 @@ export interface IAdditionalUserInfo extends Document {
     isReadAggrement: boolean;
     isAnyArrivalFee?: boolean;
     arrivalFee: number;
+    totalYearExperience: Number,
     isDeleted?: boolean;
     createdAt?: Date;
     updatedAt?: Date;
@@ -105,7 +107,7 @@ export interface IServiceSchema extends Document {
     serviceZipCode: string;
     serviceLatitude: string;
     serviceLongitude: string;
-    serviceAddress:string;
+    serviceAddress: string;
     location: IGeoJSONPoint;
     startedAt: Date;
     completedAt: Date;
@@ -262,6 +264,19 @@ export interface IChatListSchema {
     userId: ObjectId;
     chatWithUserId: ObjectId;
     lastMessage: string;
+    lastMessageAt: Date;
+    isRead?: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+export interface IBankDetailsSchema {
+    userId: ObjectId;
+    bankName: string;
+    accountHolderName: string;
+    branchCode: string;
+    accountNumber : number;
+    cardNumber : number;
+    accountHolderName: string;
     lastMessageAt: Date;
     isRead?: boolean;
     createdAt?: Date;

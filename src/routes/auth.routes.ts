@@ -78,7 +78,7 @@ router.route('/refresh-token').post(
 );
 
 router.route("/forget-password").post(forgetPassword);
-router.route("/reset-password").post([VerifyJWTToken], resetPassword);
+router.route("/reset-password").post( resetPassword);
 
 //check-token-expiration
 router.route("/check-token-expiration").get([VerifyJWTToken], CheckJWTTokenExpiration);

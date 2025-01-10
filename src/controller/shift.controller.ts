@@ -57,7 +57,7 @@ export const fetchShiftbyId = asyncHandler(async (req: Request, res: Response) =
     ]);
     const responseData = results.length
         ? sendSuccessResponse(res, 200, results[0], "Shift Timings retrieved successfully.")
-        : sendErrorResponse(res, new ApiError(404, "Shift not found."));
+        : sendErrorResponse(res, new ApiError(400, "Shift not found."));
     return responseData
 
 });
@@ -69,7 +69,7 @@ export const fetchShifs = asyncHandler(async (req: CustomRequest, res: Response)
 
     const responseData = results.length
         ? sendSuccessResponse(res, 200, results, "Shift Timings retrieved successfully.")
-        : sendErrorResponse(res, new ApiError(404, "Shift not found."));
+        : sendErrorResponse(res, new ApiError(400, "Shift not found."));
     return responseData;
 
 });
@@ -113,7 +113,7 @@ export const updateShift = asyncHandler(async (req: Request, res: Response) => {
     );
 
     if (!updatedShift) {
-        return sendErrorResponse(res, new ApiError(404, "Shift not found for updating."));
+        return sendErrorResponse(res, new ApiError(400, "Shift not found for updating."));
     };
 
     return sendSuccessResponse(res, 200, updatedShift, "Shift updated Successfully");
@@ -140,7 +140,7 @@ export const deleteShift = asyncHandler(async (req: Request, res: Response) => {
     );
 
     if (!deletedShift) {
-        return sendErrorResponse(res, new ApiError(404, "Shift not found for deleting."));
+        return sendErrorResponse(res, new ApiError(400, "Shift not found for deleting."));
     };
 
     return sendSuccessResponse(res, 200, {}, "Shift deleted Successfully");

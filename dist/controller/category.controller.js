@@ -98,7 +98,7 @@ exports.updateCategory = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
         ),
     }, { new: true });
     if (!updatedCategory) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, "Category not found for updating."));
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Category not found for updating."));
     }
     ;
     return (0, response_1.sendSuccessResponse)(res, 200, updatedCategory, "Category updated Successfully");
@@ -112,7 +112,7 @@ exports.deleteCategory = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
     ;
     const categoryToDelete = yield category_model_1.default.findById(CategoryId);
     if (!categoryToDelete) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, "Category not found for deleting."));
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Category not found for deleting."));
     }
     ;
     const imageUrls = [];
@@ -144,7 +144,7 @@ exports.getCategorieById = (0, asyncHandler_1.asyncHandler)((req, res) => __awai
     ;
     const categoryToFetch = yield category_model_1.default.findById(CategoryId);
     if (!categoryToFetch) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, "Category not found."));
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Category not found."));
     }
     ;
     return (0, response_1.sendSuccessResponse)(res, 200, categoryToFetch, "Category retrieved successfully.");

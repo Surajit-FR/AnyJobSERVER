@@ -6,8 +6,8 @@ const AdditionalUserInfoSchema: Schema<IAdditionalUserInfo> = new Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, require: true },
     companyName: { type: String, default: "", required: true },
     companyIntroduction: { type: String, default: "", },
-    driverLicense:  { type: String, default: "", },
-    driverLicenseImages: { type: [String], default: [] },   
+    driverLicense: { type: String, default: "", },
+    driverLicenseImages: { type: [String], default: [] },
     EIN: { type: String, default: "", },
     socialSecurity: { type: String, default: "", },
     companyLicense: { type: String, default: "", },
@@ -20,6 +20,7 @@ const AdditionalUserInfoSchema: Schema<IAdditionalUserInfo> = new Schema({
     isReadAggrement: { type: Boolean, default: false },
     isAnyArrivalFee: { type: Boolean, default: false },
     arrivalFee: { type: Number },
+    totalYearExperience: { type: Number, require: [true, "Total Year of Experience is Required."] },
     isDeleted: { type: Boolean, default: false }
 }, { timestamps: true });
 

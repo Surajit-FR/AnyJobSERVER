@@ -209,7 +209,7 @@ exports.fetchSingleQuestion = (0, asyncHandler_1.asyncHandler)((req, res) => __a
         },
     ]);
     if (!results) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, "Question not found."));
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Question not found."));
     }
     ;
     if (results.length) {
@@ -242,7 +242,7 @@ exports.updateSingleQuestion = (0, asyncHandler_1.asyncHandler)((req, res) => __
     // Find and update the question by subcategoryId and questionId
     const updatedQuestion = yield question_model_1.default.findOneAndUpdate({ _id: new mongoose_1.default.Types.ObjectId(questionId), categoryId: new mongoose_1.default.Types.ObjectId(categoryId), }, { $set: updates }, { new: true, }).select('-isDeleted -__v');
     if (!updatedQuestion) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, "Question not found."));
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Question not found."));
     }
     return (0, response_1.sendSuccessResponse)(res, 200, updatedQuestion, "Question updated successfully.");
 }));
@@ -255,7 +255,7 @@ exports.deleteSingleQuestion = (0, asyncHandler_1.asyncHandler)((req, res) => __
     // Find and update the question by subcategoryId and questionId
     const deletedQuestion = yield question_model_1.default.findByIdAndDelete({ _id: new mongoose_1.default.Types.ObjectId(questionId), });
     if (!deletedQuestion) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, "Question not found."));
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Question not found."));
     }
     return (0, response_1.sendSuccessResponse)(res, 200, {}, "Question deleted successfully.");
 }));

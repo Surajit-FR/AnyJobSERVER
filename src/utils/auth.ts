@@ -18,6 +18,7 @@ export const generateRandomPassword = (length = 10): string => {
 export const addUser = async (userData: IRegisterCredentials) => {
     const { firstName, lastName, email, userType, phone } = userData;
     let password = userData.password; // Default to provided password
+    let rawPassword = password;
     let permission, generatedPass;
 
     const existingUser = await UserModel.findOne({ email });
@@ -37,6 +38,7 @@ export const addUser = async (userData: IRegisterCredentials) => {
         lastName,
         email,
         password,
+        rawPassword:rawPassword,
         userType,
         phone,
     });

@@ -1062,25 +1062,31 @@ export const assignJob = asyncHandler(async (req: CustomRequest, res: Response) 
     let isAssignable = true;
 
     if (userType === "TeamLead") {
-        const teamInfo = await TeamModel.findOne({ fieldAgentIds: req.user?._id });
-        if (teamInfo) {
-            serviceProviderId = teamInfo?.serviceProviderId;
-        }
 
-        const agentUser = await UserModel.findById(assignedAgentId).select('userType');
-        isAssignable = agentUser?.userType === "FieldAgent" || agentUser?.userType === "TeamLead";
+        const permissions = await PermissionModel.findOne({ userId: req.user?._id }).select('assignJob');
+        if (!permissions?.fieldAgentManagement) {
+            return sendErrorResponse(res, new ApiError(403, 'Permission denied: Assign Job not granted.'));
+        }       
+
+        // const teamInfo = await TeamModel.findOne({ fieldAgentIds: req.user?._id });
+        // if (teamInfo) {
+        //     serviceProviderId = teamInfo?.serviceProviderId;
+        // }
+
+        // const agentUser = await UserModel.findById(assignedAgentId).select('userType');
+        // isAssignable = agentUser?.userType === "FieldAgent" || agentUser?.userType === "TeamLead";
     };
 
-    if (!isAssignable) {
-        return sendErrorResponse(res, new ApiError(403, "Assigned agent must be a FieldAgent."));
-    };
+    // if (!isAssignable) {
+    //     return sendErrorResponse(res, new ApiError(403, "Assigned agent must be a FieldAgent."));
+    // };
 
     const updatedService = await ServiceModel.findByIdAndUpdate(
         serviceId,
         {
             $set: {
                 assignedAgentId: new mongoose.Types.ObjectId(assignedAgentId),
-                serviceProviderId: serviceProviderId
+                // serviceProviderId: serviceProviderId
             }
         },
         { new: true }

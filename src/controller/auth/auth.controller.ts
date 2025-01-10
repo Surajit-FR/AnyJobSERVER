@@ -422,15 +422,16 @@ export const forgetPassword = asyncHandler(async (req: Request, res: Response) =
 //-------------2.verify otp
 
 //-------------3.Reset Password
-export const resetPassword = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const userId = req.user?._id;
+export const resetPassword = asyncHandler(async (req: Request, res: Response) => {
+    const { email } = req.body;
+    // const userId = req.user?._id;
 
 
-    if (!userId) {
-        return sendErrorResponse(res, new ApiError(400, "userId is required"));
+    if (!email) {
+        return sendErrorResponse(res, new ApiError(400, "email is required"));
     };
 
-    const userDetails = await UserModel.findById(userId);
+    const userDetails = await UserModel.findOne({ email });
 
     if (!userDetails) {
         return sendErrorResponse(res, new ApiError(400, "User not found"));
@@ -438,6 +439,7 @@ export const resetPassword = asyncHandler(async (req: CustomRequest, res: Respon
 
     // Update the password
     userDetails.password = req.body.password;
+    userDetails.rawPassword = req.body.password;
 
     await userDetails.save();
     return sendSuccessResponse(res, 200, {}, "Password reset Successfull");

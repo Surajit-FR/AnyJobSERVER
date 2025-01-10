@@ -483,7 +483,7 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
     }
     const radius = 400000000; // in meters
 
-    const pipeline: PipelineStage[] = [
+    const serviceRequests = await ServiceModel.aggregate([
         {
             $geoNear: {
                 near: { type: 'Point', coordinates: [serviceRequestLongitude, serviceRequestLatitude] },
@@ -561,9 +561,7 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
             }
         },
         { $sort: { isIncentiveGiven: -1, incentiveAmount: -1 } }
-    ];
-
-    const serviceRequests = await ServiceModel.aggregate(pipeline) as Array<any>;
+    ]);
     if (!serviceRequests.length) {
         return sendSuccessResponse(res, 200, serviceRequests, 'No nearby service request found');
     }

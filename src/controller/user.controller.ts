@@ -666,7 +666,17 @@ export const fetchAssociates = asyncHandler(async (req: CustomRequest, res: Resp
                 from: "users",
                 localField: "fieldAgentIds",
                 foreignField: "_id",
-                as: "teamMembers"
+                as: "teamMembers",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "permissions",
+                            localField: "_id",
+                            foreignField: "userId",
+                            as: "agentPermission"
+                        }
+                    }
+                ]
             }
         },
         {
@@ -681,7 +691,13 @@ export const fetchAssociates = asyncHandler(async (req: CustomRequest, res: Resp
                     lastName: 1,
                     email: 1,
                     phone: 1,
-                    userType: 1
+                    userType: 1,
+                    agentPermission: {
+                        _id: 1,
+                        acceptRequest: 1,
+                        assignJob: 1,
+                        fieldAgentManagement: 1,
+                    }
                 }
             }
         }

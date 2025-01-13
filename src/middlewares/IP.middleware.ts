@@ -21,7 +21,7 @@ export const captureIPMiddleware = asyncHandler(async (req: CustomRequest, res: 
         ? networkInterfaces['Ethernet'][0].address
         : 'localhost';
 
-    console.log('Server IP:', serverIP);
+    // console.log('Server IP:', serverIP);
 
     // Determine if it's IPv4 or IPv6
     const isIPv4 = /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/.test(standardizedIp);

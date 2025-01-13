@@ -12,7 +12,8 @@ import {
     forgetPassword,
     resetPassword,
     createAdminUsers,
-    saveFcmToken
+    saveFcmToken,
+    sendOTPEmail
 } from "../controller/auth/auth.controller";
 
 
@@ -83,7 +84,8 @@ router.route("/reset-password").post( resetPassword);
 //check-token-expiration
 router.route("/check-token-expiration").get([VerifyJWTToken], CheckJWTTokenExpiration);
 
-
+//emial verification 
+router.route("/send-code-email").post(sendOTPEmail);
 
 export default router;
 

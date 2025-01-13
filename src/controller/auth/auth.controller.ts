@@ -442,5 +442,41 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response) =>
     userDetails.rawPassword = req.body.password;
 
     await userDetails.save();
-    return sendSuccessResponse(res, 200,  "Password reset Successfull");
+    return sendSuccessResponse(res, 200, "Password reset successfull");
+});
+
+//verify email during sign up by email
+export const sendOTPEmail = asyncHandler(async (req: Request, res: Response) => {
+    const { email } = req.body
+    if (!email) {
+        return sendErrorResponse(res, new ApiError(400, "Email is required"));
+    };
+    const verificationCode = generateVerificationCode(5);
+    const expiredAt = new Date(Date.now() + 5 * 60 * 1000); // Expires in 5 minutes
+
+    await OTPModel.create({
+        // userId: email,
+        email: email,
+        otp: verificationCode,
+        expiredAt
+    });
+
+    const to = email;
+    const subject = "Verification code to reset password of your account";
+    const html = `Dear User,</br>
+  Please verify your email address to complete your registration.Your verification code is:
+</br>
+  <div style="background-color: #f0f0f0; padding: 10px; border-radius: 5px;">
+    <b><h2 style="margin: 5px 0;">Verification Code: ${verificationCode}</h2></b>
+  </div>`;
+    await sendMail(to, subject, html)
+    return res.status(200).json
+        (
+            new ApiResponse
+                (
+                    200,
+                    "Verification code sent to given email successfully"
+                )
+        );
+
 });

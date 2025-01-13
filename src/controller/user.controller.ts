@@ -726,13 +726,14 @@ export const assignTeamLead = asyncHandler(async (req: CustomRequest, res: Respo
         }
 
         const fieldAgent = await UserModel.findById(fieldAgentId);
-        if (fieldAgent?.userType === "teamlead") {
+        if (fieldAgent?.userType === "TeamLead") {
+            return sendSuccessResponse(res, 200, "This agent is already a teamlead.");
             return res.status(400).json({ message: "This agent is already a teamlead." });
         };
 
         const updatedFieldAgent = await UserModel.findByIdAndUpdate(
             fieldAgentId,
-            { userType: "teamlead" },
+            { userType: "TeamLead" },
             { new: true }
         );
 
@@ -740,10 +741,7 @@ export const assignTeamLead = asyncHandler(async (req: CustomRequest, res: Respo
             return res.status(500).json({ message: "Failed to update user role to teamlead." });
         }
 
-        res.status(200).json({
-            message: "Field agent promoted to team lead successfully.",
-            teamLead: updatedFieldAgent
-        });
+        return sendSuccessResponse(res, 200, updatedFieldAgent, "Field agent promoted to team lead successfully.");
     } catch (error) {
         console.error("Error promoting field agent to team lead:", error);
         res.status(500).json({ message: "An error occurred while assigning team lead." });
@@ -895,3 +893,39 @@ export const fetchIPlogs = asyncHandler(async (req: CustomRequest, res: Response
 
 });
 
+
+export const updateUser = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const userId = req.user?._id;
+
+    if (!userId) {
+        return sendErrorResponse(res, new ApiError(400, "User ID is required."));
+    };
+
+    const { firstName, lastName }: { firstName: string, lastName: string } = req.body;
+    const userAvtarFile = req.files as { [key: string]: Express.Multer.File[] } | undefined;
+    const userImgFile = userAvtarFile?.userImage ? userAvtarFile.userImage[0] : undefined;
+
+    let userImgUrl;
+    if (userImgFile) {
+        const userImg = await uploadOnCloudinary(userImgFile.path);
+        userImgUrl = userImg?.secure_url;
+    }
+
+    const updatedUser = await UserModel.findByIdAndUpdate(
+        { _id: userId },
+        {
+            $set: {
+                firstName: firstName,
+                lastName: lastName,
+                ...(userImgUrl && { avatar: userImgUrl }) // Only update image if uploaded
+            },
+        },
+        { new: true }
+    );
+
+    if (!updatedUser) {
+        return sendSuccessResponse(res, 200, updatedUser, "User not found for updating.");
+    };
+
+    return sendSuccessResponse(res, 200, updatedUser, "User updated Successfully");
+});

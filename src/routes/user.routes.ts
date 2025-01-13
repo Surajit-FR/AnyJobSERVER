@@ -15,7 +15,8 @@ import {
     assignTeamLead,
     getAgentEngagementStatus,
     getAdminUsersList,
-    fetchIPlogs
+    fetchIPlogs,
+    updateUser
 } from "../controller/user.controller";
 import { givePermission, getUserPermissions } from "../controller/permission.controller";
 import { captureIPMiddleware } from "../middlewares/IP.middleware";
@@ -66,6 +67,10 @@ router.route('/get-agent-engagement').get(verifyUserType(["SuperAdmin", "Service
 router.route('/u/:userId')
     .get(verifyUserType(["SuperAdmin", "ServiceProvider"]), getSingleUser)
     .patch(verifyUserType(["SuperAdmin"]), captureIPMiddleware, banUser);
+
+router.route('/update-user').put(verifyUserType(['SuperAdmin', 'ServiceProvider', 'Customer', 'FieldAgent', 'TeamLead']), upload.fields([
+    { name: "userImage" },
+]), updateUser);
 
 router.route('/verify/:serviceProviderId').patch(
     verifyUserType(["SuperAdmin"]),

@@ -52,6 +52,7 @@ export const getUser = asyncHandler(async (req: CustomRequest, res: Response) =>
                 'additionalInfo.isDeleted': 0,
                 'userAddress.__v': 0,
                 'userAddress.isDeleted': 0,
+                rawPassword: 0
             }
         }
     ]);
@@ -288,6 +289,7 @@ export const getServiceProviderList = asyncHandler(async (req: Request, res: Res
                 'fieldAgents.refreshToken': 0,
                 'fieldAgents.isDeleted': 0,
                 'fieldAgents.__v': 0,
+                rawPassword: 0
             }
         },
         { $sort: sortCriteria },
@@ -345,6 +347,7 @@ export const getRegisteredCustomerList = asyncHandler(async (req: Request, res: 
                 __v: 0,
                 refreshToken: 0,
                 password: 0,
+                rawPassword: 0
             }
         },
         { $sort: { [sortField]: sortDirection } },
@@ -397,6 +400,7 @@ export const getAdminUsersList = asyncHandler(async (req: Request, res: Response
                 __v: 0,
                 refreshToken: 0,
                 password: 0,
+                rawPassword: 0
             }
         },
         { $sort: { [sortField]: sortDirection } },
@@ -449,6 +453,8 @@ export const getUsers = asyncHandler(async (req: Request, res: Response) => {
                 'additionalInfo.isDeleted': 0,
                 'userAddress.__v': 0,
                 'userAddress.isDeleted': 0,
+                rawPassword: 0
+
             }
         }
     ]);
@@ -568,6 +574,7 @@ export const getSingleUser = asyncHandler(async (req: Request, res: Response) =>
                 CompletedServices: 0,
                 Services: 0,
                 newServices: 0,
+                rawPassword: 0
             }
         }
     ]);
@@ -697,7 +704,9 @@ export const fetchAssociates = asyncHandler(async (req: CustomRequest, res: Resp
                         acceptRequest: 1,
                         assignJob: 1,
                         fieldAgentManagement: 1,
-                    }
+                    },
+                    rawPassword: 0
+
                 }
             }
         }
@@ -864,6 +873,7 @@ export const getAgentEngagementStatus = asyncHandler(async (req: CustomRequest, 
                 "userAddress.isDeleted": 0,
                 "teamMembers.__v": 0,
                 "teamMembers.isDeleted": 0,
+                rawPassword: 0
             },
         },
     ]);
@@ -921,7 +931,7 @@ export const updateUser = asyncHandler(async (req: CustomRequest, res: Response)
             },
         },
         { new: true }
-    );
+    ).select('-rawPassword');
 
     if (!updatedUser) {
         return sendSuccessResponse(res, 200, updatedUser, "User not found for updating.");

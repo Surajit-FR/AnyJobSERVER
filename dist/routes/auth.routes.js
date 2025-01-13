@@ -32,4 +32,6 @@ router.route("/forget-password").post(auth_controller_1.forgetPassword);
 router.route("/reset-password").post(auth_controller_1.resetPassword);
 //check-token-expiration
 router.route("/check-token-expiration").get([userAuth_1.VerifyJWTToken], auth_1.CheckJWTTokenExpiration);
+//emial verification 
+router.route("/send-code-email").post(auth_controller_1.sendOTPEmail);
 exports.default = router;

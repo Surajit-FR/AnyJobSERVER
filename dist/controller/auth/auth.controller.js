@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.resetPassword = exports.forgetPassword = exports.AuthUserSocial = exports.refreshAccessToken = exports.logoutUser = exports.saveFcmToken = exports.loginUser = exports.registerUser = exports.createAdminUsers = exports.addAssociate = exports.cookieOption = exports.fetchUserData = void 0;
+exports.sendOTPEmail = exports.resetPassword = exports.forgetPassword = exports.AuthUserSocial = exports.refreshAccessToken = exports.logoutUser = exports.saveFcmToken = exports.loginUser = exports.registerUser = exports.createAdminUsers = exports.addAssociate = exports.cookieOption = exports.fetchUserData = void 0;
 const user_model_1 = __importDefault(require("../../models/user.model"));
 const ApisErrors_1 = require("../../utils/ApisErrors");
 const auth_1 = require("../../utils/auth");
@@ -375,5 +375,31 @@ exports.resetPassword = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
     userDetails.password = req.body.password;
     userDetails.rawPassword = req.body.password;
     yield userDetails.save();
-    return (0, response_1.sendSuccessResponse)(res, 200, "Password reset Successfull");
+    return (0, response_1.sendSuccessResponse)(res, 200, "Password reset successfull");
+}));
+//verify email during sign up by email
+exports.sendOTPEmail = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { email } = req.body;
+    if (!email) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Email is required"));
+    }
+    ;
+    const verificationCode = (0, otp_controller_1.generateVerificationCode)(5);
+    const expiredAt = new Date(Date.now() + 5 * 60 * 1000); // Expires in 5 minutes
+    yield otp_model_1.default.create({
+        // userId: email,
+        email: email,
+        otp: verificationCode,
+        expiredAt
+    });
+    const to = email;
+    const subject = "Verification code to reset password of your account";
+    const html = `Dear User,</br>
+  Please verify your email address to complete your registration.Your verification code is:
+</br>
+  <div style="background-color: #f0f0f0; padding: 10px; border-radius: 5px;">
+    <b><h2 style="margin: 5px 0;">Verification Code: ${verificationCode}</h2></b>
+  </div>`;
+    yield (0, sendMail_1.sendMail)(to, subject, html);
+    return res.status(200).json(new ApiResponse_1.ApiResponse(200, "Verification code sent to given email successfully"));
 }));

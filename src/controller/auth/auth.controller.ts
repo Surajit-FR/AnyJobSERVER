@@ -194,16 +194,25 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
     const loggedInUser = await fetchUserData(user._id)
 
     if (user.userType === "ServiceProvider") {
+        // Fetch additional info and address by userId
         const userAddress = await AddressModel.findOne({ userId: user._id });
-        const userAdditionalInfo = await AdditionalInfoModel.findOne({ userId: user._id })
+        const userAdditionalInfo = await AdditionalInfoModel.findOne({ userId: user._id });
+
         if (!userAddress && !userAdditionalInfo) {
             return sendErrorResponse(res, new ApiError(403, "Your account is created but please add address & your additional information.", [], { accessToken }));
-        } else {
-            if (!user.isVerified) {
-                return sendErrorResponse(res, new ApiError(403, "Your account verification is under process. Please wait for confirmation.", [], { accessToken }));
-            };
         }
-    };
+
+        if (!user.isVerified) {
+            return sendErrorResponse(res, new ApiError(403, "Your account verification is under process. Please wait for confirmation.", [], { accessToken }));
+        }
+
+        // Include address and additional info in the response
+        loggedInUser[0] = {
+            ...loggedInUser[0],
+            address: userAddress || null,
+            additionalInfo: userAdditionalInfo || null,
+        };
+    }
 
     return res.status(200)
         .cookie("accessToken", accessToken, cookieOption)

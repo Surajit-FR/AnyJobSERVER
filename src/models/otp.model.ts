@@ -5,7 +5,7 @@ import { string } from "joi";
 const otpSchema: Schema<IOTPSchema> = new Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
-        required: true,
+        // required: true,
     },
     phoneNumber: {
         type: String,

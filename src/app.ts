@@ -8,7 +8,7 @@ import { EXPRESS_CONFIG_LIMIT } from './constants';
 
 
 app.use(cors({
-    origin: ["https://frontend.theassure.co.uk", "http://localhost:3000", process.env.CORS_ORIGIN as string, "http://http://ec2-65-2-73-95.ap-south-1.compute.amazonaws.com", "http://65.2.73.95"],
+    origin: ["https://frontend.theassure.co.uk", "http://localhost:3000", process.env.CORS_ORIGIN as string, "http://ec2-65-2-73-95.ap-south-1.compute.amazonaws.com", "http://65.2.73.95"],
     // origin: "*",
     credentials: true,
 }));

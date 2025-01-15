@@ -12,6 +12,8 @@ import { asyncHandler } from "../utils/asyncHandler";
 import mongoose from 'mongoose';
 import { deleteUploadedFiles } from '../middlewares/multer.middleware';
 import IPLog from '../models/IP.model';
+import BankDetails from '../models/bankDetails.model';
+import { getCardType } from '../utils/auth';
 
 
 // get loggedin user
@@ -319,6 +321,7 @@ export const getRegisteredCustomerList = asyncHandler(async (req: Request, res: 
     const sortDirection = sortType === "asc" ? 1 : -1;
 
     const sortField = typeof sortBy === 'string' ? sortBy : "createdAt";
+    console.log("sortBy==",);
 
     const searchFilter = {
         $or: [
@@ -918,7 +921,7 @@ export const updateUser = asyncHandler(async (req: CustomRequest, res: Response)
     if (userImgFile) {
         const userImg = await uploadOnCloudinary(userImgFile.path);
         userImgUrl = userImg?.secure_url;
-    }    
+    }
 
     const updatedUser = await UserModel.findByIdAndUpdate(
         { _id: userId },
@@ -937,4 +940,106 @@ export const updateUser = asyncHandler(async (req: CustomRequest, res: Response)
     };
 
     return sendSuccessResponse(res, 200, updatedUser, "User updated Successfully");
+});
+
+export const getIpLogs = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const { page = 1, limit = 10, query = '', sortBy = 'timestamp', sortType = 'desc' } = req.query;
+
+    const pageNumber = parseInt(page as string, 10);
+    const limitNumber = parseInt(limit as string, 10);
+
+    const searchQuery = query
+        ? {
+            $or: [
+                { method: { $regex: query, $options: "i" } },
+                { route: { $regex: query, $options: "i" } },
+                { hostname: { $regex: query, $options: "i" } },
+                { ipAddress: { $regex: query, $options: "i" } }
+            ]
+        }
+        : {};
+
+    const matchCriteria = {
+        userId: req.user?._id,
+        ...searchQuery
+    };
+
+    const sortCriteria: any = {};
+    sortCriteria[sortBy as string] = sortType === 'desc' ? -1 : 1;
+
+    const results = await IPLog.aggregate([
+        { $match: matchCriteria },
+
+        {
+            $lookup: {
+                from: "users",
+                localField: "userId",
+                foreignField: "_id",
+                as: "userId"
+            }
+        },
+        {
+            $project: {
+                __v: 0,
+                isDeleted: 0,
+                refreshToken: 0,
+                password: 0,
+                'userId.__v': 0,
+                'userId.isDeleted': 0,
+                'userId.password': 0,
+                'userId.refreshToken': 0,
+                'userId.rawPassword': 0,
+                'userId.isVerified': 0,
+                'userId.createdAt': 0,
+                'userId.updatedAt': 0,
+                'userId.fcmToken': 0,
+            }
+        },
+        { $sort: sortCriteria },
+        { $skip: (pageNumber - 1) * limitNumber },
+        { $limit: limitNumber }
+    ]);
+
+    const totalRecords = await IPLog.countDocuments(matchCriteria);
+
+    return sendSuccessResponse(res, 200, {
+        ipLogs: results,
+        pagination: {
+            total: totalRecords,
+            page: pageNumber,
+            limit: limitNumber
+        }
+    }, "IPLogs retrieved successfully.");
+});
+
+// Add address for the user
+export const addBankDetails = asyncHandler(async (req: CustomRequest, res: Response) => {
+
+    const { bankName, accountHolderName, branchCode, accountNumber, cardNumber, cardHolderName } = req.body;
+
+
+
+    const existingAddress = await BankDetails.findOne({ userId: req.user?._id });
+
+    if (existingAddress) {
+        return sendErrorResponse(res, new ApiError(400, "Bank Details already exists for this user"));
+    }
+
+    var cardType = getCardType(cardNumber ? cardNumber : "visa")
+
+
+    const userAddress = new BankDetails({
+        userId: req.user?._id,
+        bankName,
+        accountHolderName,
+        branchCode,
+        accountNumber,
+        cardNumber,
+        cardHolderName,
+        cardType
+    });
+
+    const savedBankDetails = await userAddress.save();
+
+    return sendSuccessResponse(res, 201, savedBankDetails, "Bank Details added successfully");
 });

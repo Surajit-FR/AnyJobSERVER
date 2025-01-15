@@ -274,11 +274,10 @@ export interface IBankDetailsSchema {
     bankName: string;
     accountHolderName: string;
     branchCode: string;
-    accountNumber : number;
-    cardNumber : number;
-    accountHolderName: string;
-    lastMessageAt: Date;
-    isRead?: boolean;
+    accountNumber : string;
+    cardNumber : string;
+    cardType : string;
+    cardHolderName: string;
     createdAt?: Date;
     updatedAt?: Date;
 }

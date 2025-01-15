@@ -1,4 +1,4 @@
-import { Schema, model } from "mongoose";
+import mongoose, { Schema, model } from "mongoose";
 
 const IPLogSchema = new Schema({
     ipAddress: {
@@ -23,7 +23,7 @@ const IPLogSchema = new Schema({
         default: {},
     },
     referer: { type: String, default: "Direct Access" },
-    userId: { type: String, },
+    userId: { type: Schema.Types.ObjectId, },
     userType: { type: String, },
     timestamp: {
         type: Date,

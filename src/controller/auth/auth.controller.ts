@@ -177,10 +177,11 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
         return sendErrorResponse(res, new ApiError(403, "Your account is banned from a AnyJob."));
     };
 
-    // Check for admin panel access
+    // Check for admin panel access  
     if (isAdminPanel) {
-        if (user.userType !== 'SuperAdmin') {
-            return sendErrorResponse(res, new ApiError(403, "Access denied. Only SuperAdmins can log in to the admin panel."));
+        const allowedAdminTypes = ['SuperAdmin', 'Admin', 'Finance'];
+        if (!allowedAdminTypes.includes(user.userType)) {
+            return sendErrorResponse(res, new ApiError(403, "Access denied. Only authorized users can log in to the admin panel."));
         }
     }
 
@@ -263,7 +264,7 @@ export const saveFcmToken = asyncHandler(async (req: CustomRequest, res: Respons
     const user = await UserModel.findById(userId);
 
     if (!user) {
-        return sendErrorResponse(res, new ApiError(400, "User does not exist"))
+        return sendSuccessResponse(res, 200, 'User does not exist');
     }
 
     user.fcmToken = fcmToken;

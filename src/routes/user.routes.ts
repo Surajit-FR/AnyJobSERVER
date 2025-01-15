@@ -16,11 +16,13 @@ import {
     getAgentEngagementStatus,
     getAdminUsersList,
     fetchIPlogs,
-    updateUser
+    updateUser,
+    getIpLogs,
+    addBankDetails
 } from "../controller/user.controller";
 import { givePermission, getUserPermissions } from "../controller/permission.controller";
 import { captureIPMiddleware } from "../middlewares/IP.middleware";
-import { getJobByStatus } from "../controller/service.controller";
+import { getJobByStatus, getJobByStatusByAgent } from "../controller/service.controller";
 
 
 const router: Router = express.Router();
@@ -59,6 +61,9 @@ router.route('/get-admin-users').get(getAdminUsersList);
 //fetch users List
 router.route('/get-users').get(getUsers);
 
+//fetch iplogs
+router.route('/fetch-iplogs').get(verifyUserType(["SuperAdmin", "Admin", "Finance"]), getIpLogs);
+
 //fetch associate List
 router.route('/get-associates').get(verifyUserType(["SuperAdmin", "ServiceProvider"]), fetchAssociates);
 router.route('/get-agent-engagement').get(verifyUserType(["SuperAdmin", "ServiceProvider"]), getAgentEngagementStatus);
@@ -92,9 +97,18 @@ router.route("/fetch-iplogs").get(verifyUserType(['SuperAdmin']), fetchIPlogs);
 
 router.route('/fetch-job-by-status').post(
     [VerifyJWTToken],
-    verifyUserType(["ServiceProvider"]),
+    verifyUserType(["ServiceProvider",]),
     getJobByStatus
 );
+
+router.route('/fetch-job-by-status-by-agent').post(
+    [VerifyJWTToken],
+    verifyUserType(["FieldAgent", "TeamLead"]),
+    getJobByStatusByAgent
+);
+
+router.route('/add-bank-details').post(verifyUserType(["ServiceProvider", "Customer", "Admin", "Finance", "FieldAgent", "TeamLead"]), addBankDetails);
+
 
 
 

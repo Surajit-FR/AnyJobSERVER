@@ -150,14 +150,6 @@ export const initSocket = (server: HttpServer) => {
 
             await updateChatList(userId, toUserId, content, now);
             await updateChatList(toUserId, userId, content, now);
-            io.emit("chatMessage", {
-                text: "hello"
-            })
-
-
-
-            // console.log("chatMessage event run");
-
 
             // Send the chat message to the recipient if they're connected
             if (usertype === "Customer" || connectedProviders[toUserId]) {

@@ -132,6 +132,8 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
             return sendSuccessResponse(res, 200, "OTP Verified Successfully");
         case "verifyEmail":
             return sendSuccessResponse(res, 200, "OTP Verified Successfully");
+        case "verifyPhone":
+            return sendSuccessResponse(res, 200, "OTP Verified Successfully");
 
         default:
             return sendErrorResponse(res, new ApiError(400, "Invalid purpose"));

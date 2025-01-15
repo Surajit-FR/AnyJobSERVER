@@ -705,7 +705,6 @@ export const fetchAssociates = asyncHandler(async (req: CustomRequest, res: Resp
                         assignJob: 1,
                         fieldAgentManagement: 1,
                     },
-                    rawPassword: 0
 
                 }
             }
@@ -919,7 +918,7 @@ export const updateUser = asyncHandler(async (req: CustomRequest, res: Response)
     if (userImgFile) {
         const userImg = await uploadOnCloudinary(userImgFile.path);
         userImgUrl = userImg?.secure_url;
-    }
+    }    
 
     const updatedUser = await UserModel.findByIdAndUpdate(
         { _id: userId },

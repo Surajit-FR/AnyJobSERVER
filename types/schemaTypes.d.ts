@@ -223,17 +223,13 @@ export interface IPermissionSchema extends Document {
 export interface IIPLogSchema extends Document {
     _id: ObjectId;
     ipAddress: string;
-    ipType: "IPv4" | "IPv6" | "Unknown";
+    country: string;
+    region: string;
+    latitude: string;
+    longitude: string;
+    timezone: string;
+    version: string;
     route: string;
-    method: string;
-    protocol: string;
-    hostname: string;
-    queryParams: Record<string, any>; // Stores query parameters as a key-value object
-    headers: {
-        contentType?: string;
-        userAgent?: string;
-    };
-    referer: string;
     userId: string;
     userType: string;
     timestamp: Date;
@@ -274,9 +270,9 @@ export interface IBankDetailsSchema {
     bankName: string;
     accountHolderName: string;
     branchCode: string;
-    accountNumber : string;
-    cardNumber : string;
-    cardType : string;
+    accountNumber: string;
+    cardNumber: string;
+    cardType: string;
     cardHolderName: string;
     createdAt?: Date;
     updatedAt?: Date;

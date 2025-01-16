@@ -1,55 +1,56 @@
-import { Response, NextFunction } from 'express';
+import { Response, NextFunction, Request } from 'express';
 import { asyncHandler } from '../utils/asyncHandler';
 import { CustomRequest } from '../../types/commonType';
 import IPLog from '../models/IP.model';
 import os from 'os';
+import axios from "axios";
 
 
 
-export const captureIPMiddleware = asyncHandler(async (req: CustomRequest, res: Response, next: NextFunction) => {
-    // console.log("Middleware runs...");
+export const captureIP = asyncHandler(async (req: Request, res: Response) => {
 
-    // Extract the IP address
-    const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
+    try {
+        const {
+            ipAddress,
+            country,
+            region,
+            latitude,
+            longitude,
+            timezone,
+            version,
+            route,
+            userId,
+            userType,
+        } = req.body;
 
-    // Standardize localhost IP
-    const standardizedIp = ip === "::1" ? "127.0.0.1" : (ip as string);
+        if (!ipAddress || !country || !region || !latitude || !longitude || !timezone || !version || !route) {
+            return res.status(400).json({ message: "All required fields must be provided." });
+        }
 
-    const networkInterfaces = os.networkInterfaces();
+        // Create a new IPLog document
+        const newLog = await IPLog.create({
+            ipAddress,
+            country,
+            region,
+            latitude,
+            longitude,
+            timezone,
+            version,
+            route,
+            userId: userId || null,
+            userType: userType || null,
+        });
 
-    const serverIP = networkInterfaces['Ethernet']
-        ? networkInterfaces['Ethernet'][0].address
-        : 'localhost';
+        // Respond with the created log entry
+        res.status(201).json({
+            message: "IP Log entry created successfully.",
+            log: newLog,
+        });
+    } catch (error) {
+        console.error("Error creating IP log:", error);
+        res.status(500).json({
+            message: "An error occurred while creating the IP log.",
+        });
+    }
 
-    // console.log('Server IP:', serverIP);
-
-    // Determine if it's IPv4 or IPv6
-    const isIPv4 = /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/.test(standardizedIp);
-    const isIPv6 = /^[a-fA-F0-9:]+$/.test(standardizedIp) && !isIPv4;
-
-    const logDetails = {
-        ipAddress: standardizedIp,
-        ipType: isIPv4 ? "IPv4" : isIPv6 ? "IPv6" : "Unknown",
-        route: req.originalUrl,
-        method: req.method,
-        protocol: req.protocol,
-        hostname: req.hostname,
-        queryParams: req.query,
-        headers: {
-            contentType: req.headers["content-type"],
-            userAgent: req.headers["user-agent"],
-        },
-        // cookies: req.cookies || "No Cookies",
-        referer: req.headers["referer"] || req.headers["referrer"] || "Direct Access",
-        userId: req.user?._id,
-        userType: req.user?.userType,
-        timestamp: new Date(),
-    };
-
-
-    // Save the details in the database
-    const logEntry = new IPLog(logDetails);
-    await logEntry.save();
-
-    next();
 });

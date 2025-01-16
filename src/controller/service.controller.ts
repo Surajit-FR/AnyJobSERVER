@@ -1080,12 +1080,29 @@ export const getJobByStatusByAgent = asyncHandler(async (req: CustomRequest, res
                 path: "$categoryId"
             }
         },
+        
         {
             $lookup: {
                 from: "users",
                 foreignField: "_id",
                 localField: "userId",
                 as: "userId",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: 'ratings',
+                            foreignField: "ratedTo",
+                            localField: "_id",
+                            as: "userRatings"
+                        }
+                    },
+                    {
+                        $addFields: {
+                            totalRatings: { $ifNull: [{ $size: "$userRatings" }, 0] },
+                            userAvgRating: { $ifNull: [{ $avg: "$userRatings.rating" }, 0] }
+                        }
+                    }
+                ]
             }
         },
         {
@@ -1113,11 +1130,15 @@ export const getJobByStatusByAgent = asyncHandler(async (req: CustomRequest, res
                 _id: 1,
                 categoryName: '$categoryId.name',
                 requestProgress: 1,
+                isIncentiveGiven:1,
+                incentiveAmount:1,
                 customerFirstName: '$userId.firstName',
                 customerLastName: '$userId.lastName',
                 'assignedAgentId.firstName': 1,
                 'assignedAgentId.lastName': 1,
                 customerAvatar: '$userId.avatar',
+                totalCustomerRatings: '$userId.totalRatings',
+                customerAvgRating: '$userId.userAvgRating',
                 createdAt: 1
 
             }

@@ -21,8 +21,9 @@ import {
     addBankDetails
 } from "../controller/user.controller";
 import { givePermission, getUserPermissions } from "../controller/permission.controller";
-import { captureIPMiddleware } from "../middlewares/IP.middleware";
 import { getJobByStatus, getJobByStatusByAgent } from "../controller/service.controller";
+import { captureIP } from "../middlewares/IP.middleware";
+
 
 
 const router: Router = express.Router();
@@ -71,7 +72,7 @@ router.route('/get-agent-engagement').get(verifyUserType(["SuperAdmin", "Service
 
 router.route('/u/:userId')
     .get(verifyUserType(["SuperAdmin", "ServiceProvider"]), getSingleUser)
-    .patch(verifyUserType(["SuperAdmin"]), captureIPMiddleware, banUser);
+    .patch(verifyUserType(["SuperAdmin"]), banUser);
 
 router.route('/update-user').put(verifyUserType(['SuperAdmin', 'ServiceProvider', 'Customer', 'FieldAgent', 'TeamLead']), upload.fields([
     { name: "userImage" },
@@ -79,7 +80,6 @@ router.route('/update-user').put(verifyUserType(['SuperAdmin', 'ServiceProvider'
 
 router.route('/verify/:serviceProviderId').patch(
     verifyUserType(["SuperAdmin"]),
-    captureIPMiddleware,
     verifyServiceProvider
 );
 
@@ -89,7 +89,7 @@ router.route('/assign-teamlead').post(
     assignTeamLead
 );
 
-router.route("/give-permission").post(verifyUserType(['SuperAdmin', 'ServiceProvider']), captureIPMiddleware, givePermission);
+router.route("/give-permission").post(verifyUserType(['SuperAdmin', 'ServiceProvider']), givePermission);
 
 router.route("/fetch-permission").get(verifyUserType(['SuperAdmin', 'ServiceProvider']), getUserPermissions);
 
@@ -108,6 +108,9 @@ router.route('/fetch-job-by-status-by-agent').post(
 );
 
 router.route('/add-bank-details').post(verifyUserType(["ServiceProvider", "Customer", "Admin", "Finance", "FieldAgent", "TeamLead"]), addBankDetails);
+
+
+router.route('/create-iplog').post(verifyUserType(["ServiceProvider", "Customer", "Admin", "Finance", "FieldAgent", "TeamLead"]), captureIP);
 
 
 

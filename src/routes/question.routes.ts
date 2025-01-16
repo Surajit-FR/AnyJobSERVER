@@ -8,23 +8,22 @@ import {
     fetchQuestions,
     deleteSingleQuestion
 } from "../controller/question.controller";
-import { captureIPMiddleware } from "../middlewares/IP.middleware";
 
 const router: Router = express.Router();
 router.use(VerifyJWTToken);
 
 router.route('/')
-    .post(verifyUserType(['SuperAdmin']), captureIPMiddleware, addQuestions)
+    .post(verifyUserType(['SuperAdmin']),  addQuestions)
     .get(fetchQuestions);
 
 // router.route('/:categoryId').get(fetchQuestionsCategorywise);
 
 router.route('/q/:categoryId/:questionId')
     .get(fetchSingleQuestion)
-    .patch(verifyUserType(["SuperAdmin"]), captureIPMiddleware, updateSingleQuestion)
+    .patch(verifyUserType(["SuperAdmin"]),  updateSingleQuestion)
 
 router.route('/q/:questionId')
-    .delete(verifyUserType(["SuperAdmin"]), captureIPMiddleware, deleteSingleQuestion);
+    .delete(verifyUserType(["SuperAdmin"]),  deleteSingleQuestion);
 
 
 

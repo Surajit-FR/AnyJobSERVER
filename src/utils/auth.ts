@@ -7,6 +7,8 @@ import { fetchUserData } from "../controller/auth/auth.controller";
 import {  Request, Response } from "express";
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { sendErrorResponse } from "./response";
+import cardValidator from 'card-validator';
+
 
 
 export const generateRandomPassword = (length = 10): string => {
@@ -107,3 +109,17 @@ export const CheckJWTTokenExpiration = async (req: Request, res: Response) => {
         return sendErrorResponse(res, new ApiError(500, "Internal Server Error"));
     }
 };
+
+
+export function getCardType(cardNumber: string): string {
+    const cardInfo = cardValidator.number(cardNumber);
+
+    if (cardInfo.isPotentiallyValid && cardInfo.card) {
+        return cardInfo.card.type; // Returns card type like 'visa', 'mastercard', etc.
+    }
+    return 'Unknown';
+}
+
+const cardNumber = "4111111111111111";
+// console.log(`Card Type: ${getCardType(cardNumber)}`);
+

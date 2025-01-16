@@ -177,10 +177,11 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
         return sendErrorResponse(res, new ApiError(403, "Your account is banned from a AnyJob."));
     };
 
-    // Check for admin panel access
+    // Check for admin panel access  
     if (isAdminPanel) {
-        if (user.userType !== 'SuperAdmin') {
-            return sendErrorResponse(res, new ApiError(403, "Access denied. Only SuperAdmins can log in to the admin panel."));
+        const allowedAdminTypes = ['SuperAdmin', 'Admin', 'Finance'];
+        if (!allowedAdminTypes.includes(user.userType)) {
+            return sendErrorResponse(res, new ApiError(403, "Access denied. Only authorized users can log in to the admin panel."));
         }
     }
 
@@ -192,18 +193,50 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, user._id);
     const loggedInUser = await fetchUserData(user._id)
+    const filteredUser = {
+        _id: loggedInUser[0]._id,
+        firstName: loggedInUser[0].firstName,
+        lastName: loggedInUser[0].lastName,
+        email: loggedInUser[0].email,
+        userType: loggedInUser[0].userType,
+        isVerified: loggedInUser[0].isVerified,
+        avatar: loggedInUser[0].avatar,
+        permission: loggedInUser[0].permission,
+    };
 
     if (user.userType === "ServiceProvider") {
-        const userAddress = await AddressModel.findOne({ userId: user._id });
-        const userAdditionalInfo = await AdditionalInfoModel.findOne({ userId: user._id })
+        // Fetch additional info and address by userId
+        const userAddress = await AddressModel.findOne({ userId: user._id }).select('_id userId zipCode addressType location ');
+        const userAdditionalInfo = await AdditionalInfoModel.findOne({ userId: user._id });
+
         if (!userAddress && !userAdditionalInfo) {
             return sendErrorResponse(res, new ApiError(403, "Your account is created but please add address & your additional information.", [], { accessToken }));
-        } else {
-            if (!user.isVerified) {
-                return sendErrorResponse(res, new ApiError(403, "Your account verification is under process. Please wait for confirmation.", [], { accessToken }));
-            };
         }
-    };
+
+        if (!user.isVerified) {
+            return sendErrorResponse(res, new ApiError(403, "Your account verification is under process. Please wait for confirmation.", [], { accessToken }));
+        }
+
+        // Include address and additional info in the response
+        const loggedInUser = {
+            ...filteredUser,
+            address: userAddress || null,
+            additionalInfo: userAdditionalInfo || null,
+        };
+
+        return res.status(200)
+            .cookie("accessToken", accessToken, cookieOption)
+            .cookie("refreshToken", refreshToken, cookieOption)
+            .json
+            (
+                new ApiResponse
+                    (
+                        200,
+                        { user: loggedInUser, accessToken, refreshToken },
+                        "User logged In successfully"
+                    )
+            );
+    }
 
     return res.status(200)
         .cookie("accessToken", accessToken, cookieOption)
@@ -213,7 +246,7 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
             new ApiResponse
                 (
                     200,
-                    { user: loggedInUser[0], accessToken, refreshToken },
+                    { user: filteredUser, accessToken, refreshToken },
                     "User logged In successfully"
                 )
         );
@@ -231,7 +264,7 @@ export const saveFcmToken = asyncHandler(async (req: CustomRequest, res: Respons
     const user = await UserModel.findById(userId);
 
     if (!user) {
-        return sendErrorResponse(res, new ApiError(400, "User does not exist"))
+        return sendSuccessResponse(res, 200, 'User does not exist');
     }
 
     user.fcmToken = fcmToken;

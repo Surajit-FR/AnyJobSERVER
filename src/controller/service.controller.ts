@@ -1049,6 +1049,88 @@ export const getJobByStatus = asyncHandler(async (req: CustomRequest, res: Respo
     return sendSuccessResponse(res, 200, { results, totalRequest: totalRequest }, "Service request retrieved successfully.");
 });
 
+//get service request for field agent
+export const getJobByStatusByAgent = asyncHandler(async (req: CustomRequest, res: Response) => {
+    // console.log(req.user?._id);
+    const assignedAgentId = req.user?._id
+    const { requestProgress } = req.body;
+    const progressFilter =
+                 requestProgress === "Assigned" ? { requestProgress: "Pending", assignedAgentId: req.user?._id }
+
+                    : { requestProgress };
+
+    const results = await ServiceModel.aggregate([
+        {
+            $match: {
+                ...progressFilter,
+                assignedAgentId: assignedAgentId
+            }
+        },
+        {
+            $lookup: {
+                from: "categories",
+                foreignField: "_id",
+                localField: "categoryId",
+                as: "categoryId"
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$categoryId"
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "userId",
+                as: "userId",
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$userId"
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "assignedAgentId",
+                as: "assignedAgentId",
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$userId"
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                categoryName: '$categoryId.name',
+                requestProgress: 1,
+                customerFirstName: '$userId.firstName',
+                customerLastName: '$userId.lastName',
+                'assignedAgentId.firstName': 1,
+                'assignedAgentId.lastName': 1,
+                customerAvatar: '$userId.avatar',
+                createdAt: 1
+
+            }
+        },
+        { $sort: { createdAt: -1 } },
+
+    ]);
+
+    const totalRequest = results.length;
+
+    return sendSuccessResponse(res, 200, { results, totalRequest: totalRequest }, "Service request retrieved successfully.");
+});
+
 
 export const assignJob = asyncHandler(async (req: CustomRequest, res: Response) => {
     const userType = req.user?.userType;

@@ -33,6 +33,8 @@ router.route('/get-registered-customers').get(user_controller_1.getRegisteredCus
 router.route('/get-admin-users').get(user_controller_1.getAdminUsersList);
 //fetch users List
 router.route('/get-users').get(user_controller_1.getUsers);
+//fetch iplogs
+router.route('/fetch-iplogs').get((0, userAuth_1.verifyUserType)(["SuperAdmin", "Admin", "Finance"]), user_controller_1.getIpLogs);
 //fetch associate List
 router.route('/get-associates').get((0, userAuth_1.verifyUserType)(["SuperAdmin", "ServiceProvider"]), user_controller_1.fetchAssociates);
 router.route('/get-agent-engagement').get((0, userAuth_1.verifyUserType)(["SuperAdmin", "ServiceProvider"]), user_controller_1.getAgentEngagementStatus);
@@ -47,5 +49,7 @@ router.route('/assign-teamlead').post([userAuth_1.VerifyJWTToken], (0, userAuth_
 router.route("/give-permission").post((0, userAuth_1.verifyUserType)(['SuperAdmin', 'ServiceProvider']), IP_middleware_1.captureIPMiddleware, permission_controller_1.givePermission);
 router.route("/fetch-permission").get((0, userAuth_1.verifyUserType)(['SuperAdmin', 'ServiceProvider']), permission_controller_1.getUserPermissions);
 router.route("/fetch-iplogs").get((0, userAuth_1.verifyUserType)(['SuperAdmin']), user_controller_1.fetchIPlogs);
-router.route('/fetch-job-by-status').post([userAuth_1.VerifyJWTToken], (0, userAuth_1.verifyUserType)(["ServiceProvider"]), service_controller_1.getJobByStatus);
+router.route('/fetch-job-by-status').post([userAuth_1.VerifyJWTToken], (0, userAuth_1.verifyUserType)(["ServiceProvider",]), service_controller_1.getJobByStatus);
+router.route('/fetch-job-by-status-by-agent').post([userAuth_1.VerifyJWTToken], (0, userAuth_1.verifyUserType)(["FieldAgent", "TeamLead"]), service_controller_1.getJobByStatusByAgent);
+router.route('/add-bank-details').post((0, userAuth_1.verifyUserType)(["ServiceProvider", "Customer", "Admin", "Finance", "FieldAgent", "TeamLead"]), user_controller_1.addBankDetails);
 exports.default = router;

@@ -129,10 +129,6 @@ const initSocket = (server) => {
             const now = new Date();
             yield (0, chat_controller_1.updateChatList)(userId, toUserId, content, now);
             yield (0, chat_controller_1.updateChatList)(toUserId, userId, content, now);
-            io.emit("chatMessage", {
-                text: "hello"
-            });
-            // console.log("chatMessage event run");
             // Send the chat message to the recipient if they're connected
             if (usertype === "Customer" || connectedProviders[toUserId]) {
                 io.to(connectedProviders[toUserId]).emit("chatMessage", {

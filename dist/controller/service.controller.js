@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fetchAssignedserviceProvider = exports.totalJobCount = exports.assignJob = exports.getJobByStatus = exports.getServiceRequestByStatus = exports.fetchAssociatedCustomer = exports.fetchSingleServiceRequest = exports.fetchNearByServiceProvider = exports.fetchServiceRequest = exports.deleteService = exports.handleServiceRequestState = exports.updateServiceRequest = exports.getAcceptedServiceRequestInJobQueue = exports.getServiceRequestList = exports.addService = void 0;
+exports.fetchAssignedserviceProvider = exports.totalJobCount = exports.assignJob = exports.getJobByStatusByAgent = exports.getJobByStatus = exports.getServiceRequestByStatus = exports.fetchAssociatedCustomer = exports.fetchSingleServiceRequest = exports.fetchNearByServiceProvider = exports.fetchServiceRequest = exports.deleteService = exports.handleServiceRequestState = exports.updateServiceRequest = exports.getAcceptedServiceRequestInJobQueue = exports.getServiceRequestList = exports.addService = void 0;
 const service_model_1 = __importDefault(require("../models/service.model"));
 const address_model_1 = __importDefault(require("../models/address.model"));
 const ApisErrors_1 = require("../utils/ApisErrors");
@@ -877,6 +877,78 @@ exports.getJobByStatus = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
     const results = yield service_model_1.default.aggregate([
         {
             $match: Object.assign(Object.assign({}, progressFilter), { serviceProviderId: serviceProviderId })
+        },
+        {
+            $lookup: {
+                from: "categories",
+                foreignField: "_id",
+                localField: "categoryId",
+                as: "categoryId"
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$categoryId"
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "userId",
+                as: "userId",
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$userId"
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "assignedAgentId",
+                as: "assignedAgentId",
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$userId"
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                categoryName: '$categoryId.name',
+                requestProgress: 1,
+                customerFirstName: '$userId.firstName',
+                customerLastName: '$userId.lastName',
+                'assignedAgentId.firstName': 1,
+                'assignedAgentId.lastName': 1,
+                customerAvatar: '$userId.avatar',
+                createdAt: 1
+            }
+        },
+        { $sort: { createdAt: -1 } },
+    ]);
+    const totalRequest = results.length;
+    return (0, response_1.sendSuccessResponse)(res, 200, { results, totalRequest: totalRequest }, "Service request retrieved successfully.");
+}));
+//get service request for field agent
+exports.getJobByStatusByAgent = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
+    // console.log(req.user?._id);
+    const assignedAgentId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+    const { requestProgress } = req.body;
+    const progressFilter = requestProgress === "Assigned" ? { requestProgress: "Pending", assignedAgentId: (_b = req.user) === null || _b === void 0 ? void 0 : _b._id }
+        : { requestProgress };
+    const results = yield service_model_1.default.aggregate([
+        {
+            $match: Object.assign(Object.assign({}, progressFilter), { assignedAgentId: assignedAgentId })
         },
         {
             $lookup: {

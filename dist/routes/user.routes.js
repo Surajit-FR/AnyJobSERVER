@@ -8,8 +8,8 @@ const multer_middleware_1 = require("../middlewares/multer.middleware");
 const userAuth_1 = require("../middlewares/auth/userAuth");
 const user_controller_1 = require("../controller/user.controller");
 const permission_controller_1 = require("../controller/permission.controller");
-const IP_middleware_1 = require("../middlewares/IP.middleware");
 const service_controller_1 = require("../controller/service.controller");
+const IP_middleware_1 = require("../middlewares/IP.middleware");
 const router = express_1.default.Router();
 //Protected routes for users
 router.use(userAuth_1.VerifyJWTToken);
@@ -40,16 +40,17 @@ router.route('/get-associates').get((0, userAuth_1.verifyUserType)(["SuperAdmin"
 router.route('/get-agent-engagement').get((0, userAuth_1.verifyUserType)(["SuperAdmin", "ServiceProvider"]), user_controller_1.getAgentEngagementStatus);
 router.route('/u/:userId')
     .get((0, userAuth_1.verifyUserType)(["SuperAdmin", "ServiceProvider"]), user_controller_1.getSingleUser)
-    .patch((0, userAuth_1.verifyUserType)(["SuperAdmin"]), IP_middleware_1.captureIPMiddleware, user_controller_1.banUser);
+    .patch((0, userAuth_1.verifyUserType)(["SuperAdmin"]), user_controller_1.banUser);
 router.route('/update-user').put((0, userAuth_1.verifyUserType)(['SuperAdmin', 'ServiceProvider', 'Customer', 'FieldAgent', 'TeamLead']), multer_middleware_1.upload.fields([
     { name: "userImage" },
 ]), user_controller_1.updateUser);
-router.route('/verify/:serviceProviderId').patch((0, userAuth_1.verifyUserType)(["SuperAdmin"]), IP_middleware_1.captureIPMiddleware, user_controller_1.verifyServiceProvider);
+router.route('/verify/:serviceProviderId').patch((0, userAuth_1.verifyUserType)(["SuperAdmin"]), user_controller_1.verifyServiceProvider);
 router.route('/assign-teamlead').post([userAuth_1.VerifyJWTToken], (0, userAuth_1.verifyUserType)(["ServiceProvider"]), user_controller_1.assignTeamLead);
-router.route("/give-permission").post((0, userAuth_1.verifyUserType)(['SuperAdmin', 'ServiceProvider']), IP_middleware_1.captureIPMiddleware, permission_controller_1.givePermission);
+router.route("/give-permission").post((0, userAuth_1.verifyUserType)(['SuperAdmin', 'ServiceProvider']), permission_controller_1.givePermission);
 router.route("/fetch-permission").get((0, userAuth_1.verifyUserType)(['SuperAdmin', 'ServiceProvider']), permission_controller_1.getUserPermissions);
 router.route("/fetch-iplogs").get((0, userAuth_1.verifyUserType)(['SuperAdmin']), user_controller_1.fetchIPlogs);
 router.route('/fetch-job-by-status').post([userAuth_1.VerifyJWTToken], (0, userAuth_1.verifyUserType)(["ServiceProvider",]), service_controller_1.getJobByStatus);
 router.route('/fetch-job-by-status-by-agent').post([userAuth_1.VerifyJWTToken], (0, userAuth_1.verifyUserType)(["FieldAgent", "TeamLead"]), service_controller_1.getJobByStatusByAgent);
 router.route('/add-bank-details').post((0, userAuth_1.verifyUserType)(["ServiceProvider", "Customer", "Admin", "Finance", "FieldAgent", "TeamLead"]), user_controller_1.addBankDetails);
+router.route('/create-iplog').post((0, userAuth_1.verifyUserType)(["ServiceProvider", "Customer", "Admin", "Finance", "FieldAgent", "TeamLead"]), IP_middleware_1.captureIP);
 exports.default = router;

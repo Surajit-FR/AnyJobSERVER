@@ -9,6 +9,8 @@ import { Request, Response } from "express";
 import { generateAccessAndRefreshToken } from '../utils/createTokens';
 import { fetchUserData, cookieOption } from './auth/auth.controller';
 import { ApiResponse } from '../utils/ApiResponse';
+import TeamModel from '../models/teams.model';
+import AdditionalInfoModel from '../models/userAdditionalInfo.model';
 
 authenticator.options = {
     step: 300,
@@ -97,8 +99,10 @@ export const sendOTP = asyncHandler(async (req: Request, res: Response) => {
 
 //         return sendSuccessResponse(res, 400, "Invalid or expired OTP");
 //     }
+//     const defaultOtp = "12345";
 
-//     if (otpEntry.otp !== otp) {
+
+//     if (otpEntry.otp !== defaultOtp) {
 //         return sendSuccessResponse(res, 400, "Invalid OTP");
 //     }
 
@@ -162,7 +166,7 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
     const otpEntry = await OTPModel.findOne({ [queryField]: formattedIdentifier });
 
     // Set default OTP for testing in non-production environments
-    const defaultOtp = process.env.DEFAULT_OTP || "12345"; 
+    const defaultOtp = process.env.DEFAULT_OTP || "12345";
     const isOtpValid = otp === defaultOtp || (otpEntry && otpEntry.otp === otp);
 
     if (!otpEntry || otpEntry.expiredAt < new Date()) {
@@ -186,15 +190,24 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
                 return sendErrorResponse(res, new ApiError(400, "User does not exist"));
             }
 
+            const serviceProviderInfo = await TeamModel.findOne({ fieldAgentIds: user._id })
+            const companyDetails = await AdditionalInfoModel.findOne({ userId: serviceProviderInfo?.serviceProviderId }).select('companyName companyIntroduction businessName')
+            console.log(serviceProviderInfo);
+
+
             const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, user._id);
             const loggedInUser = await fetchUserData(user._id);
+            const agentData = {
+                loggedInUser:loggedInUser[0],
+                companyDetails:companyDetails
+            }
 
             return res
                 .status(200)
                 .cookie("accessToken", accessToken, cookieOption)
                 .cookie("refreshToken", refreshToken, cookieOption)
                 .json(
-                    new ApiResponse(200, { user: loggedInUser[0], accessToken, refreshToken }, "User logged in successfully")
+                    new ApiResponse(200, { user: agentData, accessToken, refreshToken }, "User logged in successfully")
                 );
         }
 

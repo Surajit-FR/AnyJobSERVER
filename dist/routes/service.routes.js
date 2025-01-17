@@ -6,7 +6,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const userAuth_1 = require("../middlewares/auth/userAuth");
 const service_controller_1 = require("../controller/service.controller");
-const IP_middleware_1 = require("../middlewares/IP.middleware");
 const router = express_1.default.Router();
 router.use(userAuth_1.VerifyJWTToken); // Apply verifyJWT middleware to all routes in this file
 router.route('/')
@@ -22,7 +21,7 @@ router.route('/assign-job')
     .patch((0, userAuth_1.verifyUserType)(['ServiceProvider', 'TeamLead']), service_controller_1.assignJob);
 router.route("/c/:serviceId")
     .get((0, userAuth_1.verifyUserType)(['SuperAdmin', "ServiceProvider", "Customer"]), service_controller_1.fetchSingleServiceRequest)
-    .delete((0, userAuth_1.verifyUserType)(['SuperAdmin']), IP_middleware_1.captureIPMiddleware, service_controller_1.deleteService)
-    .put((0, userAuth_1.verifyUserType)(['SuperAdmin', 'ServiceProvider']), IP_middleware_1.captureIPMiddleware, service_controller_1.updateServiceRequest)
+    .delete((0, userAuth_1.verifyUserType)(['SuperAdmin']), service_controller_1.deleteService)
+    .put((0, userAuth_1.verifyUserType)(['SuperAdmin', 'ServiceProvider']), service_controller_1.updateServiceRequest)
     .patch((0, userAuth_1.verifyUserType)(["ServiceProvider", 'TeamLead', 'FieldAgent']), service_controller_1.handleServiceRequestState);
 exports.default = router;

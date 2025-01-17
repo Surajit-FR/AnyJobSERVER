@@ -5,24 +5,32 @@ const IPLogSchema = new Schema({
         type: String,
         required: true,
     },
-    ipType: {
+    country: {
+        type: String,
+        required: true,
+    },
+    region: {
+        type: String,
+        required: true,
+    },
+    latitude: {
+        type: String,
+        required: true,
+    },
+    longitude: {
+        type: String,
+        required: true,
+    },
+    timezone: {
+        type: String,
+        required: true,
+    },
+    version: {
         type: String,
         enum: ["IPv4", "IPv6", "Unknown"],
         required: true
     },
     route: { type: String, required: true },
-    method: { type: String, required: true },
-    protocol: { type: String, required: true },
-    hostname: { type: String, required: true },
-    queryParams: { type: Schema.Types.Mixed, default: {} },
-    headers: {
-        type: new Schema({
-            contentType: { type: String },
-            userAgent: { type: String },
-        }),
-        default: {},
-    },
-    referer: { type: String, default: "Direct Access" },
     userId: { type: Schema.Types.ObjectId, },
     userType: { type: String, },
     timestamp: {

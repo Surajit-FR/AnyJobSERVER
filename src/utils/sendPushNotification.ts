@@ -16,12 +16,15 @@ const serviceAccount = {
     universe_domain: process.env.FIREBASE_UNIVERSE_DOMAIN,
 };
 
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount as any),
-});
 
 // Function to send notification
+
 export default async function sendNotification(token: string, title: string, body: string, data?: Record<string, string>) {
+
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount as any),
+    });
+
     const message = {
         notification: { title, body },
         data: data || {},

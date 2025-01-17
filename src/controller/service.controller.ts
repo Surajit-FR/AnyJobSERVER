@@ -13,6 +13,7 @@ import UserModel from "../models/user.model";
 import { PipelineStage } from 'mongoose';
 import axios from "axios";
 import { date } from "joi";
+import sendNotification from "../utils/sendPushNotification";
 
 
 
@@ -299,6 +300,7 @@ export const updateServiceRequest = asyncHandler(async (req: Request, res: Respo
 
 // handleServiceRequestState controller
 export const handleServiceRequestState = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const registrationToken = "dXt8fLvzy9s:APA91bEYQH12Iu6jfsFv2I6yDd6bLfTRN6AqY6fjEDpD7YDeDRH5I7XXjWxcbPxyErmc7KjUjHiEnJ0K7yOHgdP_xUq8c9zcp6F5Bcwb0s_fi_NDszErlr3sB5P5Wf8ItvPH4ch5vwbb";
     const userType = req.user?.userType;
     let userId = req.user?._id;
     const { serviceId } = req.params;
@@ -311,6 +313,8 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
     if (!serviceRequest) {
         return sendErrorResponse(res, new ApiError(400, "Service not found."));
     }
+    const customerDetails = await UserModel.findById(serviceRequest?.userId)
+    let userFcm, notiTitle, notiBody;
 
     let serviceProviderId = userId;
     //|| userType === "FieldAgent"
@@ -355,24 +359,42 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
         updateData.serviceProviderId = serviceProviderId;
 
         switch (serviceRequest.requestProgress) {
+
+            case "NotStarted":
+                console.log("case1:NotStarted");
+
+                if (requestProgress === "Pending") {
+                    updateData.requestProgress = "Pending";
+                }
+                userFcm = customerDetails?.fcmToken || ""
+                notiTitle = "Service Requested Accepted "
+                notiBody = `Your Service Request is accepted by ${req.user?.firstName} ${req.user?.lastName}`
+                // const notifyUser = await sendNotification(userFcm, notiTitle, notiBody)
+                break;
+
             case "Pending":
+                console.log("case2:Pending");
+
                 if (requestProgress === "Started") {
                     updateData.requestProgress = "Started";
                     updateData.startedAt = new Date();
                 }
                 break;
+
             case "Started":
                 if (requestProgress === "Completed") {
                     updateData.requestProgress = "Completed";
                     updateData.completedAt = new Date();
                 }
                 break;
+
             default:
                 updateData.requestProgress = requestProgress;
                 if (requestProgress === "Cancelled") {
                     updateData.isReqAcceptedByServiceProvider = false;
                 }
                 break;
+
         }
     }
 
@@ -1055,9 +1077,9 @@ export const getJobByStatusByAgent = asyncHandler(async (req: CustomRequest, res
     const assignedAgentId = req.user?._id
     const { requestProgress } = req.body;
     const progressFilter =
-                 requestProgress === "Assigned" ? { requestProgress: "Pending", assignedAgentId: req.user?._id }
+        requestProgress === "Assigned" ? { requestProgress: "Pending", assignedAgentId: req.user?._id }
 
-                    : { requestProgress };
+            : { requestProgress };
 
     const results = await ServiceModel.aggregate([
         {
@@ -1080,7 +1102,7 @@ export const getJobByStatusByAgent = asyncHandler(async (req: CustomRequest, res
                 path: "$categoryId"
             }
         },
-        
+
         {
             $lookup: {
                 from: "users",
@@ -1130,8 +1152,8 @@ export const getJobByStatusByAgent = asyncHandler(async (req: CustomRequest, res
                 _id: 1,
                 categoryName: '$categoryId.name',
                 requestProgress: 1,
-                isIncentiveGiven:1,
-                incentiveAmount:1,
+                isIncentiveGiven: 1,
+                incentiveAmount: 1,
                 customerFirstName: '$userId.firstName',
                 customerLastName: '$userId.lastName',
                 'assignedAgentId.firstName': 1,
@@ -1169,7 +1191,7 @@ export const assignJob = asyncHandler(async (req: CustomRequest, res: Response) 
         const permissions = await PermissionModel.findOne({ userId: req.user?._id }).select('assignJob');
         if (!permissions?.fieldAgentManagement) {
             return sendErrorResponse(res, new ApiError(403, 'Permission denied: Assign Job not granted.'));
-        }       
+        }
 
         // const teamInfo = await TeamModel.findOne({ fieldAgentIds: req.user?._id });
         // if (teamInfo) {
@@ -1302,3 +1324,4 @@ export const fetchAssignedserviceProvider = asyncHandler(async (req: CustomReque
     return sendSuccessResponse(res, 200, assignedSPDetails[0], "Assigned service provider retrieved successfully.");
 
 });
+

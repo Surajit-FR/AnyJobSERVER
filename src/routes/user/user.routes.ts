@@ -15,6 +15,9 @@ import {
 import { VerifyJWTToken, verifyUserType } from "../../middlewares/auth/userAuth";
 import { fetchNearByServiceProvider, getServiceRequestByStatus, fetchAssignedserviceProvider } from "../../controller/service.controller";
 
+import { sendQueryMessage } from "../../controller/contactUs.controller"
+
+
 const router: Router = express.Router();
 
 //without token
@@ -41,11 +44,17 @@ router.route('/nearby-services-providers/:serviceRequestId')
 // protected customer routes------------
 
 router.use(VerifyJWTToken);
+
+
 router.route('/get-service-request')
     .post(verifyUserType(["Customer"]), getServiceRequestByStatus);
 
 router.route('/fetch-assigned-sp/:serviceId')
     .get(verifyUserType(["Customer"]), fetchAssignedserviceProvider);
+
+router.route('/send-query-message').post(verifyUserType(["Customer"]), sendQueryMessage);
+
+
 
 
 

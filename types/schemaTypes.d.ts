@@ -233,7 +233,7 @@ export interface IIPLogSchema extends Document {
     userId: string;
     userType: string;
     timestamp: Date;
-}
+};
 
 export interface INotificationSchema extends Document {
     _id: ObjectId;
@@ -245,7 +245,7 @@ export interface INotificationSchema extends Document {
     isRead: boolean;
     createdAt: Date;
     updatedAt?: Date;
-}
+};
 
 export interface IChatSchema {
     fromUserId: ObjectId;
@@ -254,7 +254,7 @@ export interface IChatSchema {
     isRead?: boolean;
     createdAt?: Date;
     updatedAt?: Date;
-}
+};
 
 export interface IChatListSchema {
     userId: ObjectId;
@@ -264,7 +264,7 @@ export interface IChatListSchema {
     isRead?: boolean;
     createdAt?: Date;
     updatedAt?: Date;
-}
+};
 export interface IBankDetailsSchema {
     userId: ObjectId;
     bankName: string;
@@ -276,6 +276,26 @@ export interface IBankDetailsSchema {
     cardHolderName: string;
     createdAt?: Date;
     updatedAt?: Date;
-}
+};
 
+export interface IContactUsSchema {
+    fullName: string;
+    email: string;
+    contactNumber: string;
+    message: string;
+    senderId: ObjectId;
+    receiverId: ObjectId;
+    isRead: boolean;
+    isDeleted: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
+};
+export interface IUserPreferenceSchema {
+    userId: ObjectId;
+    userType: string
+    notificationPreference: boolean;
+    isDeleted: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
+};
 

@@ -9,6 +9,9 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
 import { sendErrorResponse } from "./response";
 import cardValidator from 'card-validator';
 import UserPreferenceModel from "../models/userPreference.model";
+import mongoose from "mongoose";
+import { projectManagement } from "firebase-admin";
+import { promises } from "dns";
 
 
 
@@ -133,4 +136,16 @@ export function getCardType(cardNumber: string): string {
 
 const cardNumber = "4111111111111111";
 // console.log(`Card Type: ${getCardType(cardNumber)}`);
+
+export async function isNotificationPreferenceOn(userId: string) {
+    let isOn
+
+    const result = await UserPreferenceModel.findOne(
+        { userId: new mongoose.Types.ObjectId(userId) }
+    ).select('notificationPreference');
+  
+    isOn = result?.notificationPreference;
+    return isOn;
+};
+
 

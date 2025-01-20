@@ -14,6 +14,7 @@ import { PipelineStage } from 'mongoose';
 import axios from "axios";
 import { date } from "joi";
 import sendNotification from "../utils/sendPushNotification";
+import { isNotificationPreferenceOn } from "../utils/auth";
 
 
 
@@ -300,7 +301,7 @@ export const cancelServiceRequest = asyncHandler(async (req: CustomRequest, res:
 export const addorUpdateIncentive = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { incentiveAmount, serviceId }: { isIncentiveGiven: boolean, incentiveAmount: number, serviceId: string } = req.body;
 
-    if (!serviceId ||!incentiveAmount) {
+    if (!serviceId || !incentiveAmount) {
         return sendErrorResponse(res, new ApiError(400, "Service ID, incentive check and incentive amount is required."));
     };
 
@@ -458,11 +459,17 @@ export const deleteService = asyncHandler(async (req: Request, res: Response) =>
 
 // fetch nearby ServiceRequest controller
 export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {
+
+    const isNotificationOn = await isNotificationPreferenceOn(req.user?._id as string)
+
+    if (!isNotificationOn) {
+        return sendSuccessResponse(res, 200, "Notification permission is off.")
+    }
+
     const { page = "1", limit = "10", query = '', sortBy = 'isIncentiveGiven', sortType = 'desc', categoryName = '' } = req.query;
     const pageNumber = parseInt(page as string, 10) || 1;
     const limitNumber = parseInt(limit as string, 10) || 10;
     const skip = (pageNumber - 1) * limitNumber;
-    console.log(categoryName);
 
     const searchQuery = {
         isDeleted: false,

@@ -273,29 +273,52 @@ export const getAcceptedServiceRequestInJobQueue = asyncHandler(async (req: Cust
 });
 
 // updateService controller
-export const updateServiceRequest = asyncHandler(async (req: Request, res: Response) => {
-    const { serviceId } = req.params;
-    const { isApproved }: { isApproved: Boolean } = req.body;
-    // console.log(req.params);
+export const cancelServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const { requestProgress, serviceId }: { requestProgress: string, serviceId: string } = req.body;
 
-    if (!serviceId) {
-        return sendErrorResponse(res, new ApiError(400, "Service ID is required."));
+    if (!serviceId || !requestProgress) {
+        return sendErrorResponse(res, new ApiError(400, "Service ID and request progress is required."));
     };
 
-    const updatedService = await ServiceModel.findByIdAndUpdate(
-        { _id: new mongoose.Types.ObjectId(serviceId) },
+    const updatedService = await ServiceModel.findOneAndUpdate(
+        { _id: new mongoose.Types.ObjectId(serviceId), userId: req.user?._id },
         {
             $set: {
-                isApproved,
+                requestProgress: "Cancelled",
             }
         }, { new: true }
     );
 
     if (!updatedService) {
-        return sendErrorResponse(res, new ApiError(400, "Service not found for updating."));
+        return sendSuccessResponse(res, 200, "Service not found for updating.");
     };
 
-    return sendSuccessResponse(res, 200, updatedService, "Service Request updated Successfully");
+    return sendSuccessResponse(res, 200, "Service Request cancelled Successfully");
+});
+
+// updateService controller
+export const addorUpdateIncentive = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const { incentiveAmount, serviceId }: { isIncentiveGiven: boolean, incentiveAmount: number, serviceId: string } = req.body;
+
+    if (!serviceId ||!incentiveAmount) {
+        return sendErrorResponse(res, new ApiError(400, "Service ID, incentive check and incentive amount is required."));
+    };
+
+    const updatedService = await ServiceModel.findOneAndUpdate(
+        { _id: new mongoose.Types.ObjectId(serviceId), userId: req.user?._id },
+        {
+            $set: {
+                isIncentiveGiven: true,
+                incentiveAmount
+            }
+        }, { new: true }
+    );
+
+    if (!updatedService) {
+        return sendSuccessResponse(res, 200, "Service request not found for updating.");
+    };
+
+    return sendSuccessResponse(res, 200, "Incentive added for the service request.");
 });
 
 // handleServiceRequestState controller

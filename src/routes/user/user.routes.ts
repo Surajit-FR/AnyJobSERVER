@@ -13,7 +13,7 @@ import {
     fetchSingleQuestion
 } from "../../controller/question.controller"
 import { VerifyJWTToken, verifyUserType } from "../../middlewares/auth/userAuth";
-import { fetchNearByServiceProvider, getServiceRequestByStatus, fetchAssignedserviceProvider } from "../../controller/service.controller";
+import { fetchNearByServiceProvider, getServiceRequestByStatus, fetchAssignedserviceProvider, cancelServiceRequest, addorUpdateIncentive } from "../../controller/service.controller";
 
 import { sendQueryMessage } from "../../controller/contactUs.controller"
 
@@ -53,6 +53,11 @@ router.route('/fetch-assigned-sp/:serviceId')
     .get(verifyUserType(["Customer"]), fetchAssignedserviceProvider);
 
 router.route('/send-query-message').post(verifyUserType(["Customer"]), sendQueryMessage);
+
+router.route('/cancel-service').put(verifyUserType([ 'Customer',]), cancelServiceRequest);
+
+router.route('/add-incentive').put(verifyUserType([ 'Customer',]), addorUpdateIncentive);
+
 
 
 

@@ -235,18 +235,6 @@ export interface IIPLogSchema extends Document {
     timestamp: Date;
 };
 
-export interface INotificationSchema extends Document {
-    _id: ObjectId;
-    recipientId: ObjectId;
-    senderId?: ObjectId;
-    title: string;
-    message: string;
-    type: string;
-    isRead: boolean;
-    createdAt: Date;
-    updatedAt?: Date;
-};
-
 export interface IChatSchema {
     fromUserId: ObjectId;
     toUserId: ObjectId;
@@ -294,6 +282,16 @@ export interface IUserPreferenceSchema {
     userId: ObjectId;
     userType: string
     notificationPreference: boolean;
+    isDeleted: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
+};
+export interface INotificationSchema {
+    senderId: ObjectId;
+    receiverId: ObjectId;
+    title: string;
+    notificationType: string
+    isRead: boolean;
     isDeleted: boolean;
     createdAt?: Date;
     updatedAt?: Date;

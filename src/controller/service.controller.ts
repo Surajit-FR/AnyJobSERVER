@@ -15,6 +15,7 @@ import axios from "axios";
 import { date } from "joi";
 import sendNotification from "../utils/sendPushNotification";
 import { isNotificationPreferenceOn } from "../utils/auth";
+import { NotificationModel } from "../models/notification.model";
 
 
 
@@ -293,6 +294,19 @@ export const cancelServiceRequest = asyncHandler(async (req: CustomRequest, res:
     if (!updatedService) {
         return sendSuccessResponse(res, 200, "Service not found for updating.");
     };
+    if (updatedService.serviceProviderId) {
+        const userFcm = req.user?.fcmToken || ""
+        const notiTitle = "Service Requested Cancelled by Customer "
+        const notiBody = ` ${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has cancelled the service request`
+        const notiData1 = {
+            senderId: req.user?._id,
+            receiverId: updatedService.serviceProviderId,
+            title: notiTitle,
+            notificationType: "Customer Cancelled Service",
+        }
+        const notifyUser1 = await sendNotification(userFcm, notiTitle, notiBody, notiData1)
+
+    }
 
     return sendSuccessResponse(res, 200, "Service Request cancelled Successfully");
 });
@@ -338,6 +352,7 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
         return sendErrorResponse(res, new ApiError(400, "Service not found."));
     }
     const customerDetails = await UserModel.findById(serviceRequest?.userId)
+    const serviceProviderDetails = await UserModel.findById(serviceRequest?.serviceProviderId).select('serviceProviderId')
     let userFcm, notiTitle, notiBody;
 
     let serviceProviderId = userId;
@@ -392,8 +407,15 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
                 }
                 userFcm = customerDetails?.fcmToken || ""
                 notiTitle = "Service Requested Accepted "
-                notiBody = `Your Service Request is accepted by ${req.user?.firstName} ${req.user?.lastName}`
-                // const notifyUser = await sendNotification(userFcm, notiTitle, notiBody)
+                notiBody = `Your Service Request is accepted by ${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""}`
+                const notiData1 = {
+                    senderId: req.user?._id,
+                    receiverId: serviceRequest.userId,
+                    title: notiTitle,
+                    notificationType: "Service Accepeted",
+                }
+                const notifyUser1 = await sendNotification(userFcm, notiTitle, notiBody, notiData1)
+
                 break;
 
             case "Pending":
@@ -403,6 +425,17 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
                     updateData.requestProgress = "Started";
                     updateData.startedAt = new Date();
                 }
+                userFcm = serviceProviderDetails?.fcmToken || ""
+                notiTitle = "Mark job as completed"
+                notiBody = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as started`
+                const notiData2 = {
+                    senderId: req.user?._id,
+                    receiverId: serviceRequest.serviceProviderId,
+                    title: notiTitle,
+                    notificationType: "Service Started",
+                }
+                const notifyUser2 = await sendNotification(userFcm, notiTitle, notiBody, notiData2)
+
                 break;
 
             case "Started":
@@ -410,6 +443,17 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
                     updateData.requestProgress = "Completed";
                     updateData.completedAt = new Date();
                 }
+                userFcm = serviceProviderDetails?.fcmToken || ""
+                notiTitle = "Mark job as completed"
+                notiBody = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as completed`
+                const notiData3 = {
+                    senderId: req.user?._id,
+                    receiverId: serviceRequest.serviceProviderId,
+                    title: notiTitle,
+                    notificationType: "Service Completed",
+                }
+                const notifyUser3 = await sendNotification(userFcm, notiTitle, notiBody, notiData3)
+
                 break;
 
             default:
@@ -417,6 +461,17 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
                 if (requestProgress === "Cancelled") {
                     updateData.isReqAcceptedByServiceProvider = false;
                 }
+                userFcm = serviceProviderDetails?.fcmToken || ""
+                notiTitle = "Mark job as cancelled"
+                notiBody = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as cancelled`
+                const notiData4 = {
+                    senderId: req.user?._id,
+                    receiverId: serviceRequest.serviceProviderId,
+                    title: notiTitle,
+                    notificationType: "Agent Cancelled Service",
+                }
+                const notifyUser4 = await sendNotification(userFcm, notiTitle, notiBody, notiData4)
+
                 break;
 
         }
@@ -770,7 +825,18 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
                 from: "users",
                 foreignField: "_id",
                 localField: "serviceProviderId",
-                as: "serviceProviderId"
+                as: "serviceProviderId",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "additionalinfos",
+                            foreignField: "userId",
+                            localField: "_id",
+                            as: "providerAdditionalInfo",
+
+                        }
+                    }
+                ]
             }
         },
         {
@@ -838,6 +904,8 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
                 'serviceProviderEmail': "$serviceProviderId.email",
                 'serviceProviderAvatar': "$serviceProviderId.avatar ",
                 'serviceProviderPhone': "$serviceProviderId.phone",
+                'serviceProviderCompanyName': "$serviceProviderId.providerAdditionalInfo.companyName",
+                'serviceProviderCompanyDesc': "$serviceProviderId.providerAdditionalInfo.companyIntroduction",
                 assignedAgentName: {
                     $concat: ["$assignedAgentId.firstName", " ", "$assignedAgentId.lastName"]
                 },
@@ -998,7 +1066,8 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
                 serviceAddress: 1,
                 startedAt: 1,
                 completedAt: 1,
-
+                isIncentiveGiven: 1,
+                incentiveAmount: 1,
                 requestProgress: 1,
                 'serviceProviderId.firstName': 1,
                 'serviceProviderId.lastName': 1,
@@ -1354,4 +1423,3 @@ export const fetchAssignedserviceProvider = asyncHandler(async (req: CustomReque
     return sendSuccessResponse(res, 200, assignedSPDetails[0], "Assigned service provider retrieved successfully.");
 
 });
-

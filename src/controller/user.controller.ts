@@ -55,7 +55,7 @@ export const getUser = asyncHandler(async (req: CustomRequest, res: Response) =>
                 'additionalInfo.isDeleted': 0,
                 'userAddress.__v': 0,
                 'userAddress.isDeleted': 0,
-                rawPassword: 0
+                // rawPassword: 0
             }
         }
     ]);

@@ -1094,8 +1094,8 @@ export const getJobByStatus = asyncHandler(async (req: CustomRequest, res: Respo
         requestProgress === "Accepted"
             ? { requestProgress: { $in: ["Pending",] } }
             : requestProgress === "Started"
-                ? { requestProgress: "Started" }
-                : { requestProgress };
+                ? { requestProgress: "Started" } : requestProgress === "All" ? {}
+                    : { requestProgress };
 
     const results = await ServiceModel.aggregate([
         {

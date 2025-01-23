@@ -10,11 +10,12 @@ const user_controller_1 = require("../controller/user.controller");
 const permission_controller_1 = require("../controller/permission.controller");
 const service_controller_1 = require("../controller/service.controller");
 const IP_middleware_1 = require("../middlewares/IP.middleware");
+const contactUs_controller_1 = require("../controller/contactUs.controller");
 const router = express_1.default.Router();
 //Protected routes for users
 router.use(userAuth_1.VerifyJWTToken);
 //get user
-router.route('/get-user').get(user_controller_1.getUser);
+// router.route('/get-user').get(getUser);
 //add user Address
 router.route('/add-address').post((0, userAuth_1.verifyUserType)(["ServiceProvider"]), user_controller_1.addAddress);
 //add user additional information
@@ -33,6 +34,8 @@ router.route('/get-registered-customers').get(user_controller_1.getRegisteredCus
 router.route('/get-admin-users').get(user_controller_1.getAdminUsersList);
 //fetch users List
 router.route('/get-users').get(user_controller_1.getUsers);
+//fetch profile user 
+router.route('/get-profile').get((0, userAuth_1.verifyUserType)(["SuperAdmin", "Admin", "Finance", "ServiceProvider", 'Customer', 'FieldAgent', 'TeamLead']), user_controller_1.getUser);
 //fetch iplogs
 router.route('/fetch-iplogs').get((0, userAuth_1.verifyUserType)(["SuperAdmin", "Admin", "Finance"]), user_controller_1.getIpLogs);
 //fetch associate List
@@ -53,4 +56,7 @@ router.route('/fetch-job-by-status').post([userAuth_1.VerifyJWTToken], (0, userA
 router.route('/fetch-job-by-status-by-agent').post([userAuth_1.VerifyJWTToken], (0, userAuth_1.verifyUserType)(["FieldAgent", "TeamLead"]), service_controller_1.getJobByStatusByAgent);
 router.route('/add-bank-details').post((0, userAuth_1.verifyUserType)(["ServiceProvider", "Customer", "Admin", "Finance", "FieldAgent", "TeamLead"]), user_controller_1.addBankDetails);
 router.route('/create-iplog').post((0, userAuth_1.verifyUserType)(["ServiceProvider", "Customer", "Admin", "Finance", "FieldAgent", "TeamLead"]), IP_middleware_1.captureIP);
+router.route('/fetch-query-messages').get((0, userAuth_1.verifyUserType)(["SuperAdmin",]), contactUs_controller_1.fetchQueryMessage);
+router.route('/delete-query-message/:messageId').delete((0, userAuth_1.verifyUserType)(["SuperAdmin",]), contactUs_controller_1.deleteQueryMessage);
+router.route('/update-user-preference').put((0, userAuth_1.verifyUserType)(['ServiceProvider', 'Customer', 'FieldAgent', 'TeamLead']), user_controller_1.updateUserPreference);
 exports.default = router;

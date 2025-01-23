@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fetchAssignedserviceProvider = exports.totalJobCount = exports.assignJob = exports.getJobByStatusByAgent = exports.getJobByStatus = exports.getServiceRequestByStatus = exports.fetchAssociatedCustomer = exports.fetchSingleServiceRequest = exports.fetchNearByServiceProvider = exports.fetchServiceRequest = exports.deleteService = exports.handleServiceRequestState = exports.updateServiceRequest = exports.getAcceptedServiceRequestInJobQueue = exports.getServiceRequestList = exports.addService = void 0;
+exports.fetchAssignedserviceProvider = exports.totalJobCount = exports.assignJob = exports.getJobByStatusByAgent = exports.getJobByStatus = exports.getServiceRequestByStatus = exports.fetchAssociatedCustomer = exports.fetchSingleServiceRequest = exports.fetchNearByServiceProvider = exports.fetchServiceRequest = exports.deleteService = exports.handleServiceRequestState = exports.addorUpdateIncentive = exports.cancelServiceRequest = exports.getAcceptedServiceRequestInJobQueue = exports.getServiceRequestList = exports.addService = void 0;
 const service_model_1 = __importDefault(require("../models/service.model"));
 const address_model_1 = __importDefault(require("../models/address.model"));
 const ApisErrors_1 = require("../utils/ApisErrors");
@@ -23,6 +23,8 @@ const permission_model_1 = __importDefault(require("../models/permission.model")
 const teams_model_1 = __importDefault(require("../models/teams.model"));
 const user_model_1 = __importDefault(require("../models/user.model"));
 const axios_1 = __importDefault(require("axios"));
+const sendPushNotification_1 = __importDefault(require("../utils/sendPushNotification"));
+const auth_1 = require("../utils/auth");
 // addService controller
 exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c, _d, _e, _f;
@@ -246,28 +248,60 @@ exports.getAcceptedServiceRequestInJobQueue = (0, asyncHandler_1.asyncHandler)((
     return (0, response_1.sendSuccessResponse)(res, 200, results, "Job queue retrieved successfully.");
 }));
 // updateService controller
-exports.updateServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { serviceId } = req.params;
-    const { isApproved } = req.body;
-    // console.log(req.params);
-    if (!serviceId) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service ID is required."));
+exports.cancelServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c, _d, _e, _f, _g;
+    const { requestProgress, serviceId } = req.body;
+    if (!serviceId || !requestProgress) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service ID and request progress is required."));
     }
     ;
-    const updatedService = yield service_model_1.default.findByIdAndUpdate({ _id: new mongoose_1.default.Types.ObjectId(serviceId) }, {
+    const updatedService = yield service_model_1.default.findOneAndUpdate({ _id: new mongoose_1.default.Types.ObjectId(serviceId), userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id }, {
         $set: {
-            isApproved,
+            requestProgress: "Cancelled",
         }
     }, { new: true });
     if (!updatedService) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service not found for updating."));
+        return (0, response_1.sendSuccessResponse)(res, 200, "Service not found for updating.");
     }
     ;
-    return (0, response_1.sendSuccessResponse)(res, 200, updatedService, "Service Request updated Successfully");
+    if (updatedService.serviceProviderId) {
+        const userFcm = ((_b = req.user) === null || _b === void 0 ? void 0 : _b.fcmToken) || "";
+        const notiTitle = "Service Requested Cancelled by Customer ";
+        const notiBody = ` ${(_d = (_c = req.user) === null || _c === void 0 ? void 0 : _c.firstName) !== null && _d !== void 0 ? _d : "User"} ${(_f = (_e = req.user) === null || _e === void 0 ? void 0 : _e.lastName) !== null && _f !== void 0 ? _f : ""} has cancelled the service request`;
+        const notiData1 = {
+            senderId: (_g = req.user) === null || _g === void 0 ? void 0 : _g._id,
+            receiverId: updatedService.serviceProviderId,
+            title: notiTitle,
+            notificationType: "Customer Cancelled Service",
+        };
+        const notifyUser1 = yield (0, sendPushNotification_1.default)(userFcm, notiTitle, notiBody, notiData1);
+    }
+    return (0, response_1.sendSuccessResponse)(res, 200, "Service Request cancelled Successfully");
+}));
+// updateService controller
+exports.addorUpdateIncentive = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const { incentiveAmount, serviceId } = req.body;
+    if (!serviceId || !incentiveAmount) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service ID, incentive check and incentive amount is required."));
+    }
+    ;
+    const updatedService = yield service_model_1.default.findOneAndUpdate({ _id: new mongoose_1.default.Types.ObjectId(serviceId), userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id }, {
+        $set: {
+            isIncentiveGiven: true,
+            incentiveAmount
+        }
+    }, { new: true });
+    if (!updatedService) {
+        return (0, response_1.sendSuccessResponse)(res, 200, "Service request not found for updating.");
+    }
+    ;
+    return (0, response_1.sendSuccessResponse)(res, 200, "Incentive added for the service request.");
 }));
 // handleServiceRequestState controller
 exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x;
+    const registrationToken = "dXt8fLvzy9s:APA91bEYQH12Iu6jfsFv2I6yDd6bLfTRN6AqY6fjEDpD7YDeDRH5I7XXjWxcbPxyErmc7KjUjHiEnJ0K7yOHgdP_xUq8c9zcp6F5Bcwb0s_fi_NDszErlr3sB5P5Wf8ItvPH4ch5vwbb";
     const userType = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userType;
     let userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
     const { serviceId } = req.params;
@@ -279,6 +313,9 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
     if (!serviceRequest) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service not found."));
     }
+    const customerDetails = yield user_model_1.default.findById(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.userId);
+    const serviceProviderDetails = yield user_model_1.default.findById(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.serviceProviderId).select('serviceProviderId');
+    let userFcm, notiTitle, notiBody;
     let serviceProviderId = userId;
     //|| userType === "FieldAgent"
     if (userType === "TeamLead") {
@@ -315,23 +352,70 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
     if (isReqAcceptedByServiceProvider) {
         updateData.serviceProviderId = serviceProviderId;
         switch (serviceRequest.requestProgress) {
+            case "NotStarted":
+                console.log("case1:NotStarted");
+                if (requestProgress === "Pending") {
+                    updateData.requestProgress = "Pending";
+                }
+                userFcm = (customerDetails === null || customerDetails === void 0 ? void 0 : customerDetails.fcmToken) || "";
+                notiTitle = "Service Requested Accepted ";
+                notiBody = `Your Service Request is accepted by ${(_d = (_c = req.user) === null || _c === void 0 ? void 0 : _c.firstName) !== null && _d !== void 0 ? _d : "User"} ${(_f = (_e = req.user) === null || _e === void 0 ? void 0 : _e.lastName) !== null && _f !== void 0 ? _f : ""}`;
+                const notiData1 = {
+                    senderId: (_g = req.user) === null || _g === void 0 ? void 0 : _g._id,
+                    receiverId: serviceRequest.userId,
+                    title: notiTitle,
+                    notificationType: "Service Accepeted",
+                };
+                const notifyUser1 = yield (0, sendPushNotification_1.default)(userFcm, notiTitle, notiBody, notiData1);
+                break;
             case "Pending":
+                console.log("case2:Pending");
                 if (requestProgress === "Started") {
                     updateData.requestProgress = "Started";
                     updateData.startedAt = new Date();
                 }
+                userFcm = (serviceProviderDetails === null || serviceProviderDetails === void 0 ? void 0 : serviceProviderDetails.fcmToken) || "";
+                notiTitle = "Mark job as completed";
+                notiBody = `${(_j = (_h = req.user) === null || _h === void 0 ? void 0 : _h.firstName) !== null && _j !== void 0 ? _j : "User"} ${(_l = (_k = req.user) === null || _k === void 0 ? void 0 : _k.lastName) !== null && _l !== void 0 ? _l : ""} has marked the job as started`;
+                const notiData2 = {
+                    senderId: (_m = req.user) === null || _m === void 0 ? void 0 : _m._id,
+                    receiverId: serviceRequest.serviceProviderId,
+                    title: notiTitle,
+                    notificationType: "Service Started",
+                };
+                const notifyUser2 = yield (0, sendPushNotification_1.default)(userFcm, notiTitle, notiBody, notiData2);
                 break;
             case "Started":
                 if (requestProgress === "Completed") {
                     updateData.requestProgress = "Completed";
                     updateData.completedAt = new Date();
                 }
+                userFcm = (serviceProviderDetails === null || serviceProviderDetails === void 0 ? void 0 : serviceProviderDetails.fcmToken) || "";
+                notiTitle = "Mark job as completed";
+                notiBody = `${(_p = (_o = req.user) === null || _o === void 0 ? void 0 : _o.firstName) !== null && _p !== void 0 ? _p : "User"} ${(_r = (_q = req.user) === null || _q === void 0 ? void 0 : _q.lastName) !== null && _r !== void 0 ? _r : ""} has marked the job as completed`;
+                const notiData3 = {
+                    senderId: (_s = req.user) === null || _s === void 0 ? void 0 : _s._id,
+                    receiverId: serviceRequest.serviceProviderId,
+                    title: notiTitle,
+                    notificationType: "Service Completed",
+                };
+                const notifyUser3 = yield (0, sendPushNotification_1.default)(userFcm, notiTitle, notiBody, notiData3);
                 break;
             default:
                 updateData.requestProgress = requestProgress;
                 if (requestProgress === "Cancelled") {
                     updateData.isReqAcceptedByServiceProvider = false;
                 }
+                userFcm = (serviceProviderDetails === null || serviceProviderDetails === void 0 ? void 0 : serviceProviderDetails.fcmToken) || "";
+                notiTitle = "Mark job as cancelled";
+                notiBody = `${(_u = (_t = req.user) === null || _t === void 0 ? void 0 : _t.firstName) !== null && _u !== void 0 ? _u : "User"} ${(_w = (_v = req.user) === null || _v === void 0 ? void 0 : _v.lastName) !== null && _w !== void 0 ? _w : ""} has marked the job as cancelled`;
+                const notiData4 = {
+                    senderId: (_x = req.user) === null || _x === void 0 ? void 0 : _x._id,
+                    receiverId: serviceRequest.serviceProviderId,
+                    title: notiTitle,
+                    notificationType: "Agent Cancelled Service",
+                };
+                const notifyUser4 = yield (0, sendPushNotification_1.default)(userFcm, notiTitle, notiBody, notiData4);
                 break;
         }
     }
@@ -363,12 +447,15 @@ exports.deleteService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
 }));
 // fetch nearby ServiceRequest controller
 exports.fetchServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b;
+    var _a, _b, _c;
+    const isNotificationOn = yield (0, auth_1.isNotificationPreferenceOn)((_a = req.user) === null || _a === void 0 ? void 0 : _a._id);
+    if (!isNotificationOn) {
+        return (0, response_1.sendSuccessResponse)(res, 200, "Notification permission is off.");
+    }
     const { page = "1", limit = "10", query = '', sortBy = 'isIncentiveGiven', sortType = 'desc', categoryName = '' } = req.query;
     const pageNumber = parseInt(page, 10) || 1;
     const limitNumber = parseInt(limit, 10) || 10;
     const skip = (pageNumber - 1) * limitNumber;
-    console.log(categoryName);
     const searchQuery = Object.assign({ isDeleted: false }, (query && {
         $or: [
             { serviceAddress: { $regex: query, $options: "i" } },
@@ -381,8 +468,8 @@ exports.fetchServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __a
     const validSortType = sortType.toLowerCase() === 'desc' ? -1 : 1;
     const sortCriteria = {};
     sortCriteria[validSortBy] = validSortType;
-    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
-    const userType = (_b = req.user) === null || _b === void 0 ? void 0 : _b.userType;
+    const userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+    const userType = (_c = req.user) === null || _c === void 0 ? void 0 : _c.userType;
     let serviceProviderId;
     let address;
     if (userType === 'TeamLead') {
@@ -634,7 +721,17 @@ exports.fetchSingleServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) 
                 from: "users",
                 foreignField: "_id",
                 localField: "serviceProviderId",
-                as: "serviceProviderId"
+                as: "serviceProviderId",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "additionalinfos",
+                            foreignField: "userId",
+                            localField: "_id",
+                            as: "providerAdditionalInfo",
+                        }
+                    }
+                ]
             }
         },
         {
@@ -702,6 +799,8 @@ exports.fetchSingleServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) 
                 'serviceProviderEmail': "$serviceProviderId.email",
                 'serviceProviderAvatar': "$serviceProviderId.avatar ",
                 'serviceProviderPhone': "$serviceProviderId.phone",
+                'serviceProviderCompanyName': "$serviceProviderId.providerAdditionalInfo.companyName",
+                'serviceProviderCompanyDesc': "$serviceProviderId.providerAdditionalInfo.companyIntroduction",
                 assignedAgentName: {
                     $concat: ["$assignedAgentId.firstName", " ", "$assignedAgentId.lastName"]
                 },
@@ -850,6 +949,8 @@ exports.getServiceRequestByStatus = (0, asyncHandler_1.asyncHandler)((req, res) 
                 serviceAddress: 1,
                 startedAt: 1,
                 completedAt: 1,
+                isIncentiveGiven: 1,
+                incentiveAmount: 1,
                 requestProgress: 1,
                 'serviceProviderId.firstName': 1,
                 'serviceProviderId.lastName': 1,

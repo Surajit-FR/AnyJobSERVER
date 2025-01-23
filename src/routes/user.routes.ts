@@ -18,11 +18,14 @@ import {
     fetchIPlogs,
     updateUser,
     getIpLogs,
-    addBankDetails
+    addBankDetails,
+    updateUserPreference
 } from "../controller/user.controller";
 import { givePermission, getUserPermissions } from "../controller/permission.controller";
 import { getJobByStatus, getJobByStatusByAgent } from "../controller/service.controller";
 import { captureIP } from "../middlewares/IP.middleware";
+import { fetchQueryMessage, deleteQueryMessage } from "../controller/contactUs.controller"
+
 
 
 
@@ -33,7 +36,7 @@ const router: Router = express.Router();
 router.use(VerifyJWTToken);
 
 //get user
-router.route('/get-user').get(getUser);
+// router.route('/get-user').get(getUser);
 
 //add user Address
 router.route('/add-address').post(verifyUserType(["ServiceProvider"]), addAddress);
@@ -61,6 +64,9 @@ router.route('/get-admin-users').get(getAdminUsersList);
 
 //fetch users List
 router.route('/get-users').get(getUsers);
+
+//fetch profile user 
+router.route('/get-profile').get(verifyUserType(["SuperAdmin", "Admin", "Finance","ServiceProvider",'Customer', 'FieldAgent', 'TeamLead']),getUser);
 
 //fetch iplogs
 router.route('/fetch-iplogs').get(verifyUserType(["SuperAdmin", "Admin", "Finance"]), getIpLogs);
@@ -111,6 +117,13 @@ router.route('/add-bank-details').post(verifyUserType(["ServiceProvider", "Custo
 
 
 router.route('/create-iplog').post(verifyUserType(["ServiceProvider", "Customer", "Admin", "Finance", "FieldAgent", "TeamLead"]), captureIP);
+
+
+router.route('/fetch-query-messages').get(verifyUserType(["SuperAdmin",]), fetchQueryMessage);
+
+router.route('/delete-query-message/:messageId').delete(verifyUserType(["SuperAdmin",]), deleteQueryMessage);
+
+router.route('/update-user-preference').put(verifyUserType(['ServiceProvider', 'Customer', 'FieldAgent', 'TeamLead']), updateUserPreference);
 
 
 

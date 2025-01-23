@@ -4,7 +4,6 @@ import {
     addService,
     getServiceRequestList,
     getAcceptedServiceRequestInJobQueue,
-    updateServiceRequest,
     deleteService,
     fetchServiceRequest,
     handleServiceRequestState,
@@ -37,7 +36,6 @@ router.route('/assign-job')
 router.route("/c/:serviceId")
     .get(verifyUserType(['SuperAdmin', "ServiceProvider", "Customer"]), fetchSingleServiceRequest)
     .delete(verifyUserType(['SuperAdmin']),  deleteService)
-    .put(verifyUserType(['SuperAdmin', 'ServiceProvider']),  updateServiceRequest)
     .patch(verifyUserType(["ServiceProvider", 'TeamLead', 'FieldAgent']), handleServiceRequestState);
 
 export default router;

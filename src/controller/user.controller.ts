@@ -14,6 +14,7 @@ import { deleteUploadedFiles } from '../middlewares/multer.middleware';
 import IPLog from '../models/IP.model';
 import BankDetails from '../models/bankDetails.model';
 import { getCardType } from '../utils/auth';
+import UserPreferenceModel from '../models/userPreference.model';
 
 
 // get loggedin user
@@ -54,7 +55,7 @@ export const getUser = asyncHandler(async (req: CustomRequest, res: Response) =>
                 'additionalInfo.isDeleted': 0,
                 'userAddress.__v': 0,
                 'userAddress.isDeleted': 0,
-                rawPassword: 0
+                // rawPassword: 0
             }
         }
     ]);
@@ -1042,4 +1043,31 @@ export const addBankDetails = asyncHandler(async (req: CustomRequest, res: Respo
     const savedBankDetails = await userAddress.save();
 
     return sendSuccessResponse(res, 201, savedBankDetails, "Bank Details added successfully");
+});
+
+export const updateUserPreference = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const userId = req.user?._id;    
+
+    if (!userId) {
+        return sendErrorResponse(res, new ApiError(400, "User ID is required."));
+    };
+
+    const { notificationPreference }: { notificationPreference: Boolean } = req.body;
+
+    const updatedUserPreference = await UserPreferenceModel.findOneAndUpdate(
+        { userId: userId },
+        {
+            $set: {
+                notificationPreference,
+                updatedAt: new Date()
+            },
+        },
+        { new: true }
+    ).select('-__v -isDeleted');
+
+    if (!updatedUserPreference) {
+        return sendSuccessResponse(res, 200, updatedUserPreference, "User not found for updating.");
+    };
+
+    return sendSuccessResponse(res, 200, updatedUserPreference, "User preference updated successfully");
 });

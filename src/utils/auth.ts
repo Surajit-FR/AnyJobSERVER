@@ -4,10 +4,14 @@ import { IRegisterCredentials } from "../../types/requests_responseType";
 import PermissionModel from "../models/permission.model";
 import { sendMail } from "./sendMail";
 import { fetchUserData } from "../controller/auth/auth.controller";
-import {  Request, Response } from "express";
+import { Request, Response } from "express";
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { sendErrorResponse } from "./response";
 import cardValidator from 'card-validator';
+import UserPreferenceModel from "../models/userPreference.model";
+import mongoose from "mongoose";
+import { projectManagement } from "firebase-admin";
+import { promises } from "dns";
 
 
 
@@ -40,7 +44,7 @@ export const addUser = async (userData: IRegisterCredentials) => {
         lastName,
         email,
         password,
-        rawPassword:rawPassword,
+        rawPassword: rawPassword,
         userType,
         phone,
     });
@@ -67,6 +71,16 @@ export const addUser = async (userData: IRegisterCredentials) => {
 
     const userPermissionSet = await new PermissionModel(permission).save();
 
+    if (savedUser.userType !== "SuperAdmin") {
+        const UserPreference = {
+            userId: savedUser._id,
+            userType: savedUser.userType,
+            notificationPreference: true
+        }
+        const UserPreferenceSet = await new UserPreferenceModel(UserPreference).save();
+
+    }
+
 
     //temporary disable due to no credentials
     if (userType === "FieldAgent" || userType === "Admin" || userType === "Finance") {
@@ -89,15 +103,15 @@ export const CheckJWTTokenExpiration = async (req: Request, res: Response) => {
         }
 
         const decoded = jwt.decode(token) as JwtPayload | null;
-        
-        
+
+
         if (!decoded || !decoded.exp) {
             return sendErrorResponse(res, new ApiError(400, "Invalid token or missing expiration"));
         }
-        
+
         const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
         const remainingTimeInSeconds = decoded.exp - currentTime;
-        
+
         // console.log(currentTime);
         if (remainingTimeInSeconds <= 0) {
             return res.status(200).json({ isExpired: true, remainingTimeInSeconds: 0 });
@@ -122,4 +136,16 @@ export function getCardType(cardNumber: string): string {
 
 const cardNumber = "4111111111111111";
 // console.log(`Card Type: ${getCardType(cardNumber)}`);
+
+export async function isNotificationPreferenceOn(userId: string) {
+    let isOn
+
+    const result = await UserPreferenceModel.findOne(
+        { userId: new mongoose.Types.ObjectId(userId) }
+    ).select('notificationPreference');
+  
+    isOn = result?.notificationPreference;
+    return isOn;
+};
+
 

@@ -143,7 +143,8 @@ const ServiceSchema = new mongoose_1.Schema({
                 type: String
             },
             serviceDescription: {
-                type: String
+                type: String,
+                default: ""
             }
         }
     },

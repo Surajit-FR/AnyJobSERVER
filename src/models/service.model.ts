@@ -125,7 +125,8 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
                 type: String
             },
             serviceDescription: {
-                type: String
+                type: String,
+                default: ""
             }
 
         }

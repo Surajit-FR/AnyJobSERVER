@@ -296,4 +296,14 @@ export interface INotificationSchema {
     createdAt?: Date;
     updatedAt?: Date;
 };
+export interface IAppReviewSchema {
+    ratedBy: ObjectId;
+    rating: number;
+    review: string;
+    isDeleted: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
+};
+
+
 

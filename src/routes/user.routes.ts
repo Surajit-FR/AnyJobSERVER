@@ -116,7 +116,7 @@ router.route('/fetch-job-by-status-by-agent').post(
 router.route('/add-bank-details').post(verifyUserType(["ServiceProvider", "Customer", "Admin", "Finance", "FieldAgent", "TeamLead"]), addBankDetails);
 
 
-router.route('/create-iplog').post(verifyUserType(["ServiceProvider", "Customer", "Admin", "Finance", "FieldAgent", "TeamLead"]), captureIP);
+router.route('/create-iplog').post(verifyUserType(["ServiceProvider", "Customer", "Admin", "Finance", "FieldAgent", "TeamLead","SuperAdmin"]), captureIP);
 
 
 router.route('/fetch-query-messages').get(verifyUserType(["SuperAdmin",]), fetchQueryMessage);

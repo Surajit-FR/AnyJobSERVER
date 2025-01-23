@@ -21,15 +21,15 @@ const IPLogSchema = new Schema({
         type: String,
         required: true,
     },
-    timezone: {
-        type: String,
-        required: true,
-    },
-    version: {
-        type: String,
-        enum: ["IPv4", "IPv6", "Unknown"],
-        required: true
-    },
+    // timezone: {
+    //     type: String,
+    //     required: true,
+    // },
+    // version: {
+    //     type: String,
+    //     enum: ["IPv4", "IPv6", "Unknown"],
+    //     required: true
+    // },
     route: { type: String, required: true },
     userId: { type: Schema.Types.ObjectId, },
     userType: { type: String, },
@@ -37,6 +37,7 @@ const IPLogSchema = new Schema({
         type: Date,
         default: Date.now
     },
+    userAgent:{type: String}
 });
 
 const IPLog = model("IPLog", IPLogSchema);

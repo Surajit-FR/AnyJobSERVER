@@ -902,10 +902,11 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
                     $concat: ["$serviceProviderId.firstName", " ", "$serviceProviderId.lastName"]
                 },
                 'serviceProviderEmail': "$serviceProviderId.email",
-                'serviceProviderAvatar': "$serviceProviderId.avatar ",
+                'serviceProviderAvatar': "$serviceProviderId.avatar",
                 'serviceProviderPhone': "$serviceProviderId.phone",
                 'serviceProviderCompanyName': "$serviceProviderId.providerAdditionalInfo.companyName",
                 'serviceProviderCompanyDesc': "$serviceProviderId.providerAdditionalInfo.companyIntroduction",
+                'serviceProviderBusinessImage': "$serviceProviderId.providerAdditionalInfo.businessImage",
                 assignedAgentName: {
                     $concat: ["$assignedAgentId.firstName", " ", "$assignedAgentId.lastName"]
                 },

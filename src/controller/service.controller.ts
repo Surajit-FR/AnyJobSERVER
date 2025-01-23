@@ -304,7 +304,7 @@ export const cancelServiceRequest = asyncHandler(async (req: CustomRequest, res:
             title: notiTitle,
             notificationType: "Customer Cancelled Service",
         }
-        const notifyUser1 = await sendNotification(userFcm, notiTitle, notiBody, notiData1)
+        // const notifyUser1 = await sendNotification(userFcm, notiTitle, notiBody, notiData1)
 
     }
 
@@ -414,7 +414,7 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
                     title: notiTitle,
                     notificationType: "Service Accepeted",
                 }
-                const notifyUser1 = await sendNotification(userFcm, notiTitle, notiBody, notiData1)
+                // const notifyUser1 = await sendNotification(userFcm, notiTitle, notiBody, notiData1)
 
                 break;
 
@@ -434,7 +434,7 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
                     title: notiTitle,
                     notificationType: "Service Started",
                 }
-                const notifyUser2 = await sendNotification(userFcm, notiTitle, notiBody, notiData2)
+                // const notifyUser2 = await sendNotification(userFcm, notiTitle, notiBody, notiData2)
 
                 break;
 
@@ -452,7 +452,7 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
                     title: notiTitle,
                     notificationType: "Service Completed",
                 }
-                const notifyUser3 = await sendNotification(userFcm, notiTitle, notiBody, notiData3)
+                // const notifyUser3 = await sendNotification(userFcm, notiTitle, notiBody, notiData3)
 
                 break;
 
@@ -470,7 +470,7 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
                     title: notiTitle,
                     notificationType: "Agent Cancelled Service",
                 }
-                const notifyUser4 = await sendNotification(userFcm, notiTitle, notiBody, notiData4)
+                // const notifyUser4 = await sendNotification(userFcm, notiTitle, notiBody, notiData4)
 
                 break;
 

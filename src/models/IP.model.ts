@@ -20,6 +20,15 @@ const IPLogSchema = new Schema({
     userAgent: {
         type: String,
     },  
+    // timezone: {
+    //     type: String,
+    //     required: true,
+    // },
+    // version: {
+    //     type: String,
+    //     enum: ["IPv4", "IPv6", "Unknown"],
+    //     required: true
+    // },
     route: { type: String, required: true },
     userId: { type: Schema.Types.ObjectId, },
     userType: { type: String, },

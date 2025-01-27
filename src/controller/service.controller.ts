@@ -646,7 +646,7 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
             }
         },
         { $match: searchQuery },
-        { $sort: { isIncentiveGiven: validSortType } },
+        // { $sort: { isIncentiveGiven: validSortType } },
         { $skip: skip },
         { $limit: limitNumber },
         {
@@ -672,16 +672,15 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
     if (!serviceRequests.length) {
         return sendSuccessResponse(res, 200, serviceRequests, 'No nearby service request found');
     }
-
-    const total = serviceRequests[0] ? serviceRequests.length : 0
+    const totalRecords = await ServiceModel.countDocuments({ isDeleted: false, isReqAcceptedByServiceProvider: false, requestProgress: "NotStarted" });
+    // const total = serviceRequests[0] ? serviceRequests.length : 0
     return sendSuccessResponse(res, 200, {
         serviceRequests, pagination: {
-            totalRecords: total,
+            totalRecords: totalRecords,
             page: pageNumber,
             limit: limitNumber
         }
     }, 'Service requests fetched successfully');
-
 });
 
 
@@ -1096,8 +1095,8 @@ export const getJobByStatus = asyncHandler(async (req: CustomRequest, res: Respo
         requestProgress === "Accepted"
             ? { requestProgress: { $in: ["Pending",] } }
             : requestProgress === "Started"
-                ? { requestProgress: "Started" }
-                : { requestProgress };
+                ? { requestProgress: "Started" } : requestProgress === "All" ? {}
+                    : { requestProgress };
 
     const results = await ServiceModel.aggregate([
         {

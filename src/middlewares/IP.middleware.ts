@@ -2,8 +2,6 @@ import { Response, NextFunction, Request } from 'express';
 import { asyncHandler } from '../utils/asyncHandler';
 import { CustomRequest } from '../../types/commonType';
 import IPLog from '../models/IP.model';
-import os from 'os';
-import axios from "axios";
 
 
 
@@ -16,14 +14,13 @@ export const captureIP = asyncHandler(async (req: Request, res: Response) => {
             region,
             latitude,
             longitude,
-            timezone,
-            version,
+            userAgent,
             route,
             userId,
             userType,
         } = req.body;
 
-        if (!ipAddress || !country || !region || !latitude || !longitude || !timezone || !version || !route) {
+        if (!ipAddress || !userAgent || !route) {
             return res.status(400).json({ message: "All required fields must be provided." });
         }
 
@@ -34,8 +31,7 @@ export const captureIP = asyncHandler(async (req: Request, res: Response) => {
             region,
             latitude,
             longitude,
-            timezone,
-            version,
+            userAgent,
             route,
             userId: userId || null,
             userType: userType || null,

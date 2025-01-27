@@ -227,7 +227,7 @@ export interface IIPLogSchema extends Document {
     region: string;
     latitude: string;
     longitude: string;
-    timezone: string;
+    userAgent: string;
     version: string;
     route: string;
     userId: string;

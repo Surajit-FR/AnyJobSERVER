@@ -7,29 +7,19 @@ const IPLogSchema = new Schema({
     },
     country: {
         type: String,
-        required: true,
     },
     region: {
         type: String,
-        required: true,
     },
     latitude: {
         type: String,
-        required: true,
     },
     longitude: {
         type: String,
-        required: true,
     },
-    timezone: {
+    userAgent: {
         type: String,
-        required: true,
-    },
-    version: {
-        type: String,
-        enum: ["IPv4", "IPv6", "Unknown"],
-        required: true
-    },
+    },  
     route: { type: String, required: true },
     userId: { type: Schema.Types.ObjectId, },
     userType: { type: String, },

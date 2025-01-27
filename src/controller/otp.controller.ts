@@ -11,13 +11,14 @@ import { fetchUserData, cookieOption } from './auth/auth.controller';
 import { ApiResponse } from '../utils/ApiResponse';
 import TeamModel from '../models/teams.model';
 import AdditionalInfoModel from '../models/userAdditionalInfo.model';
+import { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN } from '../config/config'
 
 authenticator.options = {
     step: 300,
 };
 
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
+const accountSid = TWILIO_ACCOUNT_SID;
+const authToken = TWILIO_AUTH_TOKEN;
 const client = twilio(accountSid, authToken);
 
 
@@ -193,13 +194,11 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
             const serviceProviderInfo = await TeamModel.findOne({ fieldAgentIds: user._id })
             const companyDetails = await AdditionalInfoModel.findOne({ userId: serviceProviderInfo?.serviceProviderId }).select('companyName companyIntroduction businessName')
             console.log(serviceProviderInfo);
-
-
             const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, user._id);
             const loggedInUser = await fetchUserData(user._id);
             const agentData = {
-                loggedInUser:loggedInUser[0],
-                companyDetails:companyDetails
+                loggedInUser: loggedInUser[0],
+                companyDetails: companyDetails
             }
 
             return res

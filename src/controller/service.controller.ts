@@ -1062,6 +1062,7 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
             $project: {
                 _id: 1,
                 'categoryId.name': 1,
+                'categoryId.categoryImage': 1,
                 serviceStartDate: 1,
                 serviceAddress: 1,
                 startedAt: 1,
@@ -1422,4 +1423,123 @@ export const fetchAssignedserviceProvider = asyncHandler(async (req: CustomReque
 
     return sendSuccessResponse(res, 200, assignedSPDetails[0], "Assigned service provider retrieved successfully.");
 
+});
+
+
+//get service request for customer
+export const getCompletedService = asyncHandler(async (req: CustomRequest, res: Response) => {
+
+    const userId = req.user?._id
+
+    const results = await ServiceModel.aggregate([
+        {
+            $match: {
+                requestProgress: "Completed",
+                userId: userId
+            }
+        },
+        {
+            $lookup: {
+                from: "categories",
+                foreignField: "_id",
+                localField: "categoryId",
+                as: "categoryId"
+            }
+        },
+        // {
+        //     $unwind: {
+        //         // preserveNullAndEmptyArrays: true,
+        //         path: "$categoryId"
+        //     }
+        // },
+        // {
+        //     $lookup: {
+        //         from: "users",
+        //         foreignField: "_id",
+        //         localField: "userId",
+        //         as: "userId",
+        //         pipeline: [
+        //             {
+        //                 $lookup: {
+        //                     from: "ratings",
+        //                     foreignField: "ratedTo",
+        //                     localField: "_id",
+        //                     as: "customerRatings",
+        //                 }
+        //             },
+        //             {
+        //                 $addFields: {
+        //                     numberOfRatings: { $size: "$customerRatings" },
+        //                     customerAvgRating: {
+        //                         $cond: {
+        //                             if: { $gt: [{ $size: "$customerRatings" }, 0] },
+        //                             then: { $avg: "$customerRatings.rating" },
+        //                             else: 0
+        //                         }
+        //                     }
+        //                 }
+        //             }
+        //         ]
+        //     }
+        // },
+        // {
+        //     $unwind: {
+        //         preserveNullAndEmptyArrays: true,
+        //         path: "$userId"
+        //     }
+        // },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "serviceProviderId",
+                as: "serviceProviderId",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "ratings",
+                            foreignField: "ratedTo",
+                            localField: "_id",
+                            as: "serviceProviderIdRatings",
+                        }
+                    },
+                    {
+                        $addFields: {
+                            numberOfRatings: { $size: "$serviceProviderIdRatings" },
+                            serviceProviderRatings: {
+                                $cond: {
+                                    if: { $gt: [{ $size: "$serviceProviderIdRatings" }, 0] },
+                                    then: { $avg: "$serviceProviderIdRatings.rating" },
+                                    else: 0
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$serviceProviderId"
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                'categoryId.name': 1,
+                'categoryId.categoryImage': 1,
+                requestProgress: 1,
+                'serviceProviderId.numberOfRatings': 1,
+                'serviceProviderId.serviceProviderRatings': 1,
+                createdAt: 1
+
+            }
+        },
+        { $sort: { createdAt: -1 } },
+    ]);
+
+    const totalRequest = results.length;
+
+    return sendSuccessResponse(res, 200, { results, totalRequest: totalRequest }, "Service request retrieved successfully.");
 });

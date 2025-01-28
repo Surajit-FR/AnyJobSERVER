@@ -3,7 +3,7 @@ export const CLOUDINARY_API_KEY = "165417273536245";
 export const CLOUDINARY_API_SECRET = "bhadtrccRbIK7TG6EjqNyr2Zc6Q";
 
 export const TWILIO_ACCOUNT_SID = "AC51b721311507524fba313133cff5514f";
-export const TWILIO_AUTH_TOKEN = "b5c4126dd9b5c75a6bc6a36cedf4e21d";
+export const TWILIO_AUTH_TOKEN = "4dc6ab5dba4c6b88bb3ad921a6e682fe";
 export const TWILIO_PHONE_NUMBER = "+14054588637";
 
 export const SMTP_HOST = "live.smtp.mailtrap.io";

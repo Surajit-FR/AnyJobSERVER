@@ -515,11 +515,11 @@ export const deleteService = asyncHandler(async (req: Request, res: Response) =>
 // fetch nearby ServiceRequest controller
 export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {
 
-    const isNotificationOn = await isNotificationPreferenceOn(req.user?._id as string)
+    // const isNotificationOn = await isNotificationPreferenceOn(req.user?._id as string)
 
-    if (!isNotificationOn) {
-        return sendSuccessResponse(res, 200, "Notification permission is off.")
-    }
+    // if (!isNotificationOn) {
+    //     return sendSuccessResponse(res, 200, "Notification permission is off.")
+    // }
 
     const { page = "1", limit = "10", query = '', sortBy = 'isIncentiveGiven', sortType = 'desc', categoryName = '' } = req.query;
     const pageNumber = parseInt(page as string, 10) || 1;

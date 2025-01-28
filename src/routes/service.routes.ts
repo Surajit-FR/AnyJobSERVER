@@ -28,7 +28,7 @@ router.route('/get-job-count')
     .get(verifyUserType(['ServiceProvider', 'TeamLead']), totalJobCount);
 
 router.route('/nearby-services-request')
-    .get(verifyUserType(['ServiceProvider']), fetchServiceRequest);
+    .get(verifyUserType(['ServiceProvider','TeamLead']), fetchServiceRequest);
 
 router.route('/assign-job')
     .patch(verifyUserType(['ServiceProvider', 'TeamLead']), assignJob);

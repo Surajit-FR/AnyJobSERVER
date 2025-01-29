@@ -77,6 +77,7 @@ export interface ICategorySchema extends Document {
     _id: ObjectId;
     name: string;
     categoryImage: string;
+    categoryType: string;
     owner: ObjectId;
     isDeleted: boolean;
     createdAt?: Date;

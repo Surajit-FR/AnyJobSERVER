@@ -400,7 +400,7 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
         switch (serviceRequest.requestProgress) {
 
             case "NotStarted":
-                console.log("case1:NotStarted");
+                // console.log("case1:NotStarted");
 
                 if (requestProgress === "Pending") {
                     updateData.requestProgress = "Pending";
@@ -419,7 +419,7 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
                 break;
 
             case "Pending":
-                console.log("case2:Pending");
+                // console.log("case2:Pending");
 
                 if (requestProgress === "Started") {
                     updateData.requestProgress = "Started";
@@ -440,42 +440,47 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
 
             case "Started":
                 if (requestProgress === "Completed") {
+                    console.log("ss runs")
+
                     updateData.requestProgress = "Completed";
                     updateData.completedAt = new Date();
-                }
-                userFcm = serviceProviderDetails?.fcmToken || ""
-                notiTitle = "Mark job as completed"
-                notiBody = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as completed`
-                const notiData3 = {
-                    senderId: req.user?._id,
-                    receiverId: serviceRequest.serviceProviderId,
-                    title: notiTitle,
-                    notificationType: "Service Completed",
-                }
-                // const notifyUser3 = await sendNotification(userFcm, notiTitle, notiBody, notiData3)
 
-                break;
+                    userFcm = serviceProviderDetails?.fcmToken || ""
+                    notiTitle = "Mark job as completed"
+                    notiBody = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as completed`
+                    const notiData3 = {
+                        senderId: req.user?._id,
+                        receiverId: serviceRequest.serviceProviderId,
+                        title: notiTitle,
+                        notificationType: "Service Completed",
+                    }
+                    // const notifyUser3 = await sendNotification(userFcm, notiTitle, notiBody, notiData3)
 
-            default:
-                updateData.requestProgress = requestProgress;
-                if (requestProgress === "Cancelled") {
-                    updateData.isReqAcceptedByServiceProvider = false;
                 }
-                userFcm = serviceProviderDetails?.fcmToken || ""
-                notiTitle = "Mark job as cancelled"
-                notiBody = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as cancelled`
-                const notiData4 = {
-                    senderId: req.user?._id,
-                    receiverId: serviceRequest.serviceProviderId,
-                    title: notiTitle,
-                    notificationType: "Agent Cancelled Service",
-                }
-                // const notifyUser4 = await sendNotification(userFcm, notiTitle, notiBody, notiData4)
 
                 break;
 
         }
     }
+
+    // Allow service provider to cancel at any time except when NotStarted
+    if (serviceRequest.requestProgress !== "NotStarted" && requestProgress === "Cancelled") {
+        updateData.isReqAcceptedByServiceProvider = false;
+        updateData.requestProgress = "Cancelled";
+
+
+        userFcm = serviceProviderDetails?.fcmToken || ""
+        notiTitle = "Mark job as cancelled"
+        notiBody = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as cancelled`
+        const notiData4 = {
+            senderId: req.user?._id,
+            receiverId: serviceRequest.serviceProviderId,
+            title: notiTitle,
+            notificationType: "Agent Cancelled Service",
+        }
+        // const notifyUser4 = await sendNotification(userFcm, notiTitle, notiBody, notiData4)
+
+    }   
 
     const updatedService = await ServiceModel.findByIdAndUpdate(serviceId, { $set: updateData }, { new: true });
     if (!updatedService) {
@@ -917,12 +922,14 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
                 serviceProductImage: 1,
                 serviceDescription: "$otherInfo.serviceDescription",
                 serviceProductSerialNumber: "$otherInfo.productSerialNumber",
-                isReqAcceptedByServiceProvider:1,
+                isReqAcceptedByServiceProvider: 1,
                 requestProgress: 1,
                 isIncentiveGiven: 1,
                 incentiveAmount: 1,
                 createdAt: 1,
                 updatedAt: 1,
+                serviceLatitude:1,
+                serviceLongitude:1
             }
         },
     ]);
@@ -1127,6 +1134,22 @@ export const getJobByStatus = asyncHandler(async (req: CustomRequest, res: Respo
                 foreignField: "_id",
                 localField: "userId",
                 as: "userId",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: 'ratings',
+                            foreignField: "ratedTo",
+                            localField: "_id",
+                            as: "userRatings"
+                        }
+                    },
+                    {
+                        $addFields: {
+                            totalRatings: { $ifNull: [{ $size: "$userRatings" }, 0] },
+                            userAvgRating: { $ifNull: [{ $avg: "$userRatings.rating" }, 0] }
+                        }
+                    }
+                ]
             }
         },
         {
@@ -1154,11 +1177,16 @@ export const getJobByStatus = asyncHandler(async (req: CustomRequest, res: Respo
                 _id: 1,
                 categoryName: '$categoryId.name',
                 requestProgress: 1,
+                isIncentiveGiven:1,
+                incentiveAmount:1,
                 customerFirstName: '$userId.firstName',
                 customerLastName: '$userId.lastName',
                 'assignedAgentId.firstName': 1,
                 'assignedAgentId.lastName': 1,
                 customerAvatar: '$userId.avatar',
+                totalCustomerRatings: '$userId.totalRatings',
+                customerAvgRating: '$userId.userAvgRating',
+
                 createdAt: 1
 
             }

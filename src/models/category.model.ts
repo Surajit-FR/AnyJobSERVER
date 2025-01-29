@@ -4,12 +4,17 @@ import { ICategorySchema } from "../../types/schemaTypes";
 const CategorySchema: Schema<ICategorySchema> = new Schema({
     name: {
         type: String,
-        default:"",
+        default: "",
         required: true
     },
     categoryImage: {
         type: String,
-        default:"",
+        default: "",
+    },
+    categoryType: {
+        type: String,
+        enum: ["Regular", "Sessional "],
+        default: "Regular",
     },
     isDeleted: {
         type: Boolean,
@@ -22,5 +27,5 @@ const CategorySchema: Schema<ICategorySchema> = new Schema({
 }, { timestamps: true });
 
 
-const CategoryModel:Model<ICategorySchema> = mongoose.model<ICategorySchema>('category',CategorySchema);
+const CategoryModel: Model<ICategorySchema> = mongoose.model<ICategorySchema>('category', CategorySchema);
 export default CategoryModel;

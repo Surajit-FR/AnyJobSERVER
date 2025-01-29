@@ -60,10 +60,10 @@ export const getCategories = asyncHandler(async (req: Request, res: Response) =>
 
     const results = await CategoryModel.aggregate([
         {
-            $match: { isDeleted: false }
+            $match: { isDeleted: false,categoryType:"Regular" }
         },
     ]);
-    return sendSuccessResponse(res, 200, results, "Category retrieved successfully.");
+    return sendSuccessResponse(res, 200, results, "Regular category retrieved successfully.");
 });
 
 // updateCategory controller

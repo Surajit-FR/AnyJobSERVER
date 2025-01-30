@@ -16,6 +16,7 @@ import { date } from "joi";
 import sendNotification from "../utils/sendPushNotification";
 import { isNotificationPreferenceOn } from "../utils/auth";
 import { NotificationModel } from "../models/notification.model";
+import { log } from "console";
 
 
 
@@ -416,6 +417,7 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
                 }
                 // const notifyUser1 = await sendNotification(userFcm, notiTitle, notiBody, notiData1)
 
+
                 break;
 
             case "Pending":
@@ -434,7 +436,8 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
                     title: notiTitle,
                     notificationType: "Service Started",
                 }
-                // const notifyUser2 = await sendNotification(userFcm, notiTitle, notiBody, notiData2)
+                // const notifyUser2 = await sendNotification(userFcm, notiTitle, notiBody, notiData2)                
+
 
                 break;
 
@@ -456,9 +459,28 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
                     }
                     // const notifyUser3 = await sendNotification(userFcm, notiTitle, notiBody, notiData3)
 
+
                 }
 
                 break;
+
+            case "Cancelled":
+
+                if (requestProgress === "Pending") {
+                    updateData.requestProgress = "Pending";
+                }
+                userFcm = customerDetails?.fcmToken || ""
+                notiTitle = "Service Requested Accepted "
+                notiBody = `Your Service Request is accepted by ${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""}`
+                const notiData4 = {
+                    senderId: req.user?._id,
+                    receiverId: serviceRequest.userId,
+                    title: notiTitle,
+                    notificationType: "Service Accepeted",
+                }
+                // const notifyUser1 = await sendNotification(userFcm, notiTitle, notiBody, notiData1)
+                break;
+
 
         }
     }
@@ -480,24 +502,31 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
         }
         // const notifyUser4 = await sendNotification(userFcm, notiTitle, notiBody, notiData4)
 
-    }   
+    }
 
     const updatedService = await ServiceModel.findByIdAndUpdate(serviceId, { $set: updateData }, { new: true });
     if (!updatedService) {
         return sendErrorResponse(res, new ApiError(400, "Service not found for updating."));
     }
 
-    // Calculate total duration if completedAt is available
-    let totalExecutionTimeInMinutes: number = 0;
-    if (updatedService.completedAt && updatedService.startedAt) {
-        totalExecutionTimeInMinutes = (new Date(updatedService.completedAt).getTime() - new Date(updatedService.startedAt).getTime()) / (1000 * 60);
+
+
+    if (requestProgress == "Pending") {
+        return sendSuccessResponse(res, 200, { updatedService }, "Service request accepted successfully.")
+    } else if (requestProgress == "Started") {
+        return sendSuccessResponse(res, 200, { updatedService }, "Service request started successfully.")
+    } else if (requestProgress == "Completed") {
+        // Calculate total duration if completedAt is availabler    
+        let totalExecutionTimeInMinutes: number = 0;
+        if (updatedService.completedAt && updatedService.startedAt) {
+            totalExecutionTimeInMinutes = (new Date(updatedService.completedAt).getTime() - new Date(updatedService.startedAt).getTime()) / (1000 * 60);
+        }
+
+        return sendSuccessResponse(res, 200, { updatedService, totalExecutionTimeInMinutes }, "Service request completed successfully.")
+    } else {
+        return sendSuccessResponse(res, 200, { updatedService }, "Service request cancelled successfully.")
     }
 
-
-    return sendSuccessResponse(res, 200,
-        { updatedService, totalExecutionTimeInMinutes },
-        isReqAcceptedByServiceProvider ? "Service Request accepted successfully." : "Service Request status updated successfully."
-    )
 });
 
 // deleteService controller
@@ -605,7 +634,7 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
 
             }
         },
-        { $match: { isDeleted: false, isReqAcceptedByServiceProvider: false, requestProgress: "NotStarted" } },
+        { $match: { isDeleted: false, isReqAcceptedByServiceProvider: false, } },
         {
             $lookup: {
                 from: 'users',
@@ -928,8 +957,8 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
                 incentiveAmount: 1,
                 createdAt: 1,
                 updatedAt: 1,
-                serviceLatitude:1,
-                serviceLongitude:1
+                serviceLatitude: 1,
+                serviceLongitude: 1
             }
         },
     ]);
@@ -1177,12 +1206,15 @@ export const getJobByStatus = asyncHandler(async (req: CustomRequest, res: Respo
                 _id: 1,
                 categoryName: '$categoryId.name',
                 requestProgress: 1,
-                isIncentiveGiven:1,
-                incentiveAmount:1,
+                isIncentiveGiven: 1,
+                incentiveAmount: 1,
                 customerFirstName: '$userId.firstName',
                 customerLastName: '$userId.lastName',
                 'assignedAgentId.firstName': 1,
                 'assignedAgentId.lastName': 1,
+                'assignedAgentId._id': 1,
+                'assignedAgentId.avatar': 1,
+                'assignedAgentId.phone': 1,
                 customerAvatar: '$userId.avatar',
                 totalCustomerRatings: '$userId.totalRatings',
                 customerAvgRating: '$userId.userAvgRating',
@@ -1287,6 +1319,9 @@ export const getJobByStatusByAgent = asyncHandler(async (req: CustomRequest, res
                 customerLastName: '$userId.lastName',
                 'assignedAgentId.firstName': 1,
                 'assignedAgentId.lastName': 1,
+                'assignedAgentId._id': 1,
+                'assignedAgentId.avatar': 1,
+                'assignedAgentId.phone': 1,
                 customerAvatar: '$userId.avatar',
                 totalCustomerRatings: '$userId.totalRatings',
                 customerAvgRating: '$userId.userAvgRating',
@@ -1571,4 +1606,39 @@ export const getCompletedService = asyncHandler(async (req: CustomRequest, res: 
     const totalRequest = results.length;
 
     return sendSuccessResponse(res, 200, { results, totalRequest: totalRequest }, "Service request retrieved successfully.");
+});
+
+
+//get customer's address history
+export const fetchServiceAddressHistory = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const userId = req.user?._id;
+
+    const results = await ServiceModel.aggregate([
+        {
+            $match: {
+                userId: userId,
+                isDeleted: false
+            }
+        },
+        {
+            $group: {
+                _id: "$serviceAddress",
+                createdAt: { $max: "$createdAt" },
+                serviceId: { $first: "$_id" },
+            }
+        },
+        {
+            $sort: { createdAt: -1 }
+        },
+        {
+            $project: {
+                _id: 0,
+                serviceAddress: "$_id",
+                createdAt: 1,
+                serviceId: 1,
+            }
+        }
+    ]);
+
+    return sendSuccessResponse(res, 200, { results, totalRequest: results.length }, "Unique service address history retrieved successfully.");
 });

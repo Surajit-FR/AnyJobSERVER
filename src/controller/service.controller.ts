@@ -401,7 +401,8 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
         switch (serviceRequest.requestProgress) {
 
             case "NotStarted":
-                // console.log("case1:NotStarted");
+
+            case "Cancelled":
 
                 if (requestProgress === "Pending") {
                     updateData.requestProgress = "Pending";
@@ -409,16 +410,15 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
                 userFcm = customerDetails?.fcmToken || ""
                 notiTitle = "Service Requested Accepted "
                 notiBody = `Your Service Request is accepted by ${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""}`
-                const notiData1 = {
+                const notiData4 = {
                     senderId: req.user?._id,
                     receiverId: serviceRequest.userId,
                     title: notiTitle,
                     notificationType: "Service Accepeted",
                 }
                 // const notifyUser1 = await sendNotification(userFcm, notiTitle, notiBody, notiData1)
-
-
                 break;
+
 
             case "Pending":
                 // console.log("case2:Pending");
@@ -464,22 +464,6 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
 
                 break;
 
-            case "Cancelled":
-
-                if (requestProgress === "Pending") {
-                    updateData.requestProgress = "Pending";
-                }
-                userFcm = customerDetails?.fcmToken || ""
-                notiTitle = "Service Requested Accepted "
-                notiBody = `Your Service Request is accepted by ${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""}`
-                const notiData4 = {
-                    senderId: req.user?._id,
-                    receiverId: serviceRequest.userId,
-                    title: notiTitle,
-                    notificationType: "Service Accepeted",
-                }
-                // const notifyUser1 = await sendNotification(userFcm, notiTitle, notiBody, notiData1)
-                break;
 
 
         }
@@ -999,7 +983,7 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
         requestProgress === "InProgress"
             ? { requestProgress: { $in: ["Pending", "Started"] } }
             : requestProgress === "jobQueue"
-                ? { requestProgress: "NotStarted" }
+                ? { requestProgress: { $in: ["NotStarted", "Cancelled"] } }
                 : { requestProgress };
 
     const results = await ServiceModel.aggregate([

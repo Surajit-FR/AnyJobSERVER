@@ -12,11 +12,9 @@ import TeamModel from "../models/teams.model";
 import UserModel from "../models/user.model";
 import { PipelineStage } from 'mongoose';
 import axios from "axios";
-import { date } from "joi";
 import sendNotification from "../utils/sendPushNotification";
 import { isNotificationPreferenceOn } from "../utils/auth";
 import { NotificationModel } from "../models/notification.model";
-import { log } from "console";
 
 
 
@@ -28,8 +26,10 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         serviceShifftId,
         SelectedShiftTime,
         serviceZipCode,
+        serviceAddress,
         serviceLatitude,
         serviceLongitude,
+        serviceLandMark,
         isIncentiveGiven,
         incentiveAmount,
         isTipGiven,
@@ -47,6 +47,21 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
     if (!serviceZipCode) return sendErrorResponse(res, new ApiError(400, "Service ZIP code is required."));
     // if (!serviceLatitude || !serviceLongitude) return sendErrorResponse(res, new ApiError(400, "Service location is required."));
     if (!answerArray || !Array.isArray(answerArray)) return sendErrorResponse(res, new ApiError(400, "Answer array is required and must be an array."));
+
+    // **Step 1: Check the count of unique pre-saved addresses for the user**
+    const existingAddresses = await ServiceModel.aggregate([
+        { $match: { userId: req.user?._id } },
+        {
+            $group: {
+                _id: { serviceAddress: "$serviceAddress", serviceZipCode: "$serviceZipCode" },
+                count: { $sum: 1 }
+            }
+        }
+    ]);
+
+    if (existingAddresses.length >= 6) {
+        return sendErrorResponse(res, new ApiError(400, "You cannot have more than six pre-saved addresses."));
+    }
 
     // Conditional checks for incentive and tip amounts
     if (isIncentiveGiven && (incentiveAmount === undefined || incentiveAmount <= 0)) {
@@ -68,16 +83,13 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         latitude: locationDetails?.geometry?.location?.lat,
     };
 
-    const formattedAddress = locationDetails?.formatted_address
+    // const formattedAddress = locationDetails?.formatted_address
 
     //strcture location object for geospatial query
     const location = {
         type: "Point",
         coordinates: [fetchedCoordinates.longitude, fetchedCoordinates.latitude] // [longitude, latitude]
     };
-
-    console.log("api runs");
-
     // Prepare the new service object
     const newService = await ServiceModel.create({
         categoryId,
@@ -87,7 +99,8 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         serviceZipCode,
         serviceLatitude: fetchedCoordinates.latitude,
         serviceLongitude: fetchedCoordinates.longitude,
-        serviceAddress: formattedAddress,
+        serviceAddress: serviceAddress,
+        serviceLandMark: serviceLandMark,
         location: location,
         isIncentiveGiven,
         incentiveAmount,
@@ -532,12 +545,6 @@ export const deleteService = asyncHandler(async (req: Request, res: Response) =>
 
 // fetch nearby ServiceRequest controller
 export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {
-
-    // const isNotificationOn = await isNotificationPreferenceOn(req.user?._id as string)
-
-    // if (!isNotificationOn) {
-    //     return sendSuccessResponse(res, 200, "Notification permission is off.")
-    // }
 
     const { page = "1", limit = "10", query = '', sortBy = 'isIncentiveGiven', sortType = 'desc', categoryName = '' } = req.query;
     const pageNumber = parseInt(page as string, 10) || 1;
@@ -1618,7 +1625,7 @@ export const fetchServiceAddressHistory = asyncHandler(async (req: CustomRequest
             $project: {
                 _id: 0,
                 serviceAddress: "$_id",
-                createdAt: 1,
+                // createdAt: 1,
                 serviceId: 1,
             }
         }

@@ -167,7 +167,8 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
     const otpEntry = await OTPModel.findOne({ [queryField]: formattedIdentifier });
 
     // Set default OTP for testing in non-production environments
-    const defaultOtp = process.env.DEFAULT_OTP || "12345";
+    const defaultOtp =  "12345";
+    
     const isOtpValid = otp === defaultOtp || (otpEntry && otpEntry.otp === otp);
 
     if (!otpEntry || otpEntry.expiredAt < new Date()) {

@@ -60,8 +60,14 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
     },
     serviceAddress: {
         type: String,
+        default:"",
         // required: [true, "Service Address is required"]
-    },
+    },    
+    serviceLandMark: {
+        type: String,
+        default:"",
+        // required: [true, "Service Address is required"]
+    },    
     location: {
         type: {
             type: String, // Always 'Point'

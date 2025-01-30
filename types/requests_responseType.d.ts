@@ -65,6 +65,7 @@ export interface IAddServicePayloadReq {
     serviceShifftId: ObjectId,
     SelectedShiftTime: object,
     serviceZipCode: number,
+    serviceLandMark: string,
     serviceLatitude: number,
     serviceLongitude: number,
     serviceAddress:string,

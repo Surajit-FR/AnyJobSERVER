@@ -110,6 +110,7 @@ export interface IServiceSchema extends Document {
     serviceLongitude: string;
     serviceAddress: string;
     location: IGeoJSONPoint;
+    serviceLandMark: string;
     startedAt: Date;
     completedAt: Date;
     isIncentiveGiven: boolean;

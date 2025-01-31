@@ -59,7 +59,7 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         }
     ]);
 
-    if (existingAddresses.length >= 6) {
+    if (existingAddresses.length >= 600) {
         return sendErrorResponse(res, new ApiError(400, "You cannot have more than six pre-saved addresses."));
     }
 

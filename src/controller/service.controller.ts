@@ -914,6 +914,7 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
                 bookedServiceShift: "$serviceShifftId.shiftName",
                 bookedTimeSlot: 1,
                 serviceStartDate: 1,
+                'customerId': "$userId._id",
                 customerName: {
                     $concat: ["$userId.firstName", " ", "$userId.lastName"]
                 },

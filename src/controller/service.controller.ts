@@ -949,7 +949,9 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
                 createdAt: 1,
                 updatedAt: 1,
                 serviceLatitude: 1,
-                serviceLongitude: 1
+                serviceLongitude: 1,
+                startedAt: 1,
+                completedAt: 1,
             }
         },
     ]);

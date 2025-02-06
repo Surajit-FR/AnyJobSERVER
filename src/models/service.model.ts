@@ -48,7 +48,7 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
     },
     serviceZipCode: {
         type: String,
-        required: [true, "Service Zipcode is required"]
+        // required: [true, "Service Zipcode is required"]
     },
     serviceLatitude: {
         type: String,
@@ -94,6 +94,10 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
         default: 0,
     },
     isTipGiven: {
+        type: Boolean,
+        default: false
+    },
+    useMyCurrentLocation: {
         type: Boolean,
         default: false
     },

@@ -1,7 +1,7 @@
 import { Document, ObjectId } from "mongoose";
 export interface IGeoJSONPoint {
     type: "Point";
-    coordinates: [number, number]; // [longitude, latitude]
+    coordinates: [string, string]; // [longitude, latitude]
 }
 
 export interface IUser extends Document {
@@ -125,6 +125,7 @@ export interface IServiceSchema extends Document {
     userId: ObjectId;
     answerArray: Array<any>;
     requestProgress: string;
+    useMyCurrentLocation:boolean,
     isDeleted: boolean;
     createdAt?: Date;
     updatedAt?: Date;

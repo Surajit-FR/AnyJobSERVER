@@ -19,7 +19,7 @@ authenticator.options = {
 
 const accountSid = TWILIO_ACCOUNT_SID;
 const authToken = TWILIO_AUTH_TOKEN;
-const client = twilio(accountSid, authToken);
+let client = twilio(accountSid, authToken);
 
 
 export const generateVerificationCode = (length: number): number => {
@@ -30,6 +30,23 @@ export const generateVerificationCode = (length: number): number => {
     const max = Math.pow(10, length) - 1;
     return Math.floor(min + Math.random() * (max - min + 1));
 };
+
+// Function to update Auth Token
+async function updateAuthTokenPromotion() {
+    try {
+        console.log("token promotion runs");
+        
+        const authTokenPromotion = await client.accounts.v1.authTokenPromotion().update();
+        console.log("Updated Twilio Auth Token for account:", authTokenPromotion);
+
+        // Reinitialize Twilio client with updated token
+        let newAccountSid = authTokenPromotion.accountSid;
+        let newAuthToken = authTokenPromotion.authToken!;
+        client = twilio(newAccountSid, newAuthToken);
+    } catch (error) {
+        console.error("Failed to update Twilio Auth Token:", error);
+    }
+}
 
 //send otp
 export const sendOTP = asyncHandler(async (req: Request, res: Response) => {
@@ -60,6 +77,8 @@ export const sendOTP = asyncHandler(async (req: Request, res: Response) => {
 
     await otpEntry.save();
     // const message = "Testing"
+
+    updateAuthTokenPromotion()
 
     const message = await client.messages.create({
         body: `Your OTP code is ${otp}`,
@@ -167,8 +186,8 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
     const otpEntry = await OTPModel.findOne({ [queryField]: formattedIdentifier });
 
     // Set default OTP for testing in non-production environments
-    const defaultOtp =  "12345";
-    
+    const defaultOtp = "12345";
+
     const isOtpValid = otp === defaultOtp || (otpEntry && otpEntry.otp === otp);
 
     if (!otpEntry || otpEntry.expiredAt < new Date()) {
@@ -226,4 +245,3 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
             return sendErrorResponse(res, new ApiError(400, "Invalid purpose"));
     }
 });
-

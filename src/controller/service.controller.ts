@@ -20,6 +20,8 @@ import { NotificationModel } from "../models/notification.model";
 
 // addService controller
 export const addService = asyncHandler(async (req: CustomRequest, res: Response) => {
+    let locationDetails: any, finalLongitude, finalLatitude,finalLocation;
+
     const {
         categoryId,
         serviceStartDate,
@@ -29,7 +31,9 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         serviceAddress,
         serviceLatitude,
         serviceLongitude,
+        useMyCurrentLocation,
         serviceLandMark,
+        userPhoneNumber,
         isIncentiveGiven,
         incentiveAmount,
         isTipGiven,
@@ -38,22 +42,37 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         serviceProductImage,
         answerArray // Expecting answerArray instead of answers
     }: IAddServicePayloadReq = req.body;
+    // console.log(req.body);
+
 
     // Validate required fields
     if (!categoryId) return sendErrorResponse(res, new ApiError(400, "Category ID is required."));
     if (!serviceStartDate) return sendErrorResponse(res, new ApiError(400, "Service start date is required."));
     if (!serviceShifftId) return sendErrorResponse(res, new ApiError(400, "Service shift ID is required."));
     if (!SelectedShiftTime) return sendErrorResponse(res, new ApiError(400, "Selected shift time is required."));
-    if (!serviceZipCode) return sendErrorResponse(res, new ApiError(400, "Service ZIP code is required."));
-    // if (!serviceLatitude || !serviceLongitude) return sendErrorResponse(res, new ApiError(400, "Service location is required."));
     if (!answerArray || !Array.isArray(answerArray)) return sendErrorResponse(res, new ApiError(400, "Answer array is required and must be an array."));
+
+    if (useMyCurrentLocation) {
+        if (!serviceLatitude || !serviceLongitude) return sendErrorResponse(res, new ApiError(400, "Service latitude and longitude is required."));
+        if (!serviceAddress) return sendErrorResponse(res, new ApiError(400, "Service address is required."));
+
+        finalLongitude = serviceLongitude;
+        finalLatitude = serviceLatitude;
+
+        finalLocation = {
+            type: "Point",
+            coordinates: [finalLongitude, finalLatitude] // [longitude, latitude]
+        };
+    
+    }
+    
 
     // **Step 1: Check the count of unique pre-saved addresses for the user**
     const existingAddresses = await ServiceModel.aggregate([
         { $match: { userId: req.user?._id } },
         {
             $group: {
-                _id: { serviceAddress: "$serviceAddress", serviceZipCode: "$serviceZipCode" },
+                _id: { serviceAddress: "$serviceAddress" },
                 count: { $sum: 1 }
             }
         }
@@ -70,38 +89,52 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
     if (isTipGiven && (tipAmount === undefined || tipAmount <= 0)) {
         return sendErrorResponse(res, new ApiError(400, "Tip amount must be provided and more than zero if tip is given."));
     }
-    const apiKey = process.env.GOOGLE_API_KEY;
-    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${serviceZipCode}&key=${apiKey}`;
 
-    const geocodeResponse = await axios.get(geocodeUrl);
+    if (!useMyCurrentLocation) {
+        if (!serviceZipCode) return sendErrorResponse(res, new ApiError(400, "Service ZIP code is required for manual address."));
+        if (!serviceAddress) return sendErrorResponse(res, new ApiError(400, "Service address  is required for manual address."));
 
-    const locationDetails = geocodeResponse?.data?.results[0]
+        //extracting coordinates from zip code
+        const apiKey = process.env.GOOGLE_API_KEY;
+        const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${serviceZipCode}&key=${apiKey}`;
 
-    if (!locationDetails) return sendErrorResponse(res, new ApiError(400, "Service ZIP code is invalid."));
-    const fetchedCoordinates = {
-        longitude: locationDetails?.geometry?.location?.lng,
-        latitude: locationDetails?.geometry?.location?.lat,
-    };
+        const geocodeResponse = await axios.get(geocodeUrl);
+
+        locationDetails = geocodeResponse?.data?.results[0]
+
+        if (!locationDetails) return sendErrorResponse(res, new ApiError(400, "Service ZIP code is invalid."));
+
+        let fetchedCoordinates = {
+            longitude: locationDetails?.geometry?.location?.lng,
+            latitude: locationDetails?.geometry?.location?.lat,
+        };
+        finalLongitude = fetchedCoordinates.longitude;
+        finalLatitude = fetchedCoordinates.latitude
+    
+         finalLocation = {
+            type: "Point",
+            coordinates: [finalLongitude, finalLatitude] // [longitude, latitude]
+        };
+
+    }//end if 
+
 
     // const formattedAddress = locationDetails?.formatted_address
 
-    //strcture location object for geospatial query
-    const location = {
-        type: "Point",
-        coordinates: [fetchedCoordinates.longitude, fetchedCoordinates.latitude] // [longitude, latitude]
-    };
+
     // Prepare the new service object
     const newService = await ServiceModel.create({
         categoryId,
         serviceShifftId,
         SelectedShiftTime,
         serviceStartDate,
+        useMyCurrentLocation,
         serviceZipCode,
-        serviceLatitude: fetchedCoordinates.latitude,
-        serviceLongitude: fetchedCoordinates.longitude,
+        serviceLatitude: finalLatitude,
+        serviceLongitude: finalLongitude,
         serviceAddress: serviceAddress,
         serviceLandMark: serviceLandMark,
-        location: location,
+        location: finalLocation,
         isIncentiveGiven,
         incentiveAmount,
         isTipGiven,
@@ -607,10 +640,10 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
     const longitude = address.longitude;
     const latitude = address.latitude;
     // Extract coordinates and validate
-    const serviceRequestLongitude: number = parseFloat(longitude);
-    const serviceRequestLatitude: number = parseFloat(latitude);
+    const serviceProviderLongitude: number = parseFloat(longitude);
+    const serviceProviderLatitude: number = parseFloat(latitude);
 
-    if (isNaN(serviceRequestLongitude) || isNaN(serviceRequestLatitude)) {
+    if (isNaN(serviceProviderLongitude) || isNaN(serviceProviderLatitude)) {
         return sendErrorResponse(res, new ApiError(400, `Invalid longitude or latitude`));
     }
     const radius = 400000000; // in meters
@@ -618,7 +651,7 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
     const serviceRequests = await ServiceModel.aggregate([
         {
             $geoNear: {
-                near: { type: 'Point', coordinates: [serviceRequestLongitude, serviceRequestLatitude] },
+                near: { type: 'Point', coordinates: [serviceProviderLongitude, serviceProviderLatitude] },
                 distanceField: 'distance',
                 spherical: true,
                 maxDistance: radius,

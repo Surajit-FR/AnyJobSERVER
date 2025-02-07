@@ -60,10 +60,10 @@ exports.addCategory = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(v
 exports.getCategories = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const results = yield category_model_1.default.aggregate([
         {
-            $match: { isDeleted: false }
+            $match: { isDeleted: false, categoryType: "Regular" }
         },
     ]);
-    return (0, response_1.sendSuccessResponse)(res, 200, results, "Category retrieved successfully.");
+    return (0, response_1.sendSuccessResponse)(res, 200, results, "Regular category retrieved successfully.");
 }));
 // updateCategory controller
 exports.updateCategory = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {

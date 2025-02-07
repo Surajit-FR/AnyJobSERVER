@@ -66,7 +66,7 @@ const ServiceSchema = new mongoose_1.Schema({
     },
     serviceZipCode: {
         type: String,
-        required: [true, "Service Zipcode is required"]
+        // required: [true, "Service Zipcode is required"]
     },
     serviceLatitude: {
         type: String,
@@ -78,6 +78,12 @@ const ServiceSchema = new mongoose_1.Schema({
     },
     serviceAddress: {
         type: String,
+        default: "",
+        // required: [true, "Service Address is required"]
+    },
+    serviceLandMark: {
+        type: String,
+        default: "",
         // required: [true, "Service Address is required"]
     },
     location: {
@@ -106,6 +112,10 @@ const ServiceSchema = new mongoose_1.Schema({
         default: 0,
     },
     isTipGiven: {
+        type: Boolean,
+        default: false
+    },
+    useMyCurrentLocation: {
         type: Boolean,
         default: false
     },

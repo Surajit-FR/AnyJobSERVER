@@ -27,11 +27,11 @@ const mongoose_1 = __importStar(require("mongoose"));
 // Define a schema for shift times
 const shiftTimeSchema = new mongoose_1.Schema({
     startTime: {
-        type: String,
+        type: Date,
         required: true
     },
     endTime: {
-        type: String,
+        type: Date,
         required: true
     }
 });

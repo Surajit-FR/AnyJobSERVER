@@ -55,7 +55,7 @@ router.route("/fetch-iplogs").get((0, userAuth_1.verifyUserType)(['SuperAdmin'])
 router.route('/fetch-job-by-status').post([userAuth_1.VerifyJWTToken], (0, userAuth_1.verifyUserType)(["ServiceProvider",]), service_controller_1.getJobByStatus);
 router.route('/fetch-job-by-status-by-agent').post([userAuth_1.VerifyJWTToken], (0, userAuth_1.verifyUserType)(["FieldAgent", "TeamLead"]), service_controller_1.getJobByStatusByAgent);
 router.route('/add-bank-details').post((0, userAuth_1.verifyUserType)(["ServiceProvider", "Customer", "Admin", "Finance", "FieldAgent", "TeamLead"]), user_controller_1.addBankDetails);
-router.route('/create-iplog').post((0, userAuth_1.verifyUserType)(["ServiceProvider", "Customer", "Admin", "Finance", "FieldAgent", "TeamLead"]), IP_middleware_1.captureIP);
+router.route('/create-iplog').post((0, userAuth_1.verifyUserType)(["ServiceProvider", "Customer", "Admin", "Finance", "FieldAgent", "TeamLead", "SuperAdmin"]), IP_middleware_1.captureIP);
 router.route('/fetch-query-messages').get((0, userAuth_1.verifyUserType)(["SuperAdmin",]), contactUs_controller_1.fetchQueryMessage);
 router.route('/delete-query-message/:messageId').delete((0, userAuth_1.verifyUserType)(["SuperAdmin",]), contactUs_controller_1.deleteQueryMessage);
 router.route('/update-user-preference').put((0, userAuth_1.verifyUserType)(['ServiceProvider', 'Customer', 'FieldAgent', 'TeamLead']), user_controller_1.updateUserPreference);

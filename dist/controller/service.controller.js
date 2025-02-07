@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fetchAssignedserviceProvider = exports.totalJobCount = exports.assignJob = exports.getJobByStatusByAgent = exports.getJobByStatus = exports.getServiceRequestByStatus = exports.fetchAssociatedCustomer = exports.fetchSingleServiceRequest = exports.fetchNearByServiceProvider = exports.fetchServiceRequest = exports.deleteService = exports.handleServiceRequestState = exports.addorUpdateIncentive = exports.cancelServiceRequest = exports.getAcceptedServiceRequestInJobQueue = exports.getServiceRequestList = exports.addService = void 0;
+exports.fetchServiceAddressHistory = exports.getCompletedService = exports.fetchAssignedserviceProvider = exports.totalJobCount = exports.assignJob = exports.getJobByStatusByAgent = exports.getJobByStatus = exports.getServiceRequestByStatus = exports.fetchAssociatedCustomer = exports.fetchSingleServiceRequest = exports.fetchNearByServiceProvider = exports.fetchServiceRequest = exports.deleteService = exports.handleServiceRequestState = exports.addorUpdateIncentive = exports.cancelServiceRequest = exports.getAcceptedServiceRequestInJobQueue = exports.getServiceRequestList = exports.addService = void 0;
 const service_model_1 = __importDefault(require("../models/service.model"));
 const address_model_1 = __importDefault(require("../models/address.model"));
 const ApisErrors_1 = require("../utils/ApisErrors");
@@ -23,13 +23,13 @@ const permission_model_1 = __importDefault(require("../models/permission.model")
 const teams_model_1 = __importDefault(require("../models/teams.model"));
 const user_model_1 = __importDefault(require("../models/user.model"));
 const axios_1 = __importDefault(require("axios"));
-const sendPushNotification_1 = __importDefault(require("../utils/sendPushNotification"));
-const auth_1 = require("../utils/auth");
 // addService controller
 exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d, _e, _f;
-    const { categoryId, serviceStartDate, serviceShifftId, SelectedShiftTime, serviceZipCode, serviceLatitude, serviceLongitude, isIncentiveGiven, incentiveAmount, isTipGiven, tipAmount, otherInfo, serviceProductImage, answerArray // Expecting answerArray instead of answers
+    var _a, _b, _c, _d, _e, _f, _g;
+    let locationDetails, finalLongitude, finalLatitude, finalLocation;
+    const { categoryId, serviceStartDate, serviceShifftId, SelectedShiftTime, serviceZipCode, serviceAddress, serviceLatitude, serviceLongitude, useMyCurrentLocation, serviceLandMark, userPhoneNumber, isIncentiveGiven, incentiveAmount, isTipGiven, tipAmount, otherInfo, serviceProductImage, answerArray // Expecting answerArray instead of answers
      } = req.body;
+    // console.log(req.body);
     // Validate required fields
     if (!categoryId)
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Category ID is required."));
@@ -39,11 +39,33 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service shift ID is required."));
     if (!SelectedShiftTime)
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Selected shift time is required."));
-    if (!serviceZipCode)
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service ZIP code is required."));
-    // if (!serviceLatitude || !serviceLongitude) return sendErrorResponse(res, new ApiError(400, "Service location is required."));
     if (!answerArray || !Array.isArray(answerArray))
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Answer array is required and must be an array."));
+    if (useMyCurrentLocation) {
+        if (!serviceLatitude || !serviceLongitude)
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service latitude and longitude is required."));
+        if (!serviceAddress)
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service address is required."));
+        finalLongitude = serviceLongitude;
+        finalLatitude = serviceLatitude;
+        finalLocation = {
+            type: "Point",
+            coordinates: [finalLongitude, finalLatitude] // [longitude, latitude]
+        };
+    }
+    // **Step 1: Check the count of unique pre-saved addresses for the user**
+    const existingAddresses = yield service_model_1.default.aggregate([
+        { $match: { userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id } },
+        {
+            $group: {
+                _id: { serviceAddress: "$serviceAddress" },
+                count: { $sum: 1 }
+            }
+        }
+    ]);
+    if (existingAddresses.length >= 600) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "You cannot have more than six pre-saved addresses."));
+    }
     // Conditional checks for incentive and tip amounts
     if (isIncentiveGiven && (incentiveAmount === undefined || incentiveAmount <= 0)) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Incentive amount must be provided and more than zero if incentive is given."));
@@ -51,34 +73,43 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
     if (isTipGiven && (tipAmount === undefined || tipAmount <= 0)) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Tip amount must be provided and more than zero if tip is given."));
     }
-    const apiKey = process.env.GOOGLE_API_KEY;
-    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${serviceZipCode}&key=${apiKey}`;
-    const geocodeResponse = yield axios_1.default.get(geocodeUrl);
-    const locationDetails = (_a = geocodeResponse === null || geocodeResponse === void 0 ? void 0 : geocodeResponse.data) === null || _a === void 0 ? void 0 : _a.results[0];
-    if (!locationDetails)
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service ZIP code is invalid."));
-    const fetchedCoordinates = {
-        longitude: (_c = (_b = locationDetails === null || locationDetails === void 0 ? void 0 : locationDetails.geometry) === null || _b === void 0 ? void 0 : _b.location) === null || _c === void 0 ? void 0 : _c.lng,
-        latitude: (_e = (_d = locationDetails === null || locationDetails === void 0 ? void 0 : locationDetails.geometry) === null || _d === void 0 ? void 0 : _d.location) === null || _e === void 0 ? void 0 : _e.lat,
-    };
-    const formattedAddress = locationDetails === null || locationDetails === void 0 ? void 0 : locationDetails.formatted_address;
-    //strcture location object for geospatial query
-    const location = {
-        type: "Point",
-        coordinates: [fetchedCoordinates.longitude, fetchedCoordinates.latitude] // [longitude, latitude]
-    };
-    console.log("api runs");
+    if (!useMyCurrentLocation) {
+        if (!serviceZipCode)
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service ZIP code is required for manual address."));
+        if (!serviceAddress)
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service address  is required for manual address."));
+        //extracting coordinates from zip code
+        const apiKey = process.env.GOOGLE_API_KEY;
+        const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${serviceZipCode}&key=${apiKey}`;
+        const geocodeResponse = yield axios_1.default.get(geocodeUrl);
+        locationDetails = (_b = geocodeResponse === null || geocodeResponse === void 0 ? void 0 : geocodeResponse.data) === null || _b === void 0 ? void 0 : _b.results[0];
+        if (!locationDetails)
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service ZIP code is invalid."));
+        let fetchedCoordinates = {
+            longitude: (_d = (_c = locationDetails === null || locationDetails === void 0 ? void 0 : locationDetails.geometry) === null || _c === void 0 ? void 0 : _c.location) === null || _d === void 0 ? void 0 : _d.lng,
+            latitude: (_f = (_e = locationDetails === null || locationDetails === void 0 ? void 0 : locationDetails.geometry) === null || _e === void 0 ? void 0 : _e.location) === null || _f === void 0 ? void 0 : _f.lat,
+        };
+        finalLongitude = fetchedCoordinates.longitude;
+        finalLatitude = fetchedCoordinates.latitude;
+        finalLocation = {
+            type: "Point",
+            coordinates: [finalLongitude, finalLatitude] // [longitude, latitude]
+        };
+    } //end if 
+    // const formattedAddress = locationDetails?.formatted_address
     // Prepare the new service object
     const newService = yield service_model_1.default.create({
         categoryId,
         serviceShifftId,
         SelectedShiftTime,
         serviceStartDate,
+        useMyCurrentLocation,
         serviceZipCode,
-        serviceLatitude: fetchedCoordinates.latitude,
-        serviceLongitude: fetchedCoordinates.longitude,
-        serviceAddress: formattedAddress,
-        location: location,
+        serviceLatitude: finalLatitude,
+        serviceLongitude: finalLongitude,
+        serviceAddress: serviceAddress,
+        serviceLandMark: serviceLandMark,
+        location: finalLocation,
         isIncentiveGiven,
         incentiveAmount,
         isTipGiven,
@@ -86,7 +117,7 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
         otherInfo,
         answerArray,
         serviceProductImage,
-        userId: (_f = req.user) === null || _f === void 0 ? void 0 : _f._id
+        userId: (_g = req.user) === null || _g === void 0 ? void 0 : _g._id
     });
     if (!newService) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(500, "Something went wrong while creating the Service Request."));
@@ -274,7 +305,7 @@ exports.cancelServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __
             title: notiTitle,
             notificationType: "Customer Cancelled Service",
         };
-        const notifyUser1 = yield (0, sendPushNotification_1.default)(userFcm, notiTitle, notiBody, notiData1);
+        // const notifyUser1 = await sendNotification(userFcm, notiTitle, notiBody, notiData1)
     }
     return (0, response_1.sendSuccessResponse)(res, 200, "Service Request cancelled Successfully");
 }));
@@ -353,23 +384,23 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
         updateData.serviceProviderId = serviceProviderId;
         switch (serviceRequest.requestProgress) {
             case "NotStarted":
-                console.log("case1:NotStarted");
+            case "Cancelled":
                 if (requestProgress === "Pending") {
                     updateData.requestProgress = "Pending";
                 }
                 userFcm = (customerDetails === null || customerDetails === void 0 ? void 0 : customerDetails.fcmToken) || "";
                 notiTitle = "Service Requested Accepted ";
                 notiBody = `Your Service Request is accepted by ${(_d = (_c = req.user) === null || _c === void 0 ? void 0 : _c.firstName) !== null && _d !== void 0 ? _d : "User"} ${(_f = (_e = req.user) === null || _e === void 0 ? void 0 : _e.lastName) !== null && _f !== void 0 ? _f : ""}`;
-                const notiData1 = {
+                const notiData4 = {
                     senderId: (_g = req.user) === null || _g === void 0 ? void 0 : _g._id,
                     receiverId: serviceRequest.userId,
                     title: notiTitle,
                     notificationType: "Service Accepeted",
                 };
-                const notifyUser1 = yield (0, sendPushNotification_1.default)(userFcm, notiTitle, notiBody, notiData1);
+                // const notifyUser1 = await sendNotification(userFcm, notiTitle, notiBody, notiData1)
                 break;
             case "Pending":
-                console.log("case2:Pending");
+                // console.log("case2:Pending");
                 if (requestProgress === "Started") {
                     updateData.requestProgress = "Started";
                     updateData.startedAt = new Date();
@@ -383,52 +414,63 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
                     title: notiTitle,
                     notificationType: "Service Started",
                 };
-                const notifyUser2 = yield (0, sendPushNotification_1.default)(userFcm, notiTitle, notiBody, notiData2);
+                // const notifyUser2 = await sendNotification(userFcm, notiTitle, notiBody, notiData2)                
                 break;
             case "Started":
                 if (requestProgress === "Completed") {
+                    console.log("ss runs");
                     updateData.requestProgress = "Completed";
                     updateData.completedAt = new Date();
+                    userFcm = (serviceProviderDetails === null || serviceProviderDetails === void 0 ? void 0 : serviceProviderDetails.fcmToken) || "";
+                    notiTitle = "Mark job as completed";
+                    notiBody = `${(_p = (_o = req.user) === null || _o === void 0 ? void 0 : _o.firstName) !== null && _p !== void 0 ? _p : "User"} ${(_r = (_q = req.user) === null || _q === void 0 ? void 0 : _q.lastName) !== null && _r !== void 0 ? _r : ""} has marked the job as completed`;
+                    const notiData3 = {
+                        senderId: (_s = req.user) === null || _s === void 0 ? void 0 : _s._id,
+                        receiverId: serviceRequest.serviceProviderId,
+                        title: notiTitle,
+                        notificationType: "Service Completed",
+                    };
+                    // const notifyUser3 = await sendNotification(userFcm, notiTitle, notiBody, notiData3)
                 }
-                userFcm = (serviceProviderDetails === null || serviceProviderDetails === void 0 ? void 0 : serviceProviderDetails.fcmToken) || "";
-                notiTitle = "Mark job as completed";
-                notiBody = `${(_p = (_o = req.user) === null || _o === void 0 ? void 0 : _o.firstName) !== null && _p !== void 0 ? _p : "User"} ${(_r = (_q = req.user) === null || _q === void 0 ? void 0 : _q.lastName) !== null && _r !== void 0 ? _r : ""} has marked the job as completed`;
-                const notiData3 = {
-                    senderId: (_s = req.user) === null || _s === void 0 ? void 0 : _s._id,
-                    receiverId: serviceRequest.serviceProviderId,
-                    title: notiTitle,
-                    notificationType: "Service Completed",
-                };
-                const notifyUser3 = yield (0, sendPushNotification_1.default)(userFcm, notiTitle, notiBody, notiData3);
-                break;
-            default:
-                updateData.requestProgress = requestProgress;
-                if (requestProgress === "Cancelled") {
-                    updateData.isReqAcceptedByServiceProvider = false;
-                }
-                userFcm = (serviceProviderDetails === null || serviceProviderDetails === void 0 ? void 0 : serviceProviderDetails.fcmToken) || "";
-                notiTitle = "Mark job as cancelled";
-                notiBody = `${(_u = (_t = req.user) === null || _t === void 0 ? void 0 : _t.firstName) !== null && _u !== void 0 ? _u : "User"} ${(_w = (_v = req.user) === null || _v === void 0 ? void 0 : _v.lastName) !== null && _w !== void 0 ? _w : ""} has marked the job as cancelled`;
-                const notiData4 = {
-                    senderId: (_x = req.user) === null || _x === void 0 ? void 0 : _x._id,
-                    receiverId: serviceRequest.serviceProviderId,
-                    title: notiTitle,
-                    notificationType: "Agent Cancelled Service",
-                };
-                const notifyUser4 = yield (0, sendPushNotification_1.default)(userFcm, notiTitle, notiBody, notiData4);
                 break;
         }
+    }
+    // Allow service provider to cancel at any time except when NotStarted
+    if (serviceRequest.requestProgress !== "NotStarted" && requestProgress === "Cancelled") {
+        updateData.isReqAcceptedByServiceProvider = false;
+        updateData.requestProgress = "Cancelled";
+        userFcm = (serviceProviderDetails === null || serviceProviderDetails === void 0 ? void 0 : serviceProviderDetails.fcmToken) || "";
+        notiTitle = "Mark job as cancelled";
+        notiBody = `${(_u = (_t = req.user) === null || _t === void 0 ? void 0 : _t.firstName) !== null && _u !== void 0 ? _u : "User"} ${(_w = (_v = req.user) === null || _v === void 0 ? void 0 : _v.lastName) !== null && _w !== void 0 ? _w : ""} has marked the job as cancelled`;
+        const notiData4 = {
+            senderId: (_x = req.user) === null || _x === void 0 ? void 0 : _x._id,
+            receiverId: serviceRequest.serviceProviderId,
+            title: notiTitle,
+            notificationType: "Agent Cancelled Service",
+        };
+        // const notifyUser4 = await sendNotification(userFcm, notiTitle, notiBody, notiData4)
     }
     const updatedService = yield service_model_1.default.findByIdAndUpdate(serviceId, { $set: updateData }, { new: true });
     if (!updatedService) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service not found for updating."));
     }
-    // Calculate total duration if completedAt is available
-    let totalExecutionTimeInMinutes = 0;
-    if (updatedService.completedAt && updatedService.startedAt) {
-        totalExecutionTimeInMinutes = (new Date(updatedService.completedAt).getTime() - new Date(updatedService.startedAt).getTime()) / (1000 * 60);
+    if (requestProgress == "Pending") {
+        return (0, response_1.sendSuccessResponse)(res, 200, { updatedService }, "Service request accepted successfully.");
     }
-    return (0, response_1.sendSuccessResponse)(res, 200, { updatedService, totalExecutionTimeInMinutes }, isReqAcceptedByServiceProvider ? "Service Request accepted successfully." : "Service Request status updated successfully.");
+    else if (requestProgress == "Started") {
+        return (0, response_1.sendSuccessResponse)(res, 200, { updatedService }, "Service request started successfully.");
+    }
+    else if (requestProgress == "Completed") {
+        // Calculate total duration if completedAt is availabler    
+        let totalExecutionTimeInMinutes = 0;
+        if (updatedService.completedAt && updatedService.startedAt) {
+            totalExecutionTimeInMinutes = (new Date(updatedService.completedAt).getTime() - new Date(updatedService.startedAt).getTime()) / (1000 * 60);
+        }
+        return (0, response_1.sendSuccessResponse)(res, 200, { updatedService, totalExecutionTimeInMinutes }, "Service request completed successfully.");
+    }
+    else {
+        return (0, response_1.sendSuccessResponse)(res, 200, { updatedService }, "Service request cancelled successfully.");
+    }
 }));
 // deleteService controller
 exports.deleteService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -447,11 +489,7 @@ exports.deleteService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
 }));
 // fetch nearby ServiceRequest controller
 exports.fetchServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c;
-    const isNotificationOn = yield (0, auth_1.isNotificationPreferenceOn)((_a = req.user) === null || _a === void 0 ? void 0 : _a._id);
-    if (!isNotificationOn) {
-        return (0, response_1.sendSuccessResponse)(res, 200, "Notification permission is off.");
-    }
+    var _a, _b;
     const { page = "1", limit = "10", query = '', sortBy = 'isIncentiveGiven', sortType = 'desc', categoryName = '' } = req.query;
     const pageNumber = parseInt(page, 10) || 1;
     const limitNumber = parseInt(limit, 10) || 10;
@@ -468,8 +506,8 @@ exports.fetchServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __a
     const validSortType = sortType.toLowerCase() === 'desc' ? -1 : 1;
     const sortCriteria = {};
     sortCriteria[validSortBy] = validSortType;
-    const userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
-    const userType = (_c = req.user) === null || _c === void 0 ? void 0 : _c.userType;
+    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+    const userType = (_b = req.user) === null || _b === void 0 ? void 0 : _b.userType;
     let serviceProviderId;
     let address;
     if (userType === 'TeamLead') {
@@ -499,22 +537,22 @@ exports.fetchServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __a
     const longitude = address.longitude;
     const latitude = address.latitude;
     // Extract coordinates and validate
-    const serviceRequestLongitude = parseFloat(longitude);
-    const serviceRequestLatitude = parseFloat(latitude);
-    if (isNaN(serviceRequestLongitude) || isNaN(serviceRequestLatitude)) {
+    const serviceProviderLongitude = parseFloat(longitude);
+    const serviceProviderLatitude = parseFloat(latitude);
+    if (isNaN(serviceProviderLongitude) || isNaN(serviceProviderLatitude)) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, `Invalid longitude or latitude`));
     }
     const radius = 400000000; // in meters
     const serviceRequests = yield service_model_1.default.aggregate([
         {
             $geoNear: {
-                near: { type: 'Point', coordinates: [serviceRequestLongitude, serviceRequestLatitude] },
+                near: { type: 'Point', coordinates: [serviceProviderLongitude, serviceProviderLatitude] },
                 distanceField: 'distance',
                 spherical: true,
                 maxDistance: radius,
             }
         },
-        { $match: { isDeleted: false, isReqAcceptedByServiceProvider: false, requestProgress: "NotStarted" } },
+        { $match: { isDeleted: false, isReqAcceptedByServiceProvider: false, } },
         {
             $lookup: {
                 from: 'users',
@@ -560,7 +598,7 @@ exports.fetchServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __a
             }
         },
         { $match: searchQuery },
-        { $sort: { isIncentiveGiven: validSortType } },
+        // { $sort: { isIncentiveGiven: validSortType } },
         { $skip: skip },
         { $limit: limitNumber },
         {
@@ -585,10 +623,11 @@ exports.fetchServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __a
     if (!serviceRequests.length) {
         return (0, response_1.sendSuccessResponse)(res, 200, serviceRequests, 'No nearby service request found');
     }
-    const total = serviceRequests[0] ? serviceRequests.length : 0;
+    const totalRecords = yield service_model_1.default.countDocuments({ isDeleted: false, isReqAcceptedByServiceProvider: false, requestProgress: "NotStarted" });
+    // const total = serviceRequests[0] ? serviceRequests.length : 0
     return (0, response_1.sendSuccessResponse)(res, 200, {
         serviceRequests, pagination: {
-            totalRecords: total,
+            totalRecords: totalRecords,
             page: pageNumber,
             limit: limitNumber
         }
@@ -785,6 +824,7 @@ exports.fetchSingleServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) 
                 bookedServiceShift: "$serviceShifftId.shiftName",
                 bookedTimeSlot: 1,
                 serviceStartDate: 1,
+                'customerId': "$userId._id",
                 customerName: {
                     $concat: ["$userId.firstName", " ", "$userId.lastName"]
                 },
@@ -797,10 +837,11 @@ exports.fetchSingleServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) 
                     $concat: ["$serviceProviderId.firstName", " ", "$serviceProviderId.lastName"]
                 },
                 'serviceProviderEmail': "$serviceProviderId.email",
-                'serviceProviderAvatar': "$serviceProviderId.avatar ",
+                'serviceProviderAvatar': "$serviceProviderId.avatar",
                 'serviceProviderPhone': "$serviceProviderId.phone",
                 'serviceProviderCompanyName': "$serviceProviderId.providerAdditionalInfo.companyName",
                 'serviceProviderCompanyDesc': "$serviceProviderId.providerAdditionalInfo.companyIntroduction",
+                'serviceProviderBusinessImage': "$serviceProviderId.providerAdditionalInfo.businessImage",
                 assignedAgentName: {
                     $concat: ["$assignedAgentId.firstName", " ", "$assignedAgentId.lastName"]
                 },
@@ -812,11 +853,16 @@ exports.fetchSingleServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) 
                 serviceProductImage: 1,
                 serviceDescription: "$otherInfo.serviceDescription",
                 serviceProductSerialNumber: "$otherInfo.productSerialNumber",
+                isReqAcceptedByServiceProvider: 1,
                 requestProgress: 1,
                 isIncentiveGiven: 1,
                 incentiveAmount: 1,
                 createdAt: 1,
                 updatedAt: 1,
+                serviceLatitude: 1,
+                serviceLongitude: 1,
+                startedAt: 1,
+                completedAt: 1,
             }
         },
     ]);
@@ -849,7 +895,7 @@ exports.getServiceRequestByStatus = (0, asyncHandler_1.asyncHandler)((req, res) 
     const progressFilter = requestProgress === "InProgress"
         ? { requestProgress: { $in: ["Pending", "Started"] } }
         : requestProgress === "jobQueue"
-            ? { requestProgress: "NotStarted" }
+            ? { requestProgress: { $in: ["NotStarted", "Cancelled"] } }
             : { requestProgress };
     const results = yield service_model_1.default.aggregate([
         {
@@ -945,6 +991,7 @@ exports.getServiceRequestByStatus = (0, asyncHandler_1.asyncHandler)((req, res) 
             $project: {
                 _id: 1,
                 'categoryId.name': 1,
+                'categoryId.categoryImage': 1,
                 serviceStartDate: 1,
                 serviceAddress: 1,
                 startedAt: 1,
@@ -973,7 +1020,7 @@ exports.getJobByStatus = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
     const progressFilter = requestProgress === "Accepted"
         ? { requestProgress: { $in: ["Pending",] } }
         : requestProgress === "Started"
-            ? { requestProgress: "Started" }
+            ? { requestProgress: "Started" } : requestProgress === "All" ? {}
             : { requestProgress };
     const results = yield service_model_1.default.aggregate([
         {
@@ -999,6 +1046,22 @@ exports.getJobByStatus = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
                 foreignField: "_id",
                 localField: "userId",
                 as: "userId",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: 'ratings',
+                            foreignField: "ratedTo",
+                            localField: "_id",
+                            as: "userRatings"
+                        }
+                    },
+                    {
+                        $addFields: {
+                            totalRatings: { $ifNull: [{ $size: "$userRatings" }, 0] },
+                            userAvgRating: { $ifNull: [{ $avg: "$userRatings.rating" }, 0] }
+                        }
+                    }
+                ]
             }
         },
         {
@@ -1026,11 +1089,18 @@ exports.getJobByStatus = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
                 _id: 1,
                 categoryName: '$categoryId.name',
                 requestProgress: 1,
+                isIncentiveGiven: 1,
+                incentiveAmount: 1,
                 customerFirstName: '$userId.firstName',
                 customerLastName: '$userId.lastName',
                 'assignedAgentId.firstName': 1,
                 'assignedAgentId.lastName': 1,
+                'assignedAgentId._id': 1,
+                'assignedAgentId.avatar': 1,
+                'assignedAgentId.phone': 1,
                 customerAvatar: '$userId.avatar',
+                totalCustomerRatings: '$userId.totalRatings',
+                customerAvgRating: '$userId.userAvgRating',
                 createdAt: 1
             }
         },
@@ -1120,6 +1190,9 @@ exports.getJobByStatusByAgent = (0, asyncHandler_1.asyncHandler)((req, res) => _
                 customerLastName: '$userId.lastName',
                 'assignedAgentId.firstName': 1,
                 'assignedAgentId.lastName': 1,
+                'assignedAgentId._id': 1,
+                'assignedAgentId.avatar': 1,
+                'assignedAgentId.phone': 1,
                 customerAvatar: '$userId.avatar',
                 totalCustomerRatings: '$userId.totalRatings',
                 customerAvgRating: '$userId.userAvgRating',
@@ -1263,4 +1336,149 @@ exports.fetchAssignedserviceProvider = (0, asyncHandler_1.asyncHandler)((req, re
         }
     ]);
     return (0, response_1.sendSuccessResponse)(res, 200, assignedSPDetails[0], "Assigned service provider retrieved successfully.");
+}));
+//get service request for customer
+exports.getCompletedService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+    const results = yield service_model_1.default.aggregate([
+        {
+            $match: {
+                requestProgress: "Completed",
+                userId: userId
+            }
+        },
+        {
+            $lookup: {
+                from: "categories",
+                foreignField: "_id",
+                localField: "categoryId",
+                as: "categoryId"
+            }
+        },
+        // {
+        //     $unwind: {
+        //         // preserveNullAndEmptyArrays: true,
+        //         path: "$categoryId"
+        //     }
+        // },
+        // {
+        //     $lookup: {
+        //         from: "users",
+        //         foreignField: "_id",
+        //         localField: "userId",
+        //         as: "userId",
+        //         pipeline: [
+        //             {
+        //                 $lookup: {
+        //                     from: "ratings",
+        //                     foreignField: "ratedTo",
+        //                     localField: "_id",
+        //                     as: "customerRatings",
+        //                 }
+        //             },
+        //             {
+        //                 $addFields: {
+        //                     numberOfRatings: { $size: "$customerRatings" },
+        //                     customerAvgRating: {
+        //                         $cond: {
+        //                             if: { $gt: [{ $size: "$customerRatings" }, 0] },
+        //                             then: { $avg: "$customerRatings.rating" },
+        //                             else: 0
+        //                         }
+        //                     }
+        //                 }
+        //             }
+        //         ]
+        //     }
+        // },
+        // {
+        //     $unwind: {
+        //         preserveNullAndEmptyArrays: true,
+        //         path: "$userId"
+        //     }
+        // },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "serviceProviderId",
+                as: "serviceProviderId",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "ratings",
+                            foreignField: "ratedTo",
+                            localField: "_id",
+                            as: "serviceProviderIdRatings",
+                        }
+                    },
+                    {
+                        $addFields: {
+                            numberOfRatings: { $size: "$serviceProviderIdRatings" },
+                            serviceProviderRatings: {
+                                $cond: {
+                                    if: { $gt: [{ $size: "$serviceProviderIdRatings" }, 0] },
+                                    then: { $avg: "$serviceProviderIdRatings.rating" },
+                                    else: 0
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$serviceProviderId"
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                'categoryId.name': 1,
+                'categoryId.categoryImage': 1,
+                requestProgress: 1,
+                'serviceProviderId.numberOfRatings': 1,
+                'serviceProviderId.serviceProviderRatings': 1,
+                createdAt: 1
+            }
+        },
+        { $sort: { createdAt: -1 } },
+    ]);
+    const totalRequest = results.length;
+    return (0, response_1.sendSuccessResponse)(res, 200, { results, totalRequest: totalRequest }, "Service request retrieved successfully.");
+}));
+//get customer's address history
+exports.fetchServiceAddressHistory = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+    const results = yield service_model_1.default.aggregate([
+        {
+            $match: {
+                userId: userId,
+                isDeleted: false
+            }
+        },
+        {
+            $group: {
+                _id: "$serviceAddress",
+                createdAt: { $max: "$createdAt" },
+                serviceId: { $first: "$_id" },
+            }
+        },
+        {
+            $sort: { createdAt: -1 }
+        },
+        {
+            $project: {
+                _id: 0,
+                serviceAddress: "$_id",
+                // createdAt: 1,
+                serviceId: 1,
+            }
+        }
+    ]);
+    return (0, response_1.sendSuccessResponse)(res, 200, { results, totalRequest: results.length }, "Unique service address history retrieved successfully.");
 }));

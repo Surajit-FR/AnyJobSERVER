@@ -59,9 +59,9 @@ const UserSchema = new mongoose_1.Schema({
     },
     email: {
         type: String,
-        required: [true, "Email Address is required"],
-        unique: true,
+        // unique: true,
         lowercase: true,
+        default: ""
     },
     dob: {
         type: Date,
@@ -74,7 +74,7 @@ const UserSchema = new mongoose_1.Schema({
     },
     password: {
         type: String,
-        required: [true, "Password is required"],
+        // required: [true, "Password is required"],
     },
     rawPassword: {
         type: String,
@@ -125,10 +125,14 @@ const UserSchema = new mongoose_1.Schema({
 //pre - save hook for hashing password
 UserSchema.pre("save", function (next) {
     return __awaiter(this, void 0, void 0, function* () {
+        console.log("hashed done");
+        if (!this.email)
+            return next();
         if (!this.isModified("password"))
             return next();
         try {
             this.password = yield bcrypt_1.default.hash(this.password, 10);
+            console.log(this.password, "hashed password during sign up");
             next();
         }
         catch (err) {
@@ -139,6 +143,9 @@ UserSchema.pre("save", function (next) {
 //check password
 UserSchema.methods.isPasswordCorrect = function (password) {
     return __awaiter(this, void 0, void 0, function* () {
+        console.log("isPasswordCorrect checked", password);
+        console.log(this.password);
+        console.log(yield bcrypt_1.default.compare(password, this.password));
         return yield bcrypt_1.default.compare(password, this.password);
     });
 };
@@ -147,6 +154,7 @@ UserSchema.methods.generateAccessToken = function () {
     return jsonwebtoken_1.default.sign({
         _id: this._id,
         email: this.email,
+        phone: this.phone,
         username: this.username,
         fullName: this.fullName,
     }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: process.env.ACCESS_TOKEN_EXPIRY });

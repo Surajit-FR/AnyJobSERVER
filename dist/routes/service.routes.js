@@ -16,7 +16,7 @@ router.route('/get-accepted-service-request')
 router.route('/get-job-count')
     .get((0, userAuth_1.verifyUserType)(['ServiceProvider', 'TeamLead']), service_controller_1.totalJobCount);
 router.route('/nearby-services-request')
-    .get((0, userAuth_1.verifyUserType)(['ServiceProvider']), service_controller_1.fetchServiceRequest);
+    .get((0, userAuth_1.verifyUserType)(['ServiceProvider', 'TeamLead']), service_controller_1.fetchServiceRequest);
 router.route('/assign-job')
     .patch((0, userAuth_1.verifyUserType)(['ServiceProvider', 'TeamLead']), service_controller_1.assignJob);
 router.route("/c/:serviceId")

@@ -12,6 +12,7 @@ import { ApiResponse } from '../utils/ApiResponse';
 import TeamModel from '../models/teams.model';
 import AdditionalInfoModel from '../models/userAdditionalInfo.model';
 import { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN } from '../config/config'
+import mongoose from "mongoose";
 
 authenticator.options = {
     step: 300,
@@ -35,7 +36,7 @@ export const generateVerificationCode = (length: number): number => {
 async function updateAuthTokenPromotion() {
     try {
         console.log("token promotion runs");
-        
+
         const authTokenPromotion = await client.accounts.v1.authTokenPromotion().update();
         console.log("Updated Twilio Auth Token for account:", authTokenPromotion);
 
@@ -57,26 +58,41 @@ export const sendOTP = asyncHandler(async (req: Request, res: Response) => {
         stepDuration = 24 * 60 * 60;
     }
 
-    const user = await UserModel.findOne({ phone: phoneNumber });
-    if (!user) {
-        return sendErrorResponse(res, new ApiError(400, "User does not exist"));
-    }
-
-    const userId = user._id;
-    const formattedPhoneNumber = `+91${phoneNumber}`;
+    // const user = await UserModel.findOne({ phone: phoneNumber });
+    // if (!user) {
+    //     return sendErrorResponse(res, new ApiError(400, "User does not exist"));
+    // }
     const otpLength = 5;
     const otp = generateVerificationCode(otpLength);
+    const formattedPhoneNumber = `+91${phoneNumber}`;
+    console.log({ formattedPhoneNumber });
+
     const expiredAt = new Date(Date.now() + stepDuration * 1000);
 
-    const otpEntry = new OTPModel({
-        userId,
-        phoneNumber: formattedPhoneNumber,
-        otp,
-        expiredAt,
-    });
+    if (purpose !== "verifyPhone") {
+        const user = await UserModel.findOne({ phone: phoneNumber });
+        if (!user) {
+            return sendErrorResponse(res, new ApiError(400, "User does not exist"));
+        }
+        const userId = user._id;
+        const otpEntry = new OTPModel({
+            userId,
+            phoneNumber: formattedPhoneNumber,
+            otp,
+            expiredAt,
+        });
+        await otpEntry.save();
 
-    await otpEntry.save();
-    // const message = "Testing"
+    } else {
+        const otpEntry = new OTPModel({
+            userId: new mongoose.Types.ObjectId(),
+            phoneNumber: formattedPhoneNumber,
+            otp,
+            expiredAt,
+        });
+        await otpEntry.save();
+    }
+
 
     updateAuthTokenPromotion()
 

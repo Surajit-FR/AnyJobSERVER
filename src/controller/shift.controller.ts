@@ -105,6 +105,7 @@ export const fetchShifs = asyncHandler(async (req: CustomRequest, res: Response)
                                     timezone: "Asia/Kolkata"
                                 }
                             },
+                            _id:"$$shift._id"
                         }
                     }
                 }

@@ -105,14 +105,13 @@ export const fetchShifs = asyncHandler(async (req: CustomRequest, res: Response)
                                     timezone: "Asia/Kolkata"
                                 }
                             },
-                            _id:"$$shift._id"
+                            _id: "$$shift._id"
                         }
                     }
                 }
             }
         }
     ]);
-
     if (results.length) {
         return sendSuccessResponse(res, 200, results, "Shift Timings retrieved successfully.");
     } else {
@@ -302,11 +301,9 @@ export const deleteShift = asyncHandler(async (req: Request, res: Response) => {
     };
 
     // Delete the shift details 
-    const deletedShift = await ShiftModel.findByIdAndUpdate(
+    const deletedShift = await ShiftModel.findByIdAndDelete(
         new mongoose.Types.ObjectId(shiftId),
-        {
-            $set: { isDeleted: true }
-        },
+
     );
 
     if (!deletedShift) {

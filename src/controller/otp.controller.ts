@@ -58,10 +58,12 @@ export const sendOTP = asyncHandler(async (req: Request, res: Response) => {
         stepDuration = 24 * 60 * 60;
     }
 
-    // const user = await UserModel.findOne({ phone: phoneNumber });
-    // if (!user) {
-    //     return sendErrorResponse(res, new ApiError(400, "User does not exist"));
-    // }
+    // Validate phone number format
+    if (!/^\d{10}$/.test(phoneNumber)) {
+        return sendErrorResponse(res, new ApiError(400, "Invalid phone number format"));
+    }
+
+
     const otpLength = 5;
     const otp = generateVerificationCode(otpLength);
     const formattedPhoneNumber = `+91${phoneNumber}`;

@@ -4,11 +4,11 @@ import { IShiftSchema, IShiftTimeSchema } from '../../types/schemaTypes';
 // Define a schema for shift times
 const shiftTimeSchema: Schema<IShiftTimeSchema> = new Schema({
   startTime: {
-    type: String,
+    type: Date,
     required: true
   },
   endTime: {
-    type: String,
+    type: Date,
     required: true
   }
 },);

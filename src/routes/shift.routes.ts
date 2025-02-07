@@ -5,20 +5,25 @@ import {
     fetchShiftbyId,
     fetchShifs,
     updateShift,
-    deleteShift
+    deleteShift,
+    fetchAvilableShifs
 } from '../controller/shift.controller';
 
 const router: Router = express.Router();
+
+router.route('/fetch-avilable-shift').get(fetchAvilableShifs)
+
 router.use(VerifyJWTToken);
 
 router.route('/')
     .get(fetchShifs)
-    .post(verifyUserType(['SuperAdmin']),  addShift);
+    .post(verifyUserType(['SuperAdmin']), addShift);
+
 
 router.route('/:shiftId')
     .get(fetchShiftbyId)
-    .patch(verifyUserType(['SuperAdmin']),  updateShift)
-    .delete(verifyUserType(['SuperAdmin']),  deleteShift)
+    .patch(verifyUserType(['SuperAdmin']), updateShift)
+    .delete(verifyUserType(['SuperAdmin']), deleteShift)
 
 
 

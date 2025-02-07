@@ -25,9 +25,9 @@ const UserSchema: Schema<IUser> = new Schema({
     },
     email: {
         type: String,
-        required: [true, "Email Address is required"],
-        unique: true,
+        // unique: true,
         lowercase: true,
+        default: ""
     },
     dob: {
         type: Date,
@@ -40,7 +40,7 @@ const UserSchema: Schema<IUser> = new Schema({
     },
     password: {
         type: String,
-        required: [true, "Password is required"],
+        // required: [true, "Password is required"],
     },
     rawPassword: {
         type: String,
@@ -91,9 +91,12 @@ const UserSchema: Schema<IUser> = new Schema({
 
 //pre - save hook for hashing password
 UserSchema.pre("save", async function (next) {
+    console.log("hashed done");
+    if (!this.email) return next();
     if (!this.isModified("password")) return next();
     try {
         this.password = await bcrypt.hash(this.password, 10);
+        console.log(this.password, "hashed password during sign up");
         next();
     } catch (err: any) {
         next(err)
@@ -102,14 +105,19 @@ UserSchema.pre("save", async function (next) {
 
 //check password
 UserSchema.methods.isPasswordCorrect = async function (password: string): Promise<boolean> {
+    console.log("isPasswordCorrect checked", password);
+    console.log(this.password);
+    console.log(await bcrypt.compare(password, this.password));
     return await bcrypt.compare(password, this.password)
 }
 
 //generate acces token
 UserSchema.methods.generateAccessToken = function (): string {
+
     return jwt.sign({
         _id: this._id,
         email: this.email,
+        phone: this.phone,
         username: this.username,
         fullName: this.fullName,
     }, process.env.ACCESS_TOKEN_SECRET as string, { expiresIn: process.env.ACCESS_TOKEN_EXPIRY })

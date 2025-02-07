@@ -1,7 +1,7 @@
 import { Document, ObjectId } from "mongoose";
 export interface IGeoJSONPoint {
     type: "Point";
-    coordinates: [number, number]; // [longitude, latitude]
+    coordinates: [string, string]; // [longitude, latitude]
 }
 
 export interface IUser extends Document {
@@ -77,6 +77,7 @@ export interface ICategorySchema extends Document {
     _id: ObjectId;
     name: string;
     categoryImage: string;
+    categoryType: string;
     owner: ObjectId;
     isDeleted: boolean;
     createdAt?: Date;
@@ -109,6 +110,7 @@ export interface IServiceSchema extends Document {
     serviceLongitude: string;
     serviceAddress: string;
     location: IGeoJSONPoint;
+    serviceLandMark: string;
     startedAt: Date;
     completedAt: Date;
     isIncentiveGiven: boolean;
@@ -123,6 +125,7 @@ export interface IServiceSchema extends Document {
     userId: ObjectId;
     answerArray: Array<any>;
     requestProgress: string;
+    useMyCurrentLocation:boolean,
     isDeleted: boolean;
     createdAt?: Date;
     updatedAt?: Date;
@@ -164,8 +167,8 @@ interface IAnswer extends Document {
 
 export interface IShiftTimeSchema extends Document {
     _id: ObjectId;
-    startTime: string;
-    endTime: string;
+    startTime: Date;
+    endTime: Date;
 };
 
 export interface IShiftSchema extends Document {
@@ -227,7 +230,7 @@ export interface IIPLogSchema extends Document {
     region: string;
     latitude: string;
     longitude: string;
-    timezone: string;
+    userAgent: string;
     version: string;
     route: string;
     userId: string;
@@ -296,4 +299,14 @@ export interface INotificationSchema {
     createdAt?: Date;
     updatedAt?: Date;
 };
+export interface IAppReviewSchema {
+    ratedBy: ObjectId;
+    rating: number;
+    review: string;
+    isDeleted: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
+};
+
+
 

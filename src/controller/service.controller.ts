@@ -12,7 +12,6 @@ import TeamModel from "../models/teams.model";
 import UserModel from "../models/user.model";
 import { PipelineStage } from 'mongoose';
 import axios from "axios";
-import { date } from "joi";
 import sendNotification from "../utils/sendPushNotification";
 import { isNotificationPreferenceOn } from "../utils/auth";
 import { NotificationModel } from "../models/notification.model";
@@ -21,14 +20,20 @@ import { NotificationModel } from "../models/notification.model";
 
 // addService controller
 export const addService = asyncHandler(async (req: CustomRequest, res: Response) => {
+    let locationDetails: any, finalLongitude, finalLatitude,finalLocation;
+
     const {
         categoryId,
         serviceStartDate,
         serviceShifftId,
         SelectedShiftTime,
         serviceZipCode,
+        serviceAddress,
         serviceLatitude,
         serviceLongitude,
+        useMyCurrentLocation,
+        serviceLandMark,
+        userPhoneNumber,
         isIncentiveGiven,
         incentiveAmount,
         isTipGiven,
@@ -37,15 +42,45 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         serviceProductImage,
         answerArray // Expecting answerArray instead of answers
     }: IAddServicePayloadReq = req.body;
+    // console.log(req.body);
+
 
     // Validate required fields
     if (!categoryId) return sendErrorResponse(res, new ApiError(400, "Category ID is required."));
     if (!serviceStartDate) return sendErrorResponse(res, new ApiError(400, "Service start date is required."));
     if (!serviceShifftId) return sendErrorResponse(res, new ApiError(400, "Service shift ID is required."));
     if (!SelectedShiftTime) return sendErrorResponse(res, new ApiError(400, "Selected shift time is required."));
-    if (!serviceZipCode) return sendErrorResponse(res, new ApiError(400, "Service ZIP code is required."));
-    // if (!serviceLatitude || !serviceLongitude) return sendErrorResponse(res, new ApiError(400, "Service location is required."));
     if (!answerArray || !Array.isArray(answerArray)) return sendErrorResponse(res, new ApiError(400, "Answer array is required and must be an array."));
+
+    if (useMyCurrentLocation) {
+        if (!serviceLatitude || !serviceLongitude) return sendErrorResponse(res, new ApiError(400, "Service latitude and longitude is required."));
+        if (!serviceAddress) return sendErrorResponse(res, new ApiError(400, "Service address is required."));
+
+        finalLongitude = serviceLongitude;
+        finalLatitude = serviceLatitude;
+
+        finalLocation = {
+            type: "Point",
+            coordinates: [finalLongitude, finalLatitude] // [longitude, latitude]
+        };
+    
+    }
+    
+
+    // **Step 1: Check the count of unique pre-saved addresses for the user**
+    const existingAddresses = await ServiceModel.aggregate([
+        { $match: { userId: req.user?._id } },
+        {
+            $group: {
+                _id: { serviceAddress: "$serviceAddress" },
+                count: { $sum: 1 }
+            }
+        }
+    ]);
+
+    if (existingAddresses.length >= 600) {
+        return sendErrorResponse(res, new ApiError(400, "You cannot have more than six pre-saved addresses."));
+    }
 
     // Conditional checks for incentive and tip amounts
     if (isIncentiveGiven && (incentiveAmount === undefined || incentiveAmount <= 0)) {
@@ -54,28 +89,38 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
     if (isTipGiven && (tipAmount === undefined || tipAmount <= 0)) {
         return sendErrorResponse(res, new ApiError(400, "Tip amount must be provided and more than zero if tip is given."));
     }
-    const apiKey = process.env.GOOGLE_API_KEY;
-    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${serviceZipCode}&key=${apiKey}`;
 
-    const geocodeResponse = await axios.get(geocodeUrl);
+    if (!useMyCurrentLocation) {
+        if (!serviceZipCode) return sendErrorResponse(res, new ApiError(400, "Service ZIP code is required for manual address."));
+        if (!serviceAddress) return sendErrorResponse(res, new ApiError(400, "Service address  is required for manual address."));
 
-    const locationDetails = geocodeResponse?.data?.results[0]
+        //extracting coordinates from zip code
+        const apiKey = process.env.GOOGLE_API_KEY;
+        const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${serviceZipCode}&key=${apiKey}`;
 
-    if (!locationDetails) return sendErrorResponse(res, new ApiError(400, "Service ZIP code is invalid."));
-    const fetchedCoordinates = {
-        longitude: locationDetails?.geometry?.location?.lng,
-        latitude: locationDetails?.geometry?.location?.lat,
-    };
+        const geocodeResponse = await axios.get(geocodeUrl);
 
-    const formattedAddress = locationDetails?.formatted_address
+        locationDetails = geocodeResponse?.data?.results[0]
 
-    //strcture location object for geospatial query
-    const location = {
-        type: "Point",
-        coordinates: [fetchedCoordinates.longitude, fetchedCoordinates.latitude] // [longitude, latitude]
-    };
+        if (!locationDetails) return sendErrorResponse(res, new ApiError(400, "Service ZIP code is invalid."));
 
-    console.log("api runs");
+        let fetchedCoordinates = {
+            longitude: locationDetails?.geometry?.location?.lng,
+            latitude: locationDetails?.geometry?.location?.lat,
+        };
+        finalLongitude = fetchedCoordinates.longitude;
+        finalLatitude = fetchedCoordinates.latitude
+    
+         finalLocation = {
+            type: "Point",
+            coordinates: [finalLongitude, finalLatitude] // [longitude, latitude]
+        };
+
+    }//end if 
+
+
+    // const formattedAddress = locationDetails?.formatted_address
+
 
     // Prepare the new service object
     const newService = await ServiceModel.create({
@@ -83,11 +128,13 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         serviceShifftId,
         SelectedShiftTime,
         serviceStartDate,
+        useMyCurrentLocation,
         serviceZipCode,
-        serviceLatitude: fetchedCoordinates.latitude,
-        serviceLongitude: fetchedCoordinates.longitude,
-        serviceAddress: formattedAddress,
-        location: location,
+        serviceLatitude: finalLatitude,
+        serviceLongitude: finalLongitude,
+        serviceAddress: serviceAddress,
+        serviceLandMark: serviceLandMark,
+        location: finalLocation,
         isIncentiveGiven,
         incentiveAmount,
         isTipGiven,
@@ -304,7 +351,7 @@ export const cancelServiceRequest = asyncHandler(async (req: CustomRequest, res:
             title: notiTitle,
             notificationType: "Customer Cancelled Service",
         }
-        const notifyUser1 = await sendNotification(userFcm, notiTitle, notiBody, notiData1)
+        // const notifyUser1 = await sendNotification(userFcm, notiTitle, notiBody, notiData1)
 
     }
 
@@ -400,7 +447,8 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
         switch (serviceRequest.requestProgress) {
 
             case "NotStarted":
-                console.log("case1:NotStarted");
+
+            case "Cancelled":
 
                 if (requestProgress === "Pending") {
                     updateData.requestProgress = "Pending";
@@ -408,18 +456,18 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
                 userFcm = customerDetails?.fcmToken || ""
                 notiTitle = "Service Requested Accepted "
                 notiBody = `Your Service Request is accepted by ${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""}`
-                const notiData1 = {
+                const notiData4 = {
                     senderId: req.user?._id,
                     receiverId: serviceRequest.userId,
                     title: notiTitle,
                     notificationType: "Service Accepeted",
                 }
-                const notifyUser1 = await sendNotification(userFcm, notiTitle, notiBody, notiData1)
-
+                // const notifyUser1 = await sendNotification(userFcm, notiTitle, notiBody, notiData1)
                 break;
 
+
             case "Pending":
-                console.log("case2:Pending");
+                // console.log("case2:Pending");
 
                 if (requestProgress === "Started") {
                     updateData.requestProgress = "Started";
@@ -434,47 +482,56 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
                     title: notiTitle,
                     notificationType: "Service Started",
                 }
-                const notifyUser2 = await sendNotification(userFcm, notiTitle, notiBody, notiData2)
+                // const notifyUser2 = await sendNotification(userFcm, notiTitle, notiBody, notiData2)                
+
 
                 break;
 
             case "Started":
                 if (requestProgress === "Completed") {
+                    console.log("ss runs")
+
                     updateData.requestProgress = "Completed";
                     updateData.completedAt = new Date();
+
+                    userFcm = serviceProviderDetails?.fcmToken || ""
+                    notiTitle = "Mark job as completed"
+                    notiBody = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as completed`
+                    const notiData3 = {
+                        senderId: req.user?._id,
+                        receiverId: serviceRequest.serviceProviderId,
+                        title: notiTitle,
+                        notificationType: "Service Completed",
+                    }
+                    // const notifyUser3 = await sendNotification(userFcm, notiTitle, notiBody, notiData3)
+
+
                 }
-                userFcm = serviceProviderDetails?.fcmToken || ""
-                notiTitle = "Mark job as completed"
-                notiBody = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as completed`
-                const notiData3 = {
-                    senderId: req.user?._id,
-                    receiverId: serviceRequest.serviceProviderId,
-                    title: notiTitle,
-                    notificationType: "Service Completed",
-                }
-                const notifyUser3 = await sendNotification(userFcm, notiTitle, notiBody, notiData3)
 
                 break;
 
-            default:
-                updateData.requestProgress = requestProgress;
-                if (requestProgress === "Cancelled") {
-                    updateData.isReqAcceptedByServiceProvider = false;
-                }
-                userFcm = serviceProviderDetails?.fcmToken || ""
-                notiTitle = "Mark job as cancelled"
-                notiBody = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as cancelled`
-                const notiData4 = {
-                    senderId: req.user?._id,
-                    receiverId: serviceRequest.serviceProviderId,
-                    title: notiTitle,
-                    notificationType: "Agent Cancelled Service",
-                }
-                const notifyUser4 = await sendNotification(userFcm, notiTitle, notiBody, notiData4)
 
-                break;
 
         }
+    }
+
+    // Allow service provider to cancel at any time except when NotStarted
+    if (serviceRequest.requestProgress !== "NotStarted" && requestProgress === "Cancelled") {
+        updateData.isReqAcceptedByServiceProvider = false;
+        updateData.requestProgress = "Cancelled";
+
+
+        userFcm = serviceProviderDetails?.fcmToken || ""
+        notiTitle = "Mark job as cancelled"
+        notiBody = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as cancelled`
+        const notiData4 = {
+            senderId: req.user?._id,
+            receiverId: serviceRequest.serviceProviderId,
+            title: notiTitle,
+            notificationType: "Agent Cancelled Service",
+        }
+        // const notifyUser4 = await sendNotification(userFcm, notiTitle, notiBody, notiData4)
+
     }
 
     const updatedService = await ServiceModel.findByIdAndUpdate(serviceId, { $set: updateData }, { new: true });
@@ -482,17 +539,24 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
         return sendErrorResponse(res, new ApiError(400, "Service not found for updating."));
     }
 
-    // Calculate total duration if completedAt is available
-    let totalExecutionTimeInMinutes: number = 0;
-    if (updatedService.completedAt && updatedService.startedAt) {
-        totalExecutionTimeInMinutes = (new Date(updatedService.completedAt).getTime() - new Date(updatedService.startedAt).getTime()) / (1000 * 60);
+
+
+    if (requestProgress == "Pending") {
+        return sendSuccessResponse(res, 200, { updatedService }, "Service request accepted successfully.")
+    } else if (requestProgress == "Started") {
+        return sendSuccessResponse(res, 200, { updatedService }, "Service request started successfully.")
+    } else if (requestProgress == "Completed") {
+        // Calculate total duration if completedAt is availabler    
+        let totalExecutionTimeInMinutes: number = 0;
+        if (updatedService.completedAt && updatedService.startedAt) {
+            totalExecutionTimeInMinutes = (new Date(updatedService.completedAt).getTime() - new Date(updatedService.startedAt).getTime()) / (1000 * 60);
+        }
+
+        return sendSuccessResponse(res, 200, { updatedService, totalExecutionTimeInMinutes }, "Service request completed successfully.")
+    } else {
+        return sendSuccessResponse(res, 200, { updatedService }, "Service request cancelled successfully.")
     }
 
-
-    return sendSuccessResponse(res, 200,
-        { updatedService, totalExecutionTimeInMinutes },
-        isReqAcceptedByServiceProvider ? "Service Request accepted successfully." : "Service Request status updated successfully."
-    )
 });
 
 // deleteService controller
@@ -514,12 +578,6 @@ export const deleteService = asyncHandler(async (req: Request, res: Response) =>
 
 // fetch nearby ServiceRequest controller
 export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {
-
-    const isNotificationOn = await isNotificationPreferenceOn(req.user?._id as string)
-
-    if (!isNotificationOn) {
-        return sendSuccessResponse(res, 200, "Notification permission is off.")
-    }
 
     const { page = "1", limit = "10", query = '', sortBy = 'isIncentiveGiven', sortType = 'desc', categoryName = '' } = req.query;
     const pageNumber = parseInt(page as string, 10) || 1;
@@ -582,10 +640,10 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
     const longitude = address.longitude;
     const latitude = address.latitude;
     // Extract coordinates and validate
-    const serviceRequestLongitude: number = parseFloat(longitude);
-    const serviceRequestLatitude: number = parseFloat(latitude);
+    const serviceProviderLongitude: number = parseFloat(longitude);
+    const serviceProviderLatitude: number = parseFloat(latitude);
 
-    if (isNaN(serviceRequestLongitude) || isNaN(serviceRequestLatitude)) {
+    if (isNaN(serviceProviderLongitude) || isNaN(serviceProviderLatitude)) {
         return sendErrorResponse(res, new ApiError(400, `Invalid longitude or latitude`));
     }
     const radius = 400000000; // in meters
@@ -593,14 +651,14 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
     const serviceRequests = await ServiceModel.aggregate([
         {
             $geoNear: {
-                near: { type: 'Point', coordinates: [serviceRequestLongitude, serviceRequestLatitude] },
+                near: { type: 'Point', coordinates: [serviceProviderLongitude, serviceProviderLatitude] },
                 distanceField: 'distance',
                 spherical: true,
                 maxDistance: radius,
 
             }
         },
-        { $match: { isDeleted: false, isReqAcceptedByServiceProvider: false, requestProgress: "NotStarted" } },
+        { $match: { isDeleted: false, isReqAcceptedByServiceProvider: false, } },
         {
             $lookup: {
                 from: 'users',
@@ -646,7 +704,7 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
             }
         },
         { $match: searchQuery },
-        { $sort: { isIncentiveGiven: validSortType } },
+        // { $sort: { isIncentiveGiven: validSortType } },
         { $skip: skip },
         { $limit: limitNumber },
         {
@@ -672,16 +730,15 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
     if (!serviceRequests.length) {
         return sendSuccessResponse(res, 200, serviceRequests, 'No nearby service request found');
     }
-
-    const total = serviceRequests[0] ? serviceRequests.length : 0
+    const totalRecords = await ServiceModel.countDocuments({ isDeleted: false, isReqAcceptedByServiceProvider: false, requestProgress: "NotStarted" });
+    // const total = serviceRequests[0] ? serviceRequests.length : 0
     return sendSuccessResponse(res, 200, {
         serviceRequests, pagination: {
-            totalRecords: total,
+            totalRecords: totalRecords,
             page: pageNumber,
             limit: limitNumber
         }
     }, 'Service requests fetched successfully');
-
 });
 
 
@@ -890,6 +947,7 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
                 bookedServiceShift: "$serviceShifftId.shiftName",
                 bookedTimeSlot: 1,
                 serviceStartDate: 1,
+                'customerId': "$userId._id",
                 customerName: {
                     $concat: ["$userId.firstName", " ", "$userId.lastName"]
                 },
@@ -902,10 +960,11 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
                     $concat: ["$serviceProviderId.firstName", " ", "$serviceProviderId.lastName"]
                 },
                 'serviceProviderEmail': "$serviceProviderId.email",
-                'serviceProviderAvatar': "$serviceProviderId.avatar ",
+                'serviceProviderAvatar': "$serviceProviderId.avatar",
                 'serviceProviderPhone': "$serviceProviderId.phone",
                 'serviceProviderCompanyName': "$serviceProviderId.providerAdditionalInfo.companyName",
                 'serviceProviderCompanyDesc': "$serviceProviderId.providerAdditionalInfo.companyIntroduction",
+                'serviceProviderBusinessImage': "$serviceProviderId.providerAdditionalInfo.businessImage",
                 assignedAgentName: {
                     $concat: ["$assignedAgentId.firstName", " ", "$assignedAgentId.lastName"]
                 },
@@ -917,11 +976,16 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
                 serviceProductImage: 1,
                 serviceDescription: "$otherInfo.serviceDescription",
                 serviceProductSerialNumber: "$otherInfo.productSerialNumber",
+                isReqAcceptedByServiceProvider: 1,
                 requestProgress: 1,
                 isIncentiveGiven: 1,
                 incentiveAmount: 1,
                 createdAt: 1,
                 updatedAt: 1,
+                serviceLatitude: 1,
+                serviceLongitude: 1,
+                startedAt: 1,
+                completedAt: 1,
             }
         },
     ]);
@@ -962,7 +1026,7 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
         requestProgress === "InProgress"
             ? { requestProgress: { $in: ["Pending", "Started"] } }
             : requestProgress === "jobQueue"
-                ? { requestProgress: "NotStarted" }
+                ? { requestProgress: { $in: ["NotStarted", "Cancelled"] } }
                 : { requestProgress };
 
     const results = await ServiceModel.aggregate([
@@ -1062,6 +1126,7 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
             $project: {
                 _id: 1,
                 'categoryId.name': 1,
+                'categoryId.categoryImage': 1,
                 serviceStartDate: 1,
                 serviceAddress: 1,
                 startedAt: 1,
@@ -1095,8 +1160,8 @@ export const getJobByStatus = asyncHandler(async (req: CustomRequest, res: Respo
         requestProgress === "Accepted"
             ? { requestProgress: { $in: ["Pending",] } }
             : requestProgress === "Started"
-                ? { requestProgress: "Started" }
-                : { requestProgress };
+                ? { requestProgress: "Started" } : requestProgress === "All" ? {}
+                    : { requestProgress };
 
     const results = await ServiceModel.aggregate([
         {
@@ -1125,6 +1190,22 @@ export const getJobByStatus = asyncHandler(async (req: CustomRequest, res: Respo
                 foreignField: "_id",
                 localField: "userId",
                 as: "userId",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: 'ratings',
+                            foreignField: "ratedTo",
+                            localField: "_id",
+                            as: "userRatings"
+                        }
+                    },
+                    {
+                        $addFields: {
+                            totalRatings: { $ifNull: [{ $size: "$userRatings" }, 0] },
+                            userAvgRating: { $ifNull: [{ $avg: "$userRatings.rating" }, 0] }
+                        }
+                    }
+                ]
             }
         },
         {
@@ -1152,11 +1233,19 @@ export const getJobByStatus = asyncHandler(async (req: CustomRequest, res: Respo
                 _id: 1,
                 categoryName: '$categoryId.name',
                 requestProgress: 1,
+                isIncentiveGiven: 1,
+                incentiveAmount: 1,
                 customerFirstName: '$userId.firstName',
                 customerLastName: '$userId.lastName',
                 'assignedAgentId.firstName': 1,
                 'assignedAgentId.lastName': 1,
+                'assignedAgentId._id': 1,
+                'assignedAgentId.avatar': 1,
+                'assignedAgentId.phone': 1,
                 customerAvatar: '$userId.avatar',
+                totalCustomerRatings: '$userId.totalRatings',
+                customerAvgRating: '$userId.userAvgRating',
+
                 createdAt: 1
 
             }
@@ -1257,6 +1346,9 @@ export const getJobByStatusByAgent = asyncHandler(async (req: CustomRequest, res
                 customerLastName: '$userId.lastName',
                 'assignedAgentId.firstName': 1,
                 'assignedAgentId.lastName': 1,
+                'assignedAgentId._id': 1,
+                'assignedAgentId.avatar': 1,
+                'assignedAgentId.phone': 1,
                 customerAvatar: '$userId.avatar',
                 totalCustomerRatings: '$userId.totalRatings',
                 customerAvgRating: '$userId.userAvgRating',
@@ -1422,4 +1514,158 @@ export const fetchAssignedserviceProvider = asyncHandler(async (req: CustomReque
 
     return sendSuccessResponse(res, 200, assignedSPDetails[0], "Assigned service provider retrieved successfully.");
 
+});
+
+
+//get service request for customer
+export const getCompletedService = asyncHandler(async (req: CustomRequest, res: Response) => {
+
+    const userId = req.user?._id
+
+    const results = await ServiceModel.aggregate([
+        {
+            $match: {
+                requestProgress: "Completed",
+                userId: userId
+            }
+        },
+        {
+            $lookup: {
+                from: "categories",
+                foreignField: "_id",
+                localField: "categoryId",
+                as: "categoryId"
+            }
+        },
+        // {
+        //     $unwind: {
+        //         // preserveNullAndEmptyArrays: true,
+        //         path: "$categoryId"
+        //     }
+        // },
+        // {
+        //     $lookup: {
+        //         from: "users",
+        //         foreignField: "_id",
+        //         localField: "userId",
+        //         as: "userId",
+        //         pipeline: [
+        //             {
+        //                 $lookup: {
+        //                     from: "ratings",
+        //                     foreignField: "ratedTo",
+        //                     localField: "_id",
+        //                     as: "customerRatings",
+        //                 }
+        //             },
+        //             {
+        //                 $addFields: {
+        //                     numberOfRatings: { $size: "$customerRatings" },
+        //                     customerAvgRating: {
+        //                         $cond: {
+        //                             if: { $gt: [{ $size: "$customerRatings" }, 0] },
+        //                             then: { $avg: "$customerRatings.rating" },
+        //                             else: 0
+        //                         }
+        //                     }
+        //                 }
+        //             }
+        //         ]
+        //     }
+        // },
+        // {
+        //     $unwind: {
+        //         preserveNullAndEmptyArrays: true,
+        //         path: "$userId"
+        //     }
+        // },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "serviceProviderId",
+                as: "serviceProviderId",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "ratings",
+                            foreignField: "ratedTo",
+                            localField: "_id",
+                            as: "serviceProviderIdRatings",
+                        }
+                    },
+                    {
+                        $addFields: {
+                            numberOfRatings: { $size: "$serviceProviderIdRatings" },
+                            serviceProviderRatings: {
+                                $cond: {
+                                    if: { $gt: [{ $size: "$serviceProviderIdRatings" }, 0] },
+                                    then: { $avg: "$serviceProviderIdRatings.rating" },
+                                    else: 0
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$serviceProviderId"
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                'categoryId.name': 1,
+                'categoryId.categoryImage': 1,
+                requestProgress: 1,
+                'serviceProviderId.numberOfRatings': 1,
+                'serviceProviderId.serviceProviderRatings': 1,
+                createdAt: 1
+
+            }
+        },
+        { $sort: { createdAt: -1 } },
+    ]);
+
+    const totalRequest = results.length;
+
+    return sendSuccessResponse(res, 200, { results, totalRequest: totalRequest }, "Service request retrieved successfully.");
+});
+
+
+//get customer's address history
+export const fetchServiceAddressHistory = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const userId = req.user?._id;
+
+    const results = await ServiceModel.aggregate([
+        {
+            $match: {
+                userId: userId,
+                isDeleted: false
+            }
+        },
+        {
+            $group: {
+                _id: "$serviceAddress",
+                createdAt: { $max: "$createdAt" },
+                serviceId: { $first: "$_id" },
+            }
+        },
+        {
+            $sort: { createdAt: -1 }
+        },
+        {
+            $project: {
+                _id: 0,
+                serviceAddress: "$_id",
+                // createdAt: 1,
+                serviceId: 1,
+            }
+        }
+    ]);
+
+    return sendSuccessResponse(res, 200, { results, totalRequest: results.length }, "Unique service address history retrieved successfully.");
 });

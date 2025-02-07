@@ -12,6 +12,7 @@ import UserPreferenceModel from "../models/userPreference.model";
 import mongoose from "mongoose";
 import { projectManagement } from "firebase-admin";
 import { promises } from "dns";
+import { emit } from "process";
 
 
 
@@ -22,17 +23,31 @@ export const generateRandomPassword = (length = 10): string => {
 
 
 export const addUser = async (userData: IRegisterCredentials) => {
+
     const { firstName, lastName, email, userType, phone } = userData;
+    console.log(userData);
+
     let password = userData.password; // Default to provided password
     let rawPassword = password;
     let permission, generatedPass;
-
-    const existingUser = await UserModel.findOne({ email });
-    if (existingUser) {
-        throw new ApiError(409, "User with email already exists");
+    if (email) {
+        const existingEmail = await UserModel.findOne({ email });
+        if (existingEmail) {
+            throw new ApiError(409, "User with email already exists");
+        }
+    } else if (phone) {
+        const existingPhone = await UserModel.findOne({ phone });
+        if (existingPhone) {
+            console.log(existingPhone);
+            throw new ApiError(409, "User with phone already exists");
+        }
     }
 
-    // Generate a random password only for FieldAgent 
+
+
+    console.log("userData");
+
+    // Generate a random password  
     if (userType === "FieldAgent" || userType === "Admin" || userType === "Finance") {
         password = generateRandomPassword();
         generatedPass = password;
@@ -143,7 +158,7 @@ export async function isNotificationPreferenceOn(userId: string) {
     const result = await UserPreferenceModel.findOne(
         { userId: new mongoose.Types.ObjectId(userId) }
     ).select('notificationPreference');
-  
+
     isOn = result?.notificationPreference;
     return isOn;
 };

@@ -65,8 +65,10 @@ export interface IAddServicePayloadReq {
     serviceShifftId: ObjectId,
     SelectedShiftTime: object,
     serviceZipCode: number,
+    serviceLandMark: string,
     serviceLatitude: number,
     serviceLongitude: number,
+    userPhoneNumber: string,
     serviceAddress:string,
     isIncentiveGiven: boolean,
     incentiveAmount: number,
@@ -75,7 +77,8 @@ export interface IAddServicePayloadReq {
     tipAmount: number,
     otherInfo:object,
     userId: ObjectId,
-    answerArray: IQuestion
+    answerArray: IQuestion,
+    useMyCurrentLocation:boolean
 };
 
 export interface HealthcheckResponse {

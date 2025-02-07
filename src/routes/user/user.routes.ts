@@ -13,7 +13,7 @@ import {
     fetchSingleQuestion
 } from "../../controller/question.controller"
 import { VerifyJWTToken, verifyUserType } from "../../middlewares/auth/userAuth";
-import { fetchNearByServiceProvider, getServiceRequestByStatus, fetchAssignedserviceProvider, cancelServiceRequest, addorUpdateIncentive } from "../../controller/service.controller";
+import { fetchNearByServiceProvider, getServiceRequestByStatus, fetchAssignedserviceProvider, cancelServiceRequest, addorUpdateIncentive, fetchServiceAddressHistory } from "../../controller/service.controller";
 
 import { sendQueryMessage } from "../../controller/contactUs.controller"
 
@@ -49,14 +49,18 @@ router.use(VerifyJWTToken);
 router.route('/get-service-request')
     .post(verifyUserType(["Customer"]), getServiceRequestByStatus);
 
+
+
 router.route('/fetch-assigned-sp/:serviceId')
     .get(verifyUserType(["Customer"]), fetchAssignedserviceProvider);
 
 router.route('/send-query-message').post(verifyUserType(["Customer"]), sendQueryMessage);
 
-router.route('/cancel-service').put(verifyUserType([ 'Customer',]), cancelServiceRequest);
+router.route('/cancel-service').put(verifyUserType(['Customer',]), cancelServiceRequest);
 
-router.route('/add-incentive').put(verifyUserType([ 'Customer',]), addorUpdateIncentive);
+router.route('/add-incentive').put(verifyUserType(['Customer',]), addorUpdateIncentive);
+
+router.route('/fetch-service-history').get(verifyUserType(['Customer',]), fetchServiceAddressHistory);
 
 
 

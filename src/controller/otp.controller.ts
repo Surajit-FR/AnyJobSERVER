@@ -11,14 +11,16 @@ import { fetchUserData, cookieOption } from './auth/auth.controller';
 import { ApiResponse } from '../utils/ApiResponse';
 import TeamModel from '../models/teams.model';
 import AdditionalInfoModel from '../models/userAdditionalInfo.model';
+import { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN } from '../config/config'
+import mongoose from "mongoose";
 
 authenticator.options = {
     step: 300,
 };
 
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-const client = twilio(accountSid, authToken);
+const accountSid = TWILIO_ACCOUNT_SID;
+const authToken = TWILIO_AUTH_TOKEN;
+let client = twilio(accountSid, authToken);
 
 
 export const generateVerificationCode = (length: number): number => {
@@ -30,6 +32,23 @@ export const generateVerificationCode = (length: number): number => {
     return Math.floor(min + Math.random() * (max - min + 1));
 };
 
+// Function to update Auth Token
+async function updateAuthTokenPromotion() {
+    try {
+        console.log("token promotion runs");
+
+        const authTokenPromotion = await client.accounts.v1.authTokenPromotion().update();
+        console.log("Updated Twilio Auth Token for account:", authTokenPromotion);
+
+        // Reinitialize Twilio client with updated token
+        let newAccountSid = authTokenPromotion.accountSid;
+        let newAuthToken = authTokenPromotion.authToken!;
+        client = twilio(newAccountSid, newAuthToken);
+    } catch (error) {
+        console.error("Failed to update Twilio Auth Token:", error);
+    }
+}
+
 //send otp
 export const sendOTP = asyncHandler(async (req: Request, res: Response) => {
     const { phoneNumber, purpose } = req.body;
@@ -39,26 +58,45 @@ export const sendOTP = asyncHandler(async (req: Request, res: Response) => {
         stepDuration = 24 * 60 * 60;
     }
 
-    const user = await UserModel.findOne({ phone: phoneNumber });
-    if (!user) {
-        return sendErrorResponse(res, new ApiError(400, "User does not exist"));
+    // Validate phone number format
+    if (!/^\d{10}$/.test(phoneNumber)) {
+        return sendErrorResponse(res, new ApiError(400, "Invalid phone number format"));
     }
 
-    const userId = user._id;
-    const formattedPhoneNumber = `+91${phoneNumber}`;
+
     const otpLength = 5;
     const otp = generateVerificationCode(otpLength);
+    const formattedPhoneNumber = `+91${phoneNumber}`;
+    console.log({ formattedPhoneNumber });
+
     const expiredAt = new Date(Date.now() + stepDuration * 1000);
 
-    const otpEntry = new OTPModel({
-        userId,
-        phoneNumber: formattedPhoneNumber,
-        otp,
-        expiredAt,
-    });
+    if (purpose !== "verifyPhone") {
+        const user = await UserModel.findOne({ phone: phoneNumber });
+        if (!user) {
+            return sendErrorResponse(res, new ApiError(400, "User does not exist"));
+        }
+        const userId = user._id;
+        const otpEntry = new OTPModel({
+            userId,
+            phoneNumber: formattedPhoneNumber,
+            otp,
+            expiredAt,
+        });
+        await otpEntry.save();
 
-    await otpEntry.save();
-    // const message = "Testing"
+    } else {
+        const otpEntry = new OTPModel({
+            userId: new mongoose.Types.ObjectId(),
+            phoneNumber: formattedPhoneNumber,
+            otp,
+            expiredAt,
+        });
+        await otpEntry.save();
+    }
+
+
+    updateAuthTokenPromotion()
 
     const message = await client.messages.create({
         body: `Your OTP code is ${otp}`,
@@ -166,7 +204,8 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
     const otpEntry = await OTPModel.findOne({ [queryField]: formattedIdentifier });
 
     // Set default OTP for testing in non-production environments
-    const defaultOtp = process.env.DEFAULT_OTP || "12345";
+    const defaultOtp = "12345";
+
     const isOtpValid = otp === defaultOtp || (otpEntry && otpEntry.otp === otp);
 
     if (!otpEntry || otpEntry.expiredAt < new Date()) {
@@ -193,13 +232,11 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
             const serviceProviderInfo = await TeamModel.findOne({ fieldAgentIds: user._id })
             const companyDetails = await AdditionalInfoModel.findOne({ userId: serviceProviderInfo?.serviceProviderId }).select('companyName companyIntroduction businessName')
             console.log(serviceProviderInfo);
-
-
             const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, user._id);
             const loggedInUser = await fetchUserData(user._id);
             const agentData = {
-                loggedInUser:loggedInUser[0],
-                companyDetails:companyDetails
+                loggedInUser: loggedInUser[0],
+                companyDetails: companyDetails
             }
 
             return res
@@ -226,4 +263,3 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
             return sendErrorResponse(res, new ApiError(400, "Invalid purpose"));
     }
 });
-

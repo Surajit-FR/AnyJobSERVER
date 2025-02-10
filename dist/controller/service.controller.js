@@ -27,7 +27,7 @@ const axios_1 = __importDefault(require("axios"));
 exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c, _d, _e, _f, _g;
     let locationDetails, finalLongitude, finalLatitude, finalLocation;
-    const { categoryId, serviceStartDate, serviceShifftId, SelectedShiftTime, serviceZipCode, serviceAddress, serviceLatitude, serviceLongitude, useMyCurrentLocation, serviceLandMark, userPhoneNumber, isIncentiveGiven, incentiveAmount, isTipGiven, tipAmount, otherInfo, serviceProductImage, answerArray // Expecting answerArray instead of answers
+    const { categoryId, serviceStartDate, serviceShifftId, SelectedShiftTime, serviceZipCode, serviceAddress, serviceLatitude, serviceLongitude, useMyCurrentLocation, serviceLandMark, userPhoneNumber, isIncentiveGiven, incentiveAmount, isTipGiven, tipAmount, otherInfo, serviceProductImage, answerArray, serviceAddressId // Expecting answerArray instead of answers
      } = req.body;
     // console.log(req.body);
     // Validate required fields
@@ -73,30 +73,43 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
     if (isTipGiven && (tipAmount === undefined || tipAmount <= 0)) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Tip amount must be provided and more than zero if tip is given."));
     }
-    if (!useMyCurrentLocation) {
-        if (!serviceZipCode)
-            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service ZIP code is required for manual address."));
-        if (!serviceAddress)
-            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service address  is required for manual address."));
-        //extracting coordinates from zip code
-        const apiKey = process.env.GOOGLE_API_KEY;
-        const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${serviceZipCode}&key=${apiKey}`;
-        const geocodeResponse = yield axios_1.default.get(geocodeUrl);
-        locationDetails = (_b = geocodeResponse === null || geocodeResponse === void 0 ? void 0 : geocodeResponse.data) === null || _b === void 0 ? void 0 : _b.results[0];
-        if (!locationDetails)
-            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service ZIP code is invalid."));
-        let fetchedCoordinates = {
-            longitude: (_d = (_c = locationDetails === null || locationDetails === void 0 ? void 0 : locationDetails.geometry) === null || _c === void 0 ? void 0 : _c.location) === null || _d === void 0 ? void 0 : _d.lng,
-            latitude: (_f = (_e = locationDetails === null || locationDetails === void 0 ? void 0 : locationDetails.geometry) === null || _e === void 0 ? void 0 : _e.location) === null || _f === void 0 ? void 0 : _f.lat,
-        };
-        finalLongitude = fetchedCoordinates.longitude;
-        finalLatitude = fetchedCoordinates.latitude;
+    if (!serviceAddressId) {
+        if (!useMyCurrentLocation) {
+            if (!serviceZipCode)
+                return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service ZIP code is required for manual address."));
+            if (!serviceAddress)
+                return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service address  is required for manual address."));
+            //extracting coordinates from zip code
+            const apiKey = process.env.GOOGLE_API_KEY;
+            const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${serviceZipCode}&key=${apiKey}`;
+            const geocodeResponse = yield axios_1.default.get(geocodeUrl);
+            locationDetails = (_b = geocodeResponse === null || geocodeResponse === void 0 ? void 0 : geocodeResponse.data) === null || _b === void 0 ? void 0 : _b.results[0];
+            if (!locationDetails)
+                return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service ZIP code is invalid."));
+            let fetchedCoordinates = {
+                longitude: (_d = (_c = locationDetails === null || locationDetails === void 0 ? void 0 : locationDetails.geometry) === null || _c === void 0 ? void 0 : _c.location) === null || _d === void 0 ? void 0 : _d.lng,
+                latitude: (_f = (_e = locationDetails === null || locationDetails === void 0 ? void 0 : locationDetails.geometry) === null || _e === void 0 ? void 0 : _e.location) === null || _f === void 0 ? void 0 : _f.lat,
+            };
+            finalLongitude = fetchedCoordinates.longitude;
+            finalLatitude = fetchedCoordinates.latitude;
+            finalLocation = {
+                type: "Point",
+                coordinates: [finalLongitude, finalLatitude] // [longitude, latitude]
+            };
+        }
+    }
+    if (serviceAddressId) {
+        const previouslybookedAddress = yield service_model_1.default.findOne({ _id: serviceAddressId }).select('serviceLatitude serviceLongitude location');
+        // console.log(previouslybookedAddress);
+        if (previouslybookedAddress) {
+            finalLongitude = previouslybookedAddress.serviceLongitude;
+            finalLatitude = previouslybookedAddress.serviceLatitude;
+        }
         finalLocation = {
             type: "Point",
             coordinates: [finalLongitude, finalLatitude] // [longitude, latitude]
         };
-    } //end if 
-    // const formattedAddress = locationDetails?.formatted_address
+    }
     // Prepare the new service object
     const newService = yield service_model_1.default.create({
         categoryId,

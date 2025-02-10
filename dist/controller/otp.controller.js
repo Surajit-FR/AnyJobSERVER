@@ -101,7 +101,7 @@ exports.sendOTP = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 
     updateAuthTokenPromotion();
     const message = yield client.messages.create({
         body: `Your OTP code is ${otp}`,
-        from: process.env.TWILIO_PHONE_NUMBER,
+        from: config_1.TWILIO_PHONE_NUMBER,
         to: formattedPhoneNumber,
     });
     return (0, response_1.sendSuccessResponse)(res, 201, message, "OTP sent successfully");

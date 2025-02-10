@@ -11,7 +11,7 @@ import { fetchUserData, cookieOption } from './auth/auth.controller';
 import { ApiResponse } from '../utils/ApiResponse';
 import TeamModel from '../models/teams.model';
 import AdditionalInfoModel from '../models/userAdditionalInfo.model';
-import { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN } from '../config/config'
+import { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER } from '../config/config'
 import mongoose from "mongoose";
 
 authenticator.options = {
@@ -100,7 +100,7 @@ export const sendOTP = asyncHandler(async (req: Request, res: Response) => {
 
     const message = await client.messages.create({
         body: `Your OTP code is ${otp}`,
-        from: process.env.TWILIO_PHONE_NUMBER,
+        from: TWILIO_PHONE_NUMBER,
         to: formattedPhoneNumber,
     });
 

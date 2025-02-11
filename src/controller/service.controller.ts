@@ -20,7 +20,7 @@ import { NotificationModel } from "../models/notification.model";
 
 // addService controller
 export const addService = asyncHandler(async (req: CustomRequest, res: Response) => {
-    let locationDetails: any, finalLongitude, finalLatitude,finalLocation;
+    let locationDetails: any, finalLongitude, finalLatitude, finalLocation;
 
     const {
         categoryId,
@@ -63,9 +63,9 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
             type: "Point",
             coordinates: [finalLongitude, finalLatitude] // [longitude, latitude]
         };
-    
+
     }
-    
+
 
     // **Step 1: Check the count of unique pre-saved addresses for the user**
     const existingAddresses = await ServiceModel.aggregate([
@@ -110,8 +110,8 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         };
         finalLongitude = fetchedCoordinates.longitude;
         finalLatitude = fetchedCoordinates.latitude
-    
-         finalLocation = {
+
+        finalLocation = {
             type: "Point",
             coordinates: [finalLongitude, finalLatitude] // [longitude, latitude]
         };
@@ -1158,10 +1158,13 @@ export const getJobByStatus = asyncHandler(async (req: CustomRequest, res: Respo
     const { requestProgress } = req.body;
     const progressFilter =
         requestProgress === "Accepted"
-            ? { requestProgress: { $in: ["Pending",] } }
-            : requestProgress === "Started"
-                ? { requestProgress: "Started" } : requestProgress === "All" ? {}
-                    : { requestProgress };
+        ? { requestProgress: { $in: ["Pending",] } }
+        : requestProgress === "Assigned"
+        ? { requestProgress: "Pending", assignedAgentId: { $ne: null, $exists: true } }
+        : requestProgress === "Started"
+        ? { requestProgress: "Started" }
+        : requestProgress === "All" ? {}
+        : { requestProgress };        
 
     const results = await ServiceModel.aggregate([
         {

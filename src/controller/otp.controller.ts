@@ -188,6 +188,8 @@ export const sendOTP = asyncHandler(async (req: Request, res: Response) => {
 
 export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
     const { identifier, otp, purpose } = req.body; // `identifier` can be email or phone number
+    console.log(req.body, "verify otp payload");
+
     // console.log(req.body);
 
     if (!identifier || !otp || !purpose) {
@@ -205,7 +207,7 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
         formattedIdentifier = `+91${identifier}`;
     }
 
-    const otpEntry = await OTPModel.findOne({ [queryField]: formattedIdentifier });
+    const otpEntry = await OTPModel.findOne({ [queryField]: identifier });
 
     // Set default OTP for testing in non-production environments
     const defaultOtp = "12345";

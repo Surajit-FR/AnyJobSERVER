@@ -10,9 +10,6 @@ import { sendErrorResponse } from "./response";
 import cardValidator from 'card-validator';
 import UserPreferenceModel from "../models/userPreference.model";
 import mongoose from "mongoose";
-import { projectManagement } from "firebase-admin";
-import { promises } from "dns";
-import { emit } from "process";
 
 
 
@@ -25,12 +22,12 @@ export const generateRandomPassword = (length = 10): string => {
 export const addUser = async (userData: IRegisterCredentials) => {
 
     const { firstName, lastName, email, userType, phone, avatar } = userData;
-    console.log(userData);
+    console.log(userData,"user signup payload");
 
     let password = userData.password; // Default to provided password
     let rawPassword = password;
     let permission, generatedPass;
-    if (email) {
+    if (email && password) {        
         const existingEmail = await UserModel.findOne({ email });
         if (existingEmail) {
             throw new ApiError(409, "User with email already exists");
@@ -45,7 +42,7 @@ export const addUser = async (userData: IRegisterCredentials) => {
 
 
 
-    console.log("userData");
+    // console.log("userData");
 
     // Generate a random password  
     if (userType === "FieldAgent" || userType === "Admin" || userType === "Finance") {
@@ -64,6 +61,9 @@ export const addUser = async (userData: IRegisterCredentials) => {
         phone,
         avatar
     });
+
+    // console.log(newUser,"user signup data afetr db operation");
+
 
     const fetchUser = await fetchUserData(newUser._id);
     const savedUser = fetchUser[0];

@@ -24,7 +24,7 @@ export const generateRandomPassword = (length = 10): string => {
 
 export const addUser = async (userData: IRegisterCredentials) => {
 
-    const { firstName, lastName, email, userType, phone } = userData;
+    const { firstName, lastName, email, userType, phone, avatar } = userData;
     console.log(userData);
 
     let password = userData.password; // Default to provided password
@@ -62,6 +62,7 @@ export const addUser = async (userData: IRegisterCredentials) => {
         rawPassword: rawPassword,
         userType,
         phone,
+        avatar
     });
 
     const fetchUser = await fetchUserData(newUser._id);

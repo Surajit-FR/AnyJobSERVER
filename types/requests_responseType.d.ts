@@ -12,6 +12,7 @@ export interface IRegisterCredentials extends ICredentials {
     userType: string;
     email:string;
     phone:string;
+    avatar:string;
 };
 
 export interface IAddCategoryPayloadReq {

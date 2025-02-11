@@ -11,15 +11,19 @@ import { fetchUserData, cookieOption } from './auth/auth.controller';
 import { ApiResponse } from '../utils/ApiResponse';
 import TeamModel from '../models/teams.model';
 import AdditionalInfoModel from '../models/userAdditionalInfo.model';
-import { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN } from '../config/config'
+// import { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN } from '../config/config'
 import mongoose from "mongoose";
 
 authenticator.options = {
     step: 300,
 };
 
-const accountSid = TWILIO_ACCOUNT_SID;
-const authToken = TWILIO_AUTH_TOKEN;
+// const accountSid = TWILIO_ACCOUNT_SID;
+// const authToken = TWILIO_AUTH_TOKEN;
+
+const accountSid = "";
+const authToken = "";
+const TWILIO_PHONE_NUMBERS = "+16813203971";
 let client = twilio(accountSid, authToken);
 
 
@@ -59,15 +63,15 @@ export const sendOTP = asyncHandler(async (req: Request, res: Response) => {
     }
 
     // Validate phone number format
-    if (!/^\d{10}$/.test(phoneNumber)) {
+    if (!/^\+\d{1,3}\d{7,15}$/.test(phoneNumber)) {
         return sendErrorResponse(res, new ApiError(400, "Invalid phone number format"));
     }
 
 
     const otpLength = 5;
     const otp = generateVerificationCode(otpLength);
-    const formattedPhoneNumber = `+91${phoneNumber}`;
-    console.log({ formattedPhoneNumber });
+    // const formattedPhoneNumber = `+91${phoneNumber}`;
+    // console.log({ formattedPhoneNumber });
 
     const expiredAt = new Date(Date.now() + stepDuration * 1000);
 
@@ -79,7 +83,7 @@ export const sendOTP = asyncHandler(async (req: Request, res: Response) => {
         const userId = user._id;
         const otpEntry = new OTPModel({
             userId,
-            phoneNumber: formattedPhoneNumber,
+            phoneNumber: phoneNumber,
             otp,
             expiredAt,
         });
@@ -88,7 +92,7 @@ export const sendOTP = asyncHandler(async (req: Request, res: Response) => {
     } else {
         const otpEntry = new OTPModel({
             userId: new mongoose.Types.ObjectId(),
-            phoneNumber: formattedPhoneNumber,
+            phoneNumber: phoneNumber,
             otp,
             expiredAt,
         });
@@ -100,8 +104,8 @@ export const sendOTP = asyncHandler(async (req: Request, res: Response) => {
 
     const message = await client.messages.create({
         body: `Your OTP code is ${otp}`,
-        from: process.env.TWILIO_PHONE_NUMBER,
-        to: formattedPhoneNumber,
+        from: TWILIO_PHONE_NUMBERS,
+        to: phoneNumber,
     });
 
     return sendSuccessResponse(res, 201, message, "OTP sent successfully");

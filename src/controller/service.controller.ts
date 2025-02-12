@@ -725,7 +725,7 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
 
             }
         },
-        { $sort: { isIncentiveGiven: -1, incentiveAmount: -1 } }
+        { $sort: { createdAt: -1, isIncentiveGiven: -1, incentiveAmount: -1 } }
     ]);
     if (!serviceRequests.length) {
         return sendSuccessResponse(res, 200, serviceRequests, 'No nearby service request found');
@@ -1158,13 +1158,13 @@ export const getJobByStatus = asyncHandler(async (req: CustomRequest, res: Respo
     const { requestProgress } = req.body;
     const progressFilter =
         requestProgress === "Accepted"
-        ? { requestProgress: { $in: ["Pending",] } }
-        : requestProgress === "Assigned"
-        ? { requestProgress: "Pending", assignedAgentId: { $ne: null, $exists: true } }
-        : requestProgress === "Started"
-        ? { requestProgress: "Started" }
-        : requestProgress === "All" ? {}
-        : { requestProgress };        
+            ? { requestProgress: { $in: ["Pending",] } }
+            : requestProgress === "Assigned"
+                ? { requestProgress: "Pending", assignedAgentId: { $ne: null, $exists: true } }
+                : requestProgress === "Started"
+                    ? { requestProgress: "Started" }
+                    : requestProgress === "All" ? {}
+                        : { requestProgress };
 
     const results = await ServiceModel.aggregate([
         {

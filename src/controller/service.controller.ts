@@ -722,6 +722,7 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
                 totalRatings: '$userId.totalRatings',
                 userAvgRating: '$userId.userAvgRating',
                 userAvtar: '$userId.avatar',
+                createdAt:1
 
             }
         },

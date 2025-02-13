@@ -35,8 +35,9 @@ const UserSchema: Schema<IUser> = new Schema({
     },
     phone: {
         type: String,
-        default: "",
-        required: false
+        default:"",
+        required: false,
+        // unique:true
     },
     password: {
         type: String,
@@ -92,7 +93,7 @@ const UserSchema: Schema<IUser> = new Schema({
 //pre - save hook for hashing password
 UserSchema.pre("save", async function (next) {
     console.log("hashed done");
-    if (!this.email) return next();
+    // if (!this.email) return next();
     if (!this.isModified("password")) return next();
     try {
         this.password = await bcrypt.hash(this.password, 10);

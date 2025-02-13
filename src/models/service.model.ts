@@ -147,9 +147,13 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
     },
     requestProgress: {
         type: String,
-        enum: ["NotStarted", "Pending", "Started", "Completed", "Cancelled"],
+        enum: ["NotStarted", "Pending", "Started", "Completed", "Blocked","CancelledBySP","CancelledByFA"],
         //...."NotStarted"||"Pending"||"Started".....for all this state mark them inprogress//
         default: "NotStarted"
+    },
+    cancelledBy: {
+        type: Schema.Types.ObjectId,
+        ref: "user"
     },
     isDeleted: {
         type: Boolean,

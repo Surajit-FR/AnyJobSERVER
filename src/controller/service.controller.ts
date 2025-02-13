@@ -40,7 +40,8 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         tipAmount,
         otherInfo,
         serviceProductImage,
-        answerArray // Expecting answerArray instead of answers
+        answerArray,
+        serviceAddressId // Expecting answerArray instead of answers
     }: IAddServicePayloadReq = req.body;
     // console.log(req.body);
 
@@ -90,36 +91,50 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         return sendErrorResponse(res, new ApiError(400, "Tip amount must be provided and more than zero if tip is given."));
     }
 
-    if (!useMyCurrentLocation) {
-        if (!serviceZipCode) return sendErrorResponse(res, new ApiError(400, "Service ZIP code is required for manual address."));
-        if (!serviceAddress) return sendErrorResponse(res, new ApiError(400, "Service address  is required for manual address."));
+    if (!serviceAddressId) {
+        if (!useMyCurrentLocation) {
+            if (!serviceZipCode) return sendErrorResponse(res, new ApiError(400, "Service ZIP code is required for manual address."));
+            if (!serviceAddress) return sendErrorResponse(res, new ApiError(400, "Service address  is required for manual address."));
 
-        //extracting coordinates from zip code
-        const apiKey = process.env.GOOGLE_API_KEY;
-        const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${serviceZipCode}&key=${apiKey}`;
+            //extracting coordinates from zip code
+            const apiKey = process.env.GOOGLE_API_KEY;
+            const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${serviceZipCode}&key=${apiKey}`;
 
-        const geocodeResponse = await axios.get(geocodeUrl);
+            const geocodeResponse = await axios.get(geocodeUrl);
 
-        locationDetails = geocodeResponse?.data?.results[0]
+            locationDetails = geocodeResponse?.data?.results[0]
 
-        if (!locationDetails) return sendErrorResponse(res, new ApiError(400, "Service ZIP code is invalid."));
+            if (!locationDetails) return sendErrorResponse(res, new ApiError(400, "Service ZIP code is invalid."));
 
-        let fetchedCoordinates = {
-            longitude: locationDetails?.geometry?.location?.lng,
-            latitude: locationDetails?.geometry?.location?.lat,
-        };
-        finalLongitude = fetchedCoordinates.longitude;
-        finalLatitude = fetchedCoordinates.latitude
+            let fetchedCoordinates = {
+                longitude: locationDetails?.geometry?.location?.lng,
+                latitude: locationDetails?.geometry?.location?.lat,
+            };
+            finalLongitude = fetchedCoordinates.longitude;
+            finalLatitude = fetchedCoordinates.latitude
 
+            finalLocation = {
+                type: "Point",
+                coordinates: [finalLongitude, finalLatitude] // [longitude, latitude]
+            };
+
+        }
+    }
+
+    if (serviceAddressId) {
+        const previouslybookedAddress = await ServiceModel.findOne({ _id: serviceAddressId }).select('serviceLatitude serviceLongitude location')
+        // console.log(previouslybookedAddress);
+
+        if (previouslybookedAddress) {
+            finalLongitude = previouslybookedAddress.serviceLongitude;
+            finalLatitude = previouslybookedAddress.serviceLatitude
+        }
         finalLocation = {
             type: "Point",
             coordinates: [finalLongitude, finalLatitude] // [longitude, latitude]
         };
+    }
 
-    }//end if 
-
-
-    // const formattedAddress = locationDetails?.formatted_address
 
 
     // Prepare the new service object
@@ -245,7 +260,9 @@ export const getAcceptedServiceRequestInJobQueue = asyncHandler(async (req: Cust
     const results = await ServiceModel.aggregate([
         {
             $match: {
+                $or: [{ requestProgress: "Pending" }, { requestProgress: "CancelledByFA" }],
                 requestProgress: "Pending",
+                assignedAgentId: null,
                 serviceProviderId: req.user?._id,
                 isReqAcceptedByServiceProvider: true
             }
@@ -321,7 +338,7 @@ export const getAcceptedServiceRequestInJobQueue = asyncHandler(async (req: Cust
     return sendSuccessResponse(res, 200, results, "Job queue retrieved successfully.");
 });
 
-// updateService controller
+// updateService controller by customer
 export const cancelServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {
     const { requestProgress, serviceId }: { requestProgress: string, serviceId: string } = req.body;
 
@@ -333,7 +350,10 @@ export const cancelServiceRequest = asyncHandler(async (req: CustomRequest, res:
         { _id: new mongoose.Types.ObjectId(serviceId), userId: req.user?._id },
         {
             $set: {
-                requestProgress: "Cancelled",
+                requestProgress: "Blocked",
+                cancelledBy: req.user?._id
+                // serviceProviderId:null,
+                // assignedAgentId:null
             }
         }, { new: true }
     );
@@ -384,8 +404,191 @@ export const addorUpdateIncentive = asyncHandler(async (req: CustomRequest, res:
 });
 
 // handleServiceRequestState controller
+// export const handleServiceRequestState = asyncHandler(async (req: CustomRequest, res: Response) => {
+//     const registrationToken = "dXt8fLvzy9s:APA91bEYQH12Iu6jfsFv2I6yDd6bLfTRN6AqY6fjEDpD7YDeDRH5I7XXjWxcbPxyErmc7KjUjHiEnJ0K7yOHgdP_xUq8c9zcp6F5Bcwb0s_fi_NDszErlr3sB5P5Wf8ItvPH4ch5vwbb";
+//     const userType = req.user?.userType;
+//     let userId = req.user?._id;
+//     const { serviceId } = req.params;
+//     const { isReqAcceptedByServiceProvider, requestProgress }: { isReqAcceptedByServiceProvider: boolean, requestProgress: string } = req.body;
+
+//     if (!serviceId) {
+//         return sendErrorResponse(res, new ApiError(400, "Service ID is required."));
+//     }
+//     const serviceRequest = await ServiceModel.findById(serviceId);
+//     if (!serviceRequest) {
+//         return sendErrorResponse(res, new ApiError(400, "Service not found."));
+//     }
+//     const customerDetails = await UserModel.findById(serviceRequest?.userId)
+//     const serviceProviderDetails = await UserModel.findById(serviceRequest?.serviceProviderId).select('serviceProviderId')
+//     let userFcm, notiTitle, notiBody;
+
+//     let serviceProviderId = userId;
+//     //|| userType === "FieldAgent"
+//     if (userType === "TeamLead") {
+//         const permissions = await PermissionModel.findOne({ userId }).select('acceptRequest');
+//         if (!permissions?.acceptRequest) {
+//             return sendErrorResponse(res, new ApiError(403, 'Permission denied: Accept Request not granted.'));
+//         }
+
+//         const team = await TeamModel.findOne({ isDeleted: false, fieldAgentIds: userId }).select('serviceProviderId');
+//         if (!team || !team.serviceProviderId) {
+//             return sendErrorResponse(res, new ApiError(400, 'Service Provider ID not found for team.'));
+//         }
+//         serviceProviderId = team.serviceProviderId;
+//     };
+
+//     if (userType === "FieldAgent") {
+
+//         if (!serviceRequest.assignedAgentId) {
+//             return sendErrorResponse(res, new ApiError(403, "Job is not assigned yet. Permission denied."));
+//         };
+
+//         console.log(serviceRequest.assignedAgentId);
+
+//         const serviceRequestAssignedAgentId = serviceRequest.assignedAgentId.toString();
+//         const currentuserId = userId?.toString();
+
+//         if (serviceRequestAssignedAgentId !== currentuserId) {
+//             return sendErrorResponse(res, new ApiError(403, "Permission denied: You are not assigned to this service..."));
+//         };
+
+//         const team = await TeamModel.findOne({ isDeleted: false, fieldAgentIds: userId }).select('serviceProviderId');
+//         if (!team || !team.serviceProviderId) {
+//             return sendErrorResponse(res, new ApiError(400, 'Service Provider ID not found for team.'));
+//         }
+//         serviceProviderId = team.serviceProviderId;
+//     }
+
+//     const updateData: any = { isReqAcceptedByServiceProvider, updatedAt: Date.now() };
+
+//     if (isReqAcceptedByServiceProvider) {
+//         updateData.serviceProviderId = serviceProviderId;
+
+//         switch (serviceRequest.requestProgress) {
+
+//             case "NotStarted":
+
+//             case "Cancelled":
+
+//                 if (requestProgress === "Pending") {
+//                     updateData.requestProgress = "Pending";
+//                     // updateData.serviceProviderId = null;
+//                     // updateData.assignedAgentId = null;
+//                 }
+//                 userFcm = customerDetails?.fcmToken || ""
+//                 notiTitle = "Service Requested Accepted "
+//                 notiBody = `Your Service Request is accepted by ${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""}`
+//                 const notiData4 = {
+//                     senderId: req.user?._id,
+//                     receiverId: serviceRequest.userId,
+//                     title: notiTitle,
+//                     notificationType: "Service Accepeted",
+//                 }
+//                 // const notifyUser1 = await sendNotification(userFcm, notiTitle, notiBody, notiData1)
+//                 break;
+
+
+//             case "Pending":
+//                 // console.log("case2:Pending");
+
+//                 if (requestProgress === "Started") {
+//                     updateData.requestProgress = "Started";
+//                     updateData.startedAt = new Date();
+//                 }
+//                 userFcm = serviceProviderDetails?.fcmToken || ""
+//                 notiTitle = "Mark job as completed"
+//                 notiBody = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as started`
+//                 const notiData2 = {
+//                     senderId: req.user?._id,
+//                     receiverId: serviceRequest.serviceProviderId,
+//                     title: notiTitle,
+//                     notificationType: "Service Started",
+//                 }
+//                 // const notifyUser2 = await sendNotification(userFcm, notiTitle, notiBody, notiData2)                
+
+
+//                 break;
+
+//             case "Started":
+//                 if (requestProgress === "Completed") {
+//                     console.log("ss runs")
+
+//                     updateData.requestProgress = "Completed";
+//                     updateData.completedAt = new Date();
+
+//                     userFcm = serviceProviderDetails?.fcmToken || ""
+//                     notiTitle = "Mark job as completed"
+//                     notiBody = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as completed`
+//                     const notiData3 = {
+//                         senderId: req.user?._id,
+//                         receiverId: serviceRequest.serviceProviderId,
+//                         title: notiTitle,
+//                         notificationType: "Service Completed",
+//                     }
+//                     // const notifyUser3 = await sendNotification(userFcm, notiTitle, notiBody, notiData3)
+
+
+//                 }
+
+//                 break;
+
+
+
+//         }
+//     }
+
+//     // Allow service provider to cancel at any time except when NotStarted
+//     if (serviceRequest.requestProgress !== "NotStarted" && requestProgress === "Cancelled") {
+//         if(req.user?.userType === "ServiceProvider"){
+//             updateData.requestProgress = "CancelledBySP";
+//         }
+//         if(req.user?.userType === "FieldAgent"){
+//             updateData.requestProgress = "CancelledByFA";
+//         }
+//         updateData.isReqAcceptedByServiceProvider = false;
+
+
+//         userFcm = serviceProviderDetails?.fcmToken || ""
+//         notiTitle = "Mark job as cancelled"
+//         notiBody = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as cancelled`
+//         const notiData4 = {
+//             senderId: req.user?._id,
+//             receiverId: serviceRequest.serviceProviderId,
+//             title: notiTitle,
+//             notificationType: "Agent Cancelled Service",
+//         }
+//         // const notifyUser4 = await sendNotification(userFcm, notiTitle, notiBody, notiData4)
+
+//     }
+
+//     const updatedService = await ServiceModel.findByIdAndUpdate(serviceId, { $set: updateData }, { new: true });
+//     if (!updatedService) {
+//         return sendErrorResponse(res, new ApiError(400, "Service not found for updating."));
+//     }
+
+
+
+//     if (requestProgress == "Pending") {
+//         return sendSuccessResponse(res, 200, { updatedService }, "Service request accepted successfully.")
+//     } else if (requestProgress == "Started") {
+//         return sendSuccessResponse(res, 200, { updatedService }, "Service request started successfully.")
+//     } else if (requestProgress == "Completed") {
+//         // Calculate total duration if completedAt is availabler    
+//         let totalExecutionTimeInMinutes: number = 0;
+//         if (updatedService.completedAt && updatedService.startedAt) {
+//             totalExecutionTimeInMinutes = (new Date(updatedService.completedAt).getTime() - new Date(updatedService.startedAt).getTime()) / (1000 * 60);
+//         }
+
+//         return sendSuccessResponse(res, 200, { updatedService, totalExecutionTimeInMinutes }, "Service request completed successfully.")
+//     } else {
+//         return sendSuccessResponse(res, 200, { updatedService }, "Service request cancelled successfully.")
+//     }
+
+// });
+
+
+
 export const handleServiceRequestState = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const registrationToken = "dXt8fLvzy9s:APA91bEYQH12Iu6jfsFv2I6yDd6bLfTRN6AqY6fjEDpD7YDeDRH5I7XXjWxcbPxyErmc7KjUjHiEnJ0K7yOHgdP_xUq8c9zcp6F5Bcwb0s_fi_NDszErlr3sB5P5Wf8ItvPH4ch5vwbb";
     const userType = req.user?.userType;
     let userId = req.user?._id;
     const { serviceId } = req.params;
@@ -398,40 +601,29 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
     if (!serviceRequest) {
         return sendErrorResponse(res, new ApiError(400, "Service not found."));
     }
-    const customerDetails = await UserModel.findById(serviceRequest?.userId)
-    const serviceProviderDetails = await UserModel.findById(serviceRequest?.serviceProviderId).select('serviceProviderId')
-    let userFcm, notiTitle, notiBody;
+    const customerDetails = await UserModel.findById(serviceRequest?.userId);
+    const serviceProviderDetails = await UserModel.findById(serviceRequest?.serviceProviderId).select('serviceProviderId');
 
     let serviceProviderId = userId;
-    //|| userType === "FieldAgent"
     if (userType === "TeamLead") {
         const permissions = await PermissionModel.findOne({ userId }).select('acceptRequest');
         if (!permissions?.acceptRequest) {
             return sendErrorResponse(res, new ApiError(403, 'Permission denied: Accept Request not granted.'));
         }
-
         const team = await TeamModel.findOne({ isDeleted: false, fieldAgentIds: userId }).select('serviceProviderId');
         if (!team || !team.serviceProviderId) {
             return sendErrorResponse(res, new ApiError(400, 'Service Provider ID not found for team.'));
         }
         serviceProviderId = team.serviceProviderId;
-    };
+    }
 
     if (userType === "FieldAgent") {
-
         if (!serviceRequest.assignedAgentId) {
             return sendErrorResponse(res, new ApiError(403, "Job is not assigned yet. Permission denied."));
-        };
-
-        console.log(serviceRequest.assignedAgentId);
-
-        const serviceRequestAssignedAgentId = serviceRequest.assignedAgentId.toString();
-        const currentuserId = userId?.toString();
-
-        if (serviceRequestAssignedAgentId !== currentuserId) {
-            return sendErrorResponse(res, new ApiError(403, "Permission denied: You are not assigned to this service..."));
-        };
-
+        }
+        if (serviceRequest.assignedAgentId.toString() !== userId?.toString()) {
+            return sendErrorResponse(res, new ApiError(403, "Permission denied: You are not assigned to this service."));
+        }
         const team = await TeamModel.findOne({ isDeleted: false, fieldAgentIds: userId }).select('serviceProviderId');
         if (!team || !team.serviceProviderId) {
             return sendErrorResponse(res, new ApiError(400, 'Service Provider ID not found for team.'));
@@ -444,94 +636,59 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
     if (isReqAcceptedByServiceProvider) {
         updateData.serviceProviderId = serviceProviderId;
 
-        switch (serviceRequest.requestProgress) {
 
-            case "NotStarted":
+        //a newly created service request or a service cancelled by sp can be accepted again by SPs
+        if (serviceRequest.requestProgress === "NotStarted" || serviceRequest.requestProgress === "CancelledBySP") {
+            if (requestProgress === "Pending") {
+                updateData.requestProgress = "Pending";
+            }
+            // await sendNotification(
+            //     customerDetails?.fcmToken || "",
+            //     "Service Request Accepted",
+            //     `Your Service Request is accepted by ${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""}`,
+            //     { senderId: req.user?._id, receiverId: serviceRequest.userId, title: "Service Accepted", notificationType: "Service Accepted" }
+            // );
+        }
 
-            case "Cancelled":
+        //if a service is in accepted mode  and CancelledByFA mode then one can start that service by assigning FA...
+        if ((serviceRequest.requestProgress === "Pending" || serviceRequest.requestProgress === "CancelledByFA") && requestProgress === "Started") {
+            updateData.requestProgress = "Started";
+            updateData.startedAt = new Date();
 
-                if (requestProgress === "Pending") {
-                    updateData.requestProgress = "Pending";
-                }
-                userFcm = customerDetails?.fcmToken || ""
-                notiTitle = "Service Requested Accepted "
-                notiBody = `Your Service Request is accepted by ${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""}`
-                const notiData4 = {
-                    senderId: req.user?._id,
-                    receiverId: serviceRequest.userId,
-                    title: notiTitle,
-                    notificationType: "Service Accepeted",
-                }
-                // const notifyUser1 = await sendNotification(userFcm, notiTitle, notiBody, notiData1)
-                break;
-
-
-            case "Pending":
-                // console.log("case2:Pending");
-
-                if (requestProgress === "Started") {
-                    updateData.requestProgress = "Started";
-                    updateData.startedAt = new Date();
-                }
-                userFcm = serviceProviderDetails?.fcmToken || ""
-                notiTitle = "Mark job as completed"
-                notiBody = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as started`
-                const notiData2 = {
-                    senderId: req.user?._id,
-                    receiverId: serviceRequest.serviceProviderId,
-                    title: notiTitle,
-                    notificationType: "Service Started",
-                }
-                // const notifyUser2 = await sendNotification(userFcm, notiTitle, notiBody, notiData2)                
+            // await sendNotification(
+            //     serviceProviderDetails?.fcmToken || "",
+            //     "Mark job as started",
+            //     `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as started`,
+            //     { senderId: req.user?._id, receiverId: serviceRequest.serviceProviderId, title: "Service Started", notificationType: "Service Started" }
+            // );
+        }
 
 
-                break;
+        if (serviceRequest.requestProgress === "Started" && requestProgress === "Completed") {
+            updateData.requestProgress = "Completed";
+            updateData.completedAt = new Date();
 
-            case "Started":
-                if (requestProgress === "Completed") {
-                    console.log("ss runs")
-
-                    updateData.requestProgress = "Completed";
-                    updateData.completedAt = new Date();
-
-                    userFcm = serviceProviderDetails?.fcmToken || ""
-                    notiTitle = "Mark job as completed"
-                    notiBody = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as completed`
-                    const notiData3 = {
-                        senderId: req.user?._id,
-                        receiverId: serviceRequest.serviceProviderId,
-                        title: notiTitle,
-                        notificationType: "Service Completed",
-                    }
-                    // const notifyUser3 = await sendNotification(userFcm, notiTitle, notiBody, notiData3)
-
-
-                }
-
-                break;
-
-
-
+            // await sendNotification(
+            //     serviceProviderDetails?.fcmToken || "",
+            //     "Mark job as completed",
+            //     `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as completed`,
+            //     { senderId: req.user?._id, receiverId: serviceRequest.serviceProviderId, title: "Service Completed", notificationType: "Service Completed" }
+            // );
         }
     }
 
-    // Allow service provider to cancel at any time except when NotStarted
     if (serviceRequest.requestProgress !== "NotStarted" && requestProgress === "Cancelled") {
+        updateData.requestProgress = userType === "ServiceProvider" ? "CancelledBySP" : "CancelledByFA";
         updateData.isReqAcceptedByServiceProvider = false;
-        updateData.requestProgress = "Cancelled";
+        updateData.cancelledBy = req.user?._id;
+        updateData.assignedAgentId = null;
 
-
-        userFcm = serviceProviderDetails?.fcmToken || ""
-        notiTitle = "Mark job as cancelled"
-        notiBody = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as cancelled`
-        const notiData4 = {
-            senderId: req.user?._id,
-            receiverId: serviceRequest.serviceProviderId,
-            title: notiTitle,
-            notificationType: "Agent Cancelled Service",
-        }
-        // const notifyUser4 = await sendNotification(userFcm, notiTitle, notiBody, notiData4)
-
+        // await sendNotification(
+        //     serviceProviderDetails?.fcmToken || "",
+        //     "Mark job as cancelled",
+        //     `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as cancelled`,
+        //     { senderId: req.user?._id, receiverId: serviceRequest.serviceProviderId, title: "Service Cancelled", notificationType: "Service Cancelled" }
+        // );
     }
 
     const updatedService = await ServiceModel.findByIdAndUpdate(serviceId, { $set: updateData }, { new: true });
@@ -539,25 +696,23 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
         return sendErrorResponse(res, new ApiError(400, "Service not found for updating."));
     }
 
-
-
-    if (requestProgress == "Pending") {
-        return sendSuccessResponse(res, 200, { updatedService }, "Service request accepted successfully.")
-    } else if (requestProgress == "Started") {
-        return sendSuccessResponse(res, 200, { updatedService }, "Service request started successfully.")
-    } else if (requestProgress == "Completed") {
-        // Calculate total duration if completedAt is availabler    
-        let totalExecutionTimeInMinutes: number = 0;
+    if (requestProgress === "Pending") {
+        return sendSuccessResponse(res, 200, { updatedService }, "Service request accepted successfully.");
+    }
+    if (requestProgress === "Started") {
+        return sendSuccessResponse(res, 200, { updatedService }, "Service request started successfully.");
+    }
+    if (requestProgress === "Completed") {
+        let totalExecutionTimeInMinutes = 0;
         if (updatedService.completedAt && updatedService.startedAt) {
             totalExecutionTimeInMinutes = (new Date(updatedService.completedAt).getTime() - new Date(updatedService.startedAt).getTime()) / (1000 * 60);
         }
-
-        return sendSuccessResponse(res, 200, { updatedService, totalExecutionTimeInMinutes }, "Service request completed successfully.")
-    } else {
-        return sendSuccessResponse(res, 200, { updatedService }, "Service request cancelled successfully.")
+        return sendSuccessResponse(res, 200, { updatedService, totalExecutionTimeInMinutes }, "Service request completed successfully.");
     }
 
+    return sendSuccessResponse(res, 200, { updatedService }, "Service request cancelled successfully.");
 });
+
 
 // deleteService controller
 export const deleteService = asyncHandler(async (req: Request, res: Response) => {
@@ -722,7 +877,7 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
                 totalRatings: '$userId.totalRatings',
                 userAvgRating: '$userId.userAvgRating',
                 userAvtar: '$userId.avatar',
-                createdAt:1
+                createdAt: 1
 
             }
         },
@@ -1159,7 +1314,7 @@ export const getJobByStatus = asyncHandler(async (req: CustomRequest, res: Respo
     const { requestProgress } = req.body;
     const progressFilter =
         requestProgress === "Accepted"
-            ? { requestProgress: { $in: ["Pending",] } }
+            ? { requestProgress: { $in: ["Pending", "CancelledByFA"] } }
             : requestProgress === "Assigned"
                 ? { requestProgress: "Pending", assignedAgentId: { $ne: null, $exists: true } }
                 : requestProgress === "Started"
@@ -1270,8 +1425,7 @@ export const getJobByStatusByAgent = asyncHandler(async (req: CustomRequest, res
     const { requestProgress } = req.body;
     const progressFilter =
         requestProgress === "Assigned" ? { requestProgress: "Pending", assignedAgentId: req.user?._id }
-
-            : { requestProgress };
+                : { requestProgress };
 
     const results = await ServiceModel.aggregate([
         {

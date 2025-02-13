@@ -79,7 +79,8 @@ export interface IAddServicePayloadReq {
     otherInfo:object,
     userId: ObjectId,
     answerArray: IQuestion,
-    useMyCurrentLocation:boolean
+    useMyCurrentLocation:boolean,
+    serviceAddressId:ObjectId
 };
 
 export interface HealthcheckResponse {

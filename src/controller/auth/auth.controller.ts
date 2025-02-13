@@ -54,6 +54,7 @@ export const fetchUserData = async (userId: string | ObjectId) => {
                 'permission.updatedAt': 0,
                 'permission.__v': 0,
                 password: 0,
+                rawPassword:0,
                 refreshToken: 0
             }
         }
@@ -117,9 +118,9 @@ export const createAdminUsers = asyncHandler(async (req: CustomRequest, res: Res
 
 // register user controller
 export const registerUser = asyncHandler(async (req: Request, res: Response) => {
-    
+
     const userData: IRegisterCredentials = req.body;
-    
+
     const savedUser = await addUser(userData);
 
     if (userData.userType === 'ServiceProvider') {
@@ -153,10 +154,10 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
 // login user controller
 export const loginUser = asyncHandler(async (req: Request, res: Response) => {
     const { email, password, userType, fcmToken, isAdminPanel }: IUser & { isAdminPanel?: boolean, userType: Array<string> } = req.body;
-    console.log(req.body.password,"password from body");
-    console.log(typeof(req.body.password));
-    
-    
+    console.log(req.body.password, "password from body");
+    console.log(typeof (req.body.password));
+
+
 
 
     if (!email) {
@@ -175,8 +176,8 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
 
     const userId = user._id;
     const isPasswordValid = await user.isPasswordCorrect(password);
-    console.log(isPasswordValid,"isPasswordValid");
-    
+    console.log(isPasswordValid, "isPasswordValid");
+
     if (!isPasswordValid) {
         return sendErrorResponse(res, new ApiError(403, "Invalid user credentials"));
     };

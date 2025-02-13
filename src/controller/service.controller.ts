@@ -1279,6 +1279,43 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
             }
         },
         {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "assignedAgentId",
+                as: "assignedAgentId",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "ratings",
+                            foreignField: "ratedTo",
+                            localField: "_id",
+                            as: "fieldAgentRatings",
+                        }
+                    },
+                    {
+                        $addFields: {
+                            numberOfRatings: { $size: "$fieldAgentRatings" },
+                            filedAgentRatings: {
+                                $cond: {
+                                    if: { $gt: [{ $size: "$fieldAgentRatings" }, 0] },
+                                    then: { $avg: "$fieldAgentRatings.rating" },
+                                    else: 0
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$assignedAgentId"
+            }
+        },
+
+        {
             $project: {
                 _id: 1,
                 'categoryId.name': 1,
@@ -1295,6 +1332,11 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
                 'serviceProviderId.avatar': 1,
                 'serviceProviderId.numberOfRatings': 1,
                 'serviceProviderId.serviceProviderRatings': 1,
+                'assignedAgentId.firstName': 1,
+                'assignedAgentId.lastName': 1,
+                'assignedAgentId.avatar': 1,
+                'assignedAgentId.numberOfRatings': 1,
+                'assignedAgentId.filedAgentRatings': 1,
                 createdAt: 1
 
             }

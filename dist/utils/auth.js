@@ -47,9 +47,13 @@ const addUser = (userData) => __awaiter(void 0, void 0, void 0, function* () {
             throw new ApisErrors_1.ApiError(409, "User with email already exists");
         }
     }
-    // Generate a random password
-    password = (0, exports.generateRandomPassword)();
+    if (!password || (email && phone)) {
+        password = (0, exports.generateRandomPassword)();
+    }
     generatedPass = password;
+    // Generate a random password
+    // password = generateRandomPassword();
+    // generatedPass = password;
     // Create the new user
     const newUser = yield user_model_1.default.create({
         firstName,

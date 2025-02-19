@@ -129,6 +129,7 @@ export interface IServiceSchema extends Document {
     isDeleted: boolean;
     createdAt?: Date;
     updatedAt?: Date;
+    cancelledBy:ObjectId;
 };
 
 export interface IDerivedQuestion {

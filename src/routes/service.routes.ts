@@ -34,7 +34,7 @@ router.route('/assign-job')
     .patch(verifyUserType(['ServiceProvider', 'TeamLead']), assignJob);
 
 router.route("/c/:serviceId")
-    .get(verifyUserType(['SuperAdmin', "ServiceProvider", "Customer"]), fetchSingleServiceRequest)
+    .get(verifyUserType(['SuperAdmin', "ServiceProvider", "Customer","TeamLead","FieldAgent"]), fetchSingleServiceRequest)
     .delete(verifyUserType(['SuperAdmin']),  deleteService)
     .patch(verifyUserType(["ServiceProvider", 'TeamLead', 'FieldAgent']), handleServiceRequestState);
 

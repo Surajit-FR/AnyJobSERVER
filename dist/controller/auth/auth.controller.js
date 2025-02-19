@@ -60,6 +60,7 @@ const fetchUserData = (userId) => __awaiter(void 0, void 0, void 0, function* ()
                 'permission.updatedAt': 0,
                 'permission.__v': 0,
                 password: 0,
+                rawPassword: 0,
                 refreshToken: 0
             }
         }

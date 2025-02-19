@@ -10,9 +10,6 @@ import { sendErrorResponse } from "./response";
 import cardValidator from 'card-validator';
 import UserPreferenceModel from "../models/userPreference.model";
 import mongoose from "mongoose";
-import { projectManagement } from "firebase-admin";
-import { promises } from "dns";
-import { emit } from "process";
 
 
 
@@ -24,34 +21,27 @@ export const generateRandomPassword = (length = 10): string => {
 
 export const addUser = async (userData: IRegisterCredentials) => {
 
-    const { firstName, lastName, email, userType, phone } = userData;
-    console.log(userData);
+    const { firstName, lastName, email, userType, phone, avatar } = userData;
 
     let password = userData.password; // Default to provided password
-    let rawPassword = password;
     let permission, generatedPass;
+    if (phone) {
+        const existingPhone = await UserModel.findOne({ phone });
+        if (existingPhone) {
+            // console.log(existingPhone);
+            throw new ApiError(409, "User with phone already exists");
+        }
+    }
+    
     if (email) {
         const existingEmail = await UserModel.findOne({ email });
         if (existingEmail) {
             throw new ApiError(409, "User with email already exists");
         }
-    } else if (phone) {
-        const existingPhone = await UserModel.findOne({ phone });
-        if (existingPhone) {
-            console.log(existingPhone);
-            throw new ApiError(409, "User with phone already exists");
-        }
     }
-
-
-
-    console.log("userData");
-
-    // Generate a random password  
-    if (userType === "FieldAgent" || userType === "Admin" || userType === "Finance") {
-        password = generateRandomPassword();
-        generatedPass = password;
-    }
+    // Generate a random password
+    password = generateRandomPassword();
+    generatedPass = password;
 
     // Create the new user
     const newUser = await UserModel.create({
@@ -59,10 +49,14 @@ export const addUser = async (userData: IRegisterCredentials) => {
         lastName,
         email,
         password,
-        rawPassword: rawPassword,
+        rawPassword: password,        
         userType,
         phone,
+        avatar
     });
+
+    // console.log(newUser,"user signup data afetr db operation");
+
 
     const fetchUser = await fetchUserData(newUser._id);
     const savedUser = fetchUser[0];

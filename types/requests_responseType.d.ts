@@ -12,6 +12,7 @@ export interface IRegisterCredentials extends ICredentials {
     userType: string;
     email:string;
     phone:string;
+    avatar:string;
 };
 
 export interface IAddCategoryPayloadReq {
@@ -78,8 +79,8 @@ export interface IAddServicePayloadReq {
     otherInfo:object,
     userId: ObjectId,
     answerArray: IQuestion,
-    useMyCurrentLocation:boolean
-    serviceAddressId: ObjectId
+    useMyCurrentLocation:boolean,
+    serviceAddressId:ObjectId
 };
 
 export interface HealthcheckResponse {

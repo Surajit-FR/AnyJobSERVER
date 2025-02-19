@@ -46,6 +46,108 @@ export const getUser = asyncHandler(async (req: CustomRequest, res: Response) =>
             }
         },
         {
+            $lookup: {
+                from: "services",
+                foreignField: "assignedAgentId",
+                localField: "_id",
+                as: "ServicesRelatedToAgent",
+            }
+        },
+        {
+            $lookup: {
+                from: "teams",
+                foreignField: "fieldAgentIds",
+                localField: "_id",
+                as: "teamDetails",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "additionalinfos",
+                            foreignField: "userId",
+                            localField: "serviceProviderId",
+                            as: "companyDetails",
+                        }
+                    },
+                    {
+                        $unwind: {
+                            preserveNullAndEmptyArrays: true,
+                            path: "$companyDetails"
+                        }
+                    },
+                ]
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$teamDetails"
+            }
+        },
+
+        {
+            $addFields: {
+
+                CompletedServicesByAgent: {
+                    $filter: {
+                        input: "$ServicesRelatedToAgent",
+                        as: "completedServicesByAgent",
+                        cond: {
+                            $and: [
+                                { $eq: ["$$completedServicesByAgent.requestProgress", "Completed"] },
+                                { $eq: ["$$completedServicesByAgent.assignedAgentId", "$_id"] },
+
+                            ]
+                        },
+                    }
+                },
+                totalAssignedToAgent: {
+                    $filter: {
+                        input: "$ServicesRelatedToAgent",
+                        as: "assignedServicesToAgent",
+                        cond: {
+                            $and: [
+                                {
+                                    $or: [
+                                        { $eq: ["$$assignedServicesToAgent.requestProgress", "Pending"] },
+                                        { $eq: ["$$assignedServicesToAgent.requestProgress", "CancelledByFA"] },
+                                    ]
+
+                                },
+                                { $eq: ["$$assignedServicesToAgent.assignedAgentId", "$_id"] },
+
+                            ]
+                        },
+                    }
+                },
+            },
+
+        },
+        {
+            $addFields: {
+                totalCompletedServicesByAgent: { $size: "$CompletedServicesByAgent" },
+                totalAssignedServicesByAgent: { $size: "$totalAssignedToAgent" },
+            }
+        },
+        {
+            $addFields: {
+                agentSuccessRate: {
+                    $cond: {
+                        if: { $eq: ["$totalAssignedServicesByAgent", 0] },
+                        then: 0,
+                        else: {
+                            $multiply: [
+                                { $divide: ["$totalCompletedServicesByAgent", "$totalAssignedServicesByAgent"] },
+                                100
+                            ]
+                        }
+                    }
+                },
+                agentAccuracy: 50,
+
+                agentRelatedToCompany: "$teamDetails.companyDetails.companyName"
+            }
+        },
+        {
             $project: {
                 __v: 0,
                 isDeleted: 0,
@@ -55,7 +157,10 @@ export const getUser = asyncHandler(async (req: CustomRequest, res: Response) =>
                 'additionalInfo.isDeleted': 0,
                 'userAddress.__v': 0,
                 'userAddress.isDeleted': 0,
-                // rawPassword: 0
+                'ServicesRelatedToAgent': 0,
+                'CompletedServicesByAgent': 0,
+                'totalAssignedToAgent': 0,
+                teamDetails: 0
             }
         }
     ]);
@@ -531,6 +636,25 @@ export const getSingleUser = asyncHandler(async (req: Request, res: Response) =>
                 ]
             }
         },
+        {
+            $lookup: {
+                from: "services",
+                foreignField: "assignedAgentId",
+                localField: "_id",
+                as: "ServicesRelatedToAgent",
+                // pipeline: [
+                //     {
+                //         // requestProgress:{$or:["Completed","Pending"]}
+                //         $match: {
+                //             $or: [
+                //                 { requestProgress: "Completed" },
+                //                 { requestProgress: "Pending" }
+                //             ]
+                //         }
+                //     }
+                // ]
+            }
+        },
 
         {
             $addFields: {
@@ -548,6 +672,38 @@ export const getSingleUser = asyncHandler(async (req: Request, res: Response) =>
                         cond: { $eq: ["$$completedServices.requestProgress", "Completed"] },
                     }
                 },
+                CompletedServicesByAgent: {
+                    $filter: {
+                        input: "$ServicesRelatedToAgent",
+                        as: "completedServicesByAgent",
+                        cond: {
+                            $and: [
+                                { $eq: ["$$completedServicesByAgent.requestProgress", "Completed"] },
+                                { $eq: ["$$completedServicesByAgent.assignedAgentId", "$_id"] },
+
+                            ]
+                        },
+                    }
+                },
+                totalAssignedToAgent: {
+                    $filter: {
+                        input: "$ServicesRelatedToAgent",
+                        as: "assignedServicesToAgent",
+                        cond: {
+                            $and: [
+                                {
+                                    $or: [
+                                        { $eq: ["$$assignedServicesToAgent.requestProgress", "Pending"] },
+                                        { $eq: ["$$assignedServicesToAgent.requestProgress", "CancelledByFA"] },
+                                    ]
+
+                                },
+                                { $eq: ["$$assignedServicesToAgent.assignedAgentId", "$_id"] },
+
+                            ]
+                        },
+                    }
+                },
                 newServices: {
                     $filter: {
                         input: "$Services",
@@ -561,7 +717,26 @@ export const getSingleUser = asyncHandler(async (req: Request, res: Response) =>
         {
             $addFields: {
                 totalCompletedServices: { $size: "$CompletedServices" },
-                totalNewServices: { $size: "$newServices" }
+                totalNewServices: { $size: "$newServices" },
+                totalCompletedServicesByAgent: { $size: "$CompletedServicesByAgent" },
+                totalAssignedServicesByAgent: { $size: "$totalAssignedToAgent" },
+            }
+        },
+        {
+            $addFields: {
+                successRate: {
+                    $cond: {
+                        if: { $eq: ["$totalAssignedServicesByAgent", 0] },
+                        then: 0,
+                        else: {
+                            $multiply: [
+                                { $divide: ["$totalCompletedServicesByAgent", "$totalAssignedServicesByAgent"] },
+                                100
+                            ]
+                        }
+                    }
+                },
+
             }
         },
         {
@@ -578,7 +753,10 @@ export const getSingleUser = asyncHandler(async (req: Request, res: Response) =>
                 CompletedServices: 0,
                 Services: 0,
                 newServices: 0,
-                rawPassword: 0
+                rawPassword: 0,
+                ServicesRelatedToAgent: 0,
+                CompletedServicesByAgent: 0,
+                totalAssignedToAgent: 0,
             }
         }
     ]);
@@ -1046,7 +1224,7 @@ export const addBankDetails = asyncHandler(async (req: CustomRequest, res: Respo
 });
 
 export const updateUserPreference = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const userId = req.user?._id;    
+    const userId = req.user?._id;
 
     if (!userId) {
         return sendErrorResponse(res, new ApiError(400, "User ID is required."));

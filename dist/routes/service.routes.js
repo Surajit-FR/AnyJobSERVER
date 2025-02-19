@@ -20,7 +20,7 @@ router.route('/nearby-services-request')
 router.route('/assign-job')
     .patch((0, userAuth_1.verifyUserType)(['ServiceProvider', 'TeamLead']), service_controller_1.assignJob);
 router.route("/c/:serviceId")
-    .get((0, userAuth_1.verifyUserType)(['SuperAdmin', "ServiceProvider", "Customer"]), service_controller_1.fetchSingleServiceRequest)
+    .get((0, userAuth_1.verifyUserType)(['SuperAdmin', "ServiceProvider", "Customer", "TeamLead", "FieldAgent"]), service_controller_1.fetchSingleServiceRequest)
     .delete((0, userAuth_1.verifyUserType)(['SuperAdmin']), service_controller_1.deleteService)
     .patch((0, userAuth_1.verifyUserType)(["ServiceProvider", 'TeamLead', 'FieldAgent']), service_controller_1.handleServiceRequestState);
 exports.default = router;

@@ -70,7 +70,8 @@ const UserSchema = new mongoose_1.Schema({
     phone: {
         type: String,
         default: "",
-        required: false
+        required: false,
+        // unique:true
     },
     password: {
         type: String,
@@ -126,8 +127,7 @@ const UserSchema = new mongoose_1.Schema({
 UserSchema.pre("save", function (next) {
     return __awaiter(this, void 0, void 0, function* () {
         console.log("hashed done");
-        if (!this.email)
-            return next();
+        // if (!this.email) return next();
         if (!this.isModified("password"))
             return next();
         try {

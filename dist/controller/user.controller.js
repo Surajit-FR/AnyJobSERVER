@@ -55,6 +55,101 @@ exports.getUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 
             }
         },
         {
+            $lookup: {
+                from: "services",
+                foreignField: "assignedAgentId",
+                localField: "_id",
+                as: "ServicesRelatedToAgent",
+            }
+        },
+        {
+            $lookup: {
+                from: "teams",
+                foreignField: "fieldAgentIds",
+                localField: "_id",
+                as: "teamDetails",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "additionalinfos",
+                            foreignField: "userId",
+                            localField: "serviceProviderId",
+                            as: "companyDetails",
+                        }
+                    },
+                    {
+                        $unwind: {
+                            preserveNullAndEmptyArrays: true,
+                            path: "$companyDetails"
+                        }
+                    },
+                ]
+            }
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$teamDetails"
+            }
+        },
+        {
+            $addFields: {
+                CompletedServicesByAgent: {
+                    $filter: {
+                        input: "$ServicesRelatedToAgent",
+                        as: "completedServicesByAgent",
+                        cond: {
+                            $and: [
+                                { $eq: ["$$completedServicesByAgent.requestProgress", "Completed"] },
+                                { $eq: ["$$completedServicesByAgent.assignedAgentId", "$_id"] },
+                            ]
+                        },
+                    }
+                },
+                totalAssignedToAgent: {
+                    $filter: {
+                        input: "$ServicesRelatedToAgent",
+                        as: "assignedServicesToAgent",
+                        cond: {
+                            $and: [
+                                {
+                                    $or: [
+                                        { $eq: ["$$assignedServicesToAgent.requestProgress", "Pending"] },
+                                        { $eq: ["$$assignedServicesToAgent.requestProgress", "CancelledByFA"] },
+                                    ]
+                                },
+                                { $eq: ["$$assignedServicesToAgent.assignedAgentId", "$_id"] },
+                            ]
+                        },
+                    }
+                },
+            },
+        },
+        {
+            $addFields: {
+                totalCompletedServicesByAgent: { $size: "$CompletedServicesByAgent" },
+                totalAssignedServicesByAgent: { $size: "$totalAssignedToAgent" },
+            }
+        },
+        {
+            $addFields: {
+                agentSuccessRate: {
+                    $cond: {
+                        if: { $eq: ["$totalAssignedServicesByAgent", 0] },
+                        then: 0,
+                        else: {
+                            $multiply: [
+                                { $divide: ["$totalCompletedServicesByAgent", "$totalAssignedServicesByAgent"] },
+                                100
+                            ]
+                        }
+                    }
+                },
+                agentAccuracy: 50,
+                agentRelatedToCompany: "$teamDetails.companyDetails.companyName"
+            }
+        },
+        {
             $project: {
                 __v: 0,
                 isDeleted: 0,
@@ -64,7 +159,10 @@ exports.getUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 
                 'additionalInfo.isDeleted': 0,
                 'userAddress.__v': 0,
                 'userAddress.isDeleted': 0,
-                // rawPassword: 0
+                'ServicesRelatedToAgent': 0,
+                'CompletedServicesByAgent': 0,
+                'totalAssignedToAgent': 0,
+                teamDetails: 0
             }
         }
     ]);
@@ -459,6 +557,25 @@ exports.getSingleUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
             }
         },
         {
+            $lookup: {
+                from: "services",
+                foreignField: "assignedAgentId",
+                localField: "_id",
+                as: "ServicesRelatedToAgent",
+                // pipeline: [
+                //     {
+                //         // requestProgress:{$or:["Completed","Pending"]}
+                //         $match: {
+                //             $or: [
+                //                 { requestProgress: "Completed" },
+                //                 { requestProgress: "Pending" }
+                //             ]
+                //         }
+                //     }
+                // ]
+            }
+        },
+        {
             $addFields: {
                 totalFieldAgent: {
                     $reduce: {
@@ -474,6 +591,35 @@ exports.getSingleUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
                         cond: { $eq: ["$$completedServices.requestProgress", "Completed"] },
                     }
                 },
+                CompletedServicesByAgent: {
+                    $filter: {
+                        input: "$ServicesRelatedToAgent",
+                        as: "completedServicesByAgent",
+                        cond: {
+                            $and: [
+                                { $eq: ["$$completedServicesByAgent.requestProgress", "Completed"] },
+                                { $eq: ["$$completedServicesByAgent.assignedAgentId", "$_id"] },
+                            ]
+                        },
+                    }
+                },
+                totalAssignedToAgent: {
+                    $filter: {
+                        input: "$ServicesRelatedToAgent",
+                        as: "assignedServicesToAgent",
+                        cond: {
+                            $and: [
+                                {
+                                    $or: [
+                                        { $eq: ["$$assignedServicesToAgent.requestProgress", "Pending"] },
+                                        { $eq: ["$$assignedServicesToAgent.requestProgress", "CancelledByFA"] },
+                                    ]
+                                },
+                                { $eq: ["$$assignedServicesToAgent.assignedAgentId", "$_id"] },
+                            ]
+                        },
+                    }
+                },
                 newServices: {
                     $filter: {
                         input: "$Services",
@@ -486,7 +632,25 @@ exports.getSingleUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
         {
             $addFields: {
                 totalCompletedServices: { $size: "$CompletedServices" },
-                totalNewServices: { $size: "$newServices" }
+                totalNewServices: { $size: "$newServices" },
+                totalCompletedServicesByAgent: { $size: "$CompletedServicesByAgent" },
+                totalAssignedServicesByAgent: { $size: "$totalAssignedToAgent" },
+            }
+        },
+        {
+            $addFields: {
+                successRate: {
+                    $cond: {
+                        if: { $eq: ["$totalAssignedServicesByAgent", 0] },
+                        then: 0,
+                        else: {
+                            $multiply: [
+                                { $divide: ["$totalCompletedServicesByAgent", "$totalAssignedServicesByAgent"] },
+                                100
+                            ]
+                        }
+                    }
+                },
             }
         },
         {
@@ -503,7 +667,10 @@ exports.getSingleUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
                 CompletedServices: 0,
                 Services: 0,
                 newServices: 0,
-                rawPassword: 0
+                rawPassword: 0,
+                ServicesRelatedToAgent: 0,
+                CompletedServicesByAgent: 0,
+                totalAssignedToAgent: 0,
             }
         }
     ]);

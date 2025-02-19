@@ -11,8 +11,9 @@ import { fetchUserData, cookieOption } from './auth/auth.controller';
 import { ApiResponse } from '../utils/ApiResponse';
 import TeamModel from '../models/teams.model';
 import AdditionalInfoModel from '../models/userAdditionalInfo.model';
-import { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER } from '../config/config'
+import { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN } from '../config/config'
 import mongoose from "mongoose";
+import AddressModel from '../models/address.model';
 
 authenticator.options = {
     step: 300,
@@ -20,6 +21,10 @@ authenticator.options = {
 
 const accountSid = TWILIO_ACCOUNT_SID;
 const authToken = TWILIO_AUTH_TOKEN;
+
+// const accountSid = "";
+// const authToken = "";
+const TWILIO_PHONE_NUMBERS = "+18286722687";
 let client = twilio(accountSid, authToken);
 
 
@@ -50,8 +55,8 @@ async function updateAuthTokenPromotion() {
 }
 
 //send otp
-export const sendOTP = asyncHandler(async (req: Request, res: Response) => {
-    const { phoneNumber, purpose } = req.body;
+export const sendOTP = (async (req: Request, res: Response) => {
+    const { phoneNumber, purpose } = req.body;//phone number with country code
 
     let stepDuration = 4 * 60;
     if (purpose === "service") {
@@ -59,15 +64,15 @@ export const sendOTP = asyncHandler(async (req: Request, res: Response) => {
     }
 
     // Validate phone number format
-    if (!/^\d{10}$/.test(phoneNumber)) {
+    if (!/^\+\d{1,3}\d{7,15}$/.test(phoneNumber)) {
         return sendErrorResponse(res, new ApiError(400, "Invalid phone number format"));
     }
 
 
     const otpLength = 5;
     const otp = generateVerificationCode(otpLength);
-    const formattedPhoneNumber = `+91${phoneNumber}`;
-    console.log({ formattedPhoneNumber });
+    // const formattedPhoneNumber = `+91${phoneNumber}`;
+    // console.log({ formattedPhoneNumber });
 
     const expiredAt = new Date(Date.now() + stepDuration * 1000);
 
@@ -79,7 +84,7 @@ export const sendOTP = asyncHandler(async (req: Request, res: Response) => {
         const userId = user._id;
         const otpEntry = new OTPModel({
             userId,
-            phoneNumber: formattedPhoneNumber,
+            phoneNumber: phoneNumber,
             otp,
             expiredAt,
         });
@@ -88,23 +93,25 @@ export const sendOTP = asyncHandler(async (req: Request, res: Response) => {
     } else {
         const otpEntry = new OTPModel({
             userId: new mongoose.Types.ObjectId(),
-            phoneNumber: formattedPhoneNumber,
+            phoneNumber: phoneNumber,
             otp,
             expiredAt,
         });
         await otpEntry.save();
     }
 
-
-    updateAuthTokenPromotion()
-
     const message = await client.messages.create({
         body: `Your OTP code is ${otp}`,
-        from: TWILIO_PHONE_NUMBER,
-        to: formattedPhoneNumber,
+        from: TWILIO_PHONE_NUMBERS,
+        to: phoneNumber,
     });
 
     return sendSuccessResponse(res, 201, message, "OTP sent successfully");
+
+
+
+
+
 });
 
 
@@ -180,10 +187,12 @@ export const sendOTP = asyncHandler(async (req: Request, res: Response) => {
 //         default:
 //             return sendErrorResponse(res, new ApiError(400, "Invalid purpose"));
 //     }
-// });
+// }); 
 
 export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
     const { identifier, otp, purpose } = req.body; // `identifier` can be email or phone number
+    console.log(req.body, "verify otp payload");//phone number with country code
+
     // console.log(req.body);
 
     if (!identifier || !otp || !purpose) {
@@ -196,24 +205,15 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
     // Check if the identifier is an email
     if (identifier.includes("@")) {
         queryField = "email";
-    } else {
-        // Assume it's a phone number; format it
-        formattedIdentifier = `+91${identifier}`;
     }
 
-    const otpEntry = await OTPModel.findOne({ [queryField]: formattedIdentifier });
+    const otpEntry = await OTPModel.findOne({ [queryField]: identifier });
 
     // Set default OTP for testing in non-production environments
     const defaultOtp = "12345";
 
     const isOtpValid = otp === defaultOtp || (otpEntry && otpEntry.otp === otp);
 
-    if (!otpEntry || otpEntry.expiredAt < new Date()) {
-        // Delete expired OTP entry if it exists
-        if (otpEntry) await OTPModel.deleteOne({ _id: otpEntry._id });
-
-        return sendSuccessResponse(res, 400, "Invalid or expired OTP");
-    }
 
     if (!isOtpValid) {
         return sendSuccessResponse(res, 400, "Invalid OTP");
@@ -225,18 +225,22 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
     switch (purpose) {
         case "login": {
             const user = await UserModel.findOne({ phone: identifier });
+            let companyDetails
             if (!user) {
                 return sendErrorResponse(res, new ApiError(400, "User does not exist"));
             }
 
             const serviceProviderInfo = await TeamModel.findOne({ fieldAgentIds: user._id })
-            const companyDetails = await AdditionalInfoModel.findOne({ userId: serviceProviderInfo?.serviceProviderId }).select('companyName companyIntroduction businessName')
-            console.log(serviceProviderInfo);
+            if (user.userType === "FieldAgent" || user.userType === "TeamLead") { companyDetails = await AdditionalInfoModel.findOne({ userId: serviceProviderInfo?.serviceProviderId }) }
+            else { companyDetails = await AdditionalInfoModel.findOne({ userId: user._id }) }
+            const address = await AddressModel.findOne({ userId: user._id }).select('_id userId zipCode addressType location ');
+            // console.log(serviceProviderInfo);
             const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, user._id);
             const loggedInUser = await fetchUserData(user._id);
             const agentData = {
                 loggedInUser: loggedInUser[0],
-                companyDetails: companyDetails
+                address: address || null,
+                additionalInfo: companyDetails || null
             }
 
             return res

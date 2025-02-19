@@ -31,40 +31,37 @@ const generateRandomPassword = (length = 10) => {
 };
 exports.generateRandomPassword = generateRandomPassword;
 const addUser = (userData) => __awaiter(void 0, void 0, void 0, function* () {
-    const { firstName, lastName, email, userType, phone } = userData;
-    console.log(userData);
+    const { firstName, lastName, email, userType, phone, avatar } = userData;
     let password = userData.password; // Default to provided password
-    let rawPassword = password;
     let permission, generatedPass;
+    if (phone) {
+        const existingPhone = yield user_model_1.default.findOne({ phone });
+        if (existingPhone) {
+            // console.log(existingPhone);
+            throw new ApisErrors_1.ApiError(409, "User with phone already exists");
+        }
+    }
     if (email) {
         const existingEmail = yield user_model_1.default.findOne({ email });
         if (existingEmail) {
             throw new ApisErrors_1.ApiError(409, "User with email already exists");
         }
     }
-    else if (phone) {
-        const existingPhone = yield user_model_1.default.findOne({ phone });
-        if (existingPhone) {
-            console.log(existingPhone);
-            throw new ApisErrors_1.ApiError(409, "User with phone already exists");
-        }
-    }
-    console.log("userData");
-    // Generate a random password  
-    if (userType === "FieldAgent" || userType === "Admin" || userType === "Finance") {
-        password = (0, exports.generateRandomPassword)();
-        generatedPass = password;
-    }
+    // Generate a random password
+    password = (0, exports.generateRandomPassword)();
+    generatedPass = password;
     // Create the new user
     const newUser = yield user_model_1.default.create({
         firstName,
         lastName,
         email,
         password,
-        rawPassword: rawPassword,
+        rawPassword: password,
         userType,
         phone,
+        avatar
     });
+    // console.log(newUser,"user signup data afetr db operation");
     const fetchUser = yield (0, auth_controller_1.fetchUserData)(newUser._id);
     const savedUser = fetchUser[0];
     // Adding permissions based on userType

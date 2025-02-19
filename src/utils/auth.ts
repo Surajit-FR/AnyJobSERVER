@@ -39,9 +39,14 @@ export const addUser = async (userData: IRegisterCredentials) => {
             throw new ApiError(409, "User with email already exists");
         }
     }
-    // Generate a random password
-    password = generateRandomPassword();
+
+    if (!password || (email && phone)) {
+        password = generateRandomPassword();
+    }
     generatedPass = password;
+    // Generate a random password
+    // password = generateRandomPassword();
+    // generatedPass = password;
 
     // Create the new user
     const newUser = await UserModel.create({

@@ -24,7 +24,8 @@ import {
 import { givePermission, getUserPermissions } from "../controller/permission.controller";
 import { getJobByStatus, getJobByStatusByAgent } from "../controller/service.controller";
 import { captureIP } from "../middlewares/IP.middleware";
-import { fetchQueryMessage, deleteQueryMessage } from "../controller/contactUs.controller"
+import { fetchQueryMessage, deleteQueryMessage } from "../controller/contactUs.controller";
+import { getNotifications } from "../controller/notification.controller";
 
 
 
@@ -66,7 +67,7 @@ router.route('/get-admin-users').get(getAdminUsersList);
 router.route('/get-users').get(getUsers);
 
 //fetch profile user 
-router.route('/get-profile').get(verifyUserType(["SuperAdmin", "Admin", "Finance","ServiceProvider",'Customer', 'FieldAgent', 'TeamLead']),getUser);
+router.route('/get-profile').get(verifyUserType(["SuperAdmin", "Admin", "Finance", "ServiceProvider", 'Customer', 'FieldAgent', 'TeamLead']), getUser);
 
 //fetch iplogs
 router.route('/fetch-iplogs').get(verifyUserType(["SuperAdmin", "Admin", "Finance"]), getIpLogs);
@@ -116,7 +117,7 @@ router.route('/fetch-job-by-status-by-agent').post(
 router.route('/add-bank-details').post(verifyUserType(["ServiceProvider", "Customer", "Admin", "Finance", "FieldAgent", "TeamLead"]), addBankDetails);
 
 
-router.route('/create-iplog').post(verifyUserType(["ServiceProvider", "Customer", "Admin", "Finance", "FieldAgent", "TeamLead","SuperAdmin"]), captureIP);
+router.route('/create-iplog').post(verifyUserType(["ServiceProvider", "Customer", "Admin", "Finance", "FieldAgent", "TeamLead", "SuperAdmin"]), captureIP);
 
 
 router.route('/fetch-query-messages').get(verifyUserType(["SuperAdmin",]), fetchQueryMessage);
@@ -125,6 +126,7 @@ router.route('/delete-query-message/:messageId').delete(verifyUserType(["SuperAd
 
 router.route('/update-user-preference').put(verifyUserType(['ServiceProvider', 'Customer', 'FieldAgent', 'TeamLead']), updateUserPreference);
 
+router.route('/fetch-notifications').get(verifyUserType(["SuperAdmin", "ServiceProvider", "Customer", "Admin", "Finance", "FieldAgent", "TeamLead"]), getNotifications);
 
 
 

@@ -1,9 +1,6 @@
 import admin from "firebase-admin";
-import dotenv from 'dotenv';
 import { NotificationModel } from "../models/notification.model";
-import  {FIREBASE_TYPE,FIREBASE_PROJECT_ID,FIREBASE_PRIVATE_KEY_ID,FIREBASE_PRIVATE_KEY,FIREBASE_CLIENT_EMAIL,FIREBASE_CLIENT_ID,FIREBASE_AUTH_URI,FIREBASE_AUTH_PROVIDER_CERT_URL,FIREBASE_CLIENT_CERT_URL,FIREBASE_UNIVERSE_DOMAIN,FIREBASE_TOKEN_URI} from "../config/config";
-// import serviceAccount from "../../"
-// const serviceAccount = require("./path-to-service-account.json");
+import { FIREBASE_TYPE, FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY_ID, FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL, FIREBASE_CLIENT_ID, FIREBASE_AUTH_URI, FIREBASE_AUTH_PROVIDER_CERT_URL, FIREBASE_CLIENT_CERT_URL, FIREBASE_UNIVERSE_DOMAIN, FIREBASE_TOKEN_URI } from "../config/config";
 
 const serviceAccount = {
     type: FIREBASE_TYPE,
@@ -18,17 +15,16 @@ const serviceAccount = {
     client_x509_cert_url: FIREBASE_CLIENT_CERT_URL,
     universe_domain: FIREBASE_UNIVERSE_DOMAIN,
 };
-// console.log({serviceAccount});
 
 
+
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount as any),
+});
 
 // Function to send notification
-
 export default async function sendNotification(token: string, title: string, body: string, dbData?: object) {
 
-    admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount as any),
-    });
 
     const message = {
         notification: { title, body },
@@ -36,15 +32,15 @@ export default async function sendNotification(token: string, title: string, bod
     };
     try {
         const response = await admin.messaging().send(message);
-        
-        if ( dbData) {
+
+        if (dbData) {
             const notification = new NotificationModel(dbData);
             await notification.save();
             console.log("Notification saved to database:", notification);
-          }
+        }
         console.log("Notification sent successfully:", response);
     } catch (error) {
         console.error("Error sending notification:", error);
     }
-    
-}
+
+};

@@ -1,4 +1,4 @@
-import { Response, Request } from "express";;
+import { Response, Request } from "express";
 import mongoose from "mongoose";
 import { asyncHandler } from "../utils/asyncHandler";
 import { CustomRequest } from "../../types/commonType";

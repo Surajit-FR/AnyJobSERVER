@@ -16,6 +16,8 @@ import sendNotification from "../utils/sendPushNotification";
 import { isNotificationPreferenceOn } from "../utils/auth";
 import { NotificationModel } from "../models/notification.model";
 
+const testFcm = "fVSB8tntRb2ufrLcySfGxs:APA91bH3CCLoxCPSmRuTo4q7j0aAxWLCdu6WtAdBWogzo79j69u8M_qFwcNygw7LIGrLYBXFqz2SUZI-4js8iyHxe12BMe-azVy2v7d22o4bvxy2pzTZ4kE"
+
 
 
 // addService controller
@@ -164,8 +166,8 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
                 userId: req.user?._id
             },
             {
-                $set:{
-                    phone:userPhoneNumber
+                $set: {
+                    phone: userPhoneNumber
                 }
             }
         )
@@ -474,12 +476,17 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
             if (requestProgress === "Pending") {
                 updateData.requestProgress = "Pending";
             }
-            // await sendNotification(
-            //     customerDetails?.fcmToken || "",
-            //     "Service Request Accepted",
-            //     `Your Service Request is accepted by ${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""}`,
-            //     { senderId: req.user?._id, receiverId: serviceRequest.userId, title: "Service Accepted", notificationType: "Service Accepted" }
-            // );
+
+            const notificationContent =`Your Service Request is accepted by ${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""}`;
+
+
+            await sendNotification(
+                // customerDetails?.fcmToken || "",
+                testFcm,
+                "Service Request Accepted",
+                notificationContent,
+                { senderId: req.user?._id, receiverId: serviceRequest.userId, title: notificationContent, notificationType: "Service Accepted" }
+            );
         }
 
         //if a service is in accepted mode  and CancelledByFA mode then one can start that service by assigning FA...
@@ -487,12 +494,15 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
             updateData.requestProgress = "Started";
             updateData.startedAt = new Date();
 
-            // await sendNotification(
-            //     serviceProviderDetails?.fcmToken || "",
-            //     "Mark job as started",
-            //     `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as started`,
-            //     { senderId: req.user?._id, receiverId: serviceRequest.serviceProviderId, title: "Service Started", notificationType: "Service Started" }
-            // );
+            const notificationContent = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as started`;
+
+            await sendNotification(
+                // serviceProviderDetails?.fcmToken || "",
+                testFcm,
+                "Mark job as started",
+                notificationContent,
+                { senderId: req.user?._id, receiverId: serviceRequest.serviceProviderId, title: notificationContent, notificationType: "Service Started" }
+            );
         }
 
 
@@ -500,12 +510,16 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
             updateData.requestProgress = "Completed";
             updateData.completedAt = new Date();
 
-            // await sendNotification(
-            //     serviceProviderDetails?.fcmToken || "",
-            //     "Mark job as completed",
-            //     `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as completed`,
-            //     { senderId: req.user?._id, receiverId: serviceRequest.serviceProviderId, title: "Service Completed", notificationType: "Service Completed" }
-            // );
+            const notificationContent = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as completed`;
+
+
+            await sendNotification(
+                // serviceProviderDetails?.fcmToken || "",
+                testFcm,
+                "Mark job as completed",
+                notificationContent,
+                { senderId: req.user?._id, receiverId: serviceRequest.serviceProviderId, title: notificationContent, notificationType: "Service Completed" }
+            );
         }
     }
 
@@ -522,12 +536,15 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
             updateData.assignedAgentId = null;
         }
 
-        // await sendNotification(
-        //     serviceProviderDetails?.fcmToken || "",
-        //     "Mark job as cancelled",
-        //     `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as cancelled`,
-        //     { senderId: req.user?._id, receiverId: serviceRequest.serviceProviderId, title: "Service Cancelled", notificationType: "Service Cancelled" }
-        // );
+        const notificationContent = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as cancelled`;
+
+        await sendNotification(
+            // serviceProviderDetails?.fcmToken || "",
+            testFcm,
+            "Mark job as cancelled",
+            notificationContent,
+            { senderId: req.user?._id, receiverId: serviceRequest.serviceProviderId, title: notificationContent, notificationType: "Service Cancelled" }
+        );
     }
 
     const updatedService = await ServiceModel.findByIdAndUpdate(serviceId, { $set: updateData }, { new: true });
@@ -652,7 +669,17 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
 
             }
         },
-        { $match: { isDeleted: false, isReqAcceptedByServiceProvider: false, } },
+        {
+            $match: {
+                isDeleted: false,
+                isReqAcceptedByServiceProvider: false,
+                $or: [
+                    { requestProgress: "NotStarted" },
+                    { requestProgress: "CancelledBySP" },
+
+                ]
+            }
+        },
         {
             $lookup: {
                 from: 'users',

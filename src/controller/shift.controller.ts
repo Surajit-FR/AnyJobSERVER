@@ -124,9 +124,11 @@ export const fetchAvilableShifs = asyncHandler(async (req: CustomRequest, res: R
     currentISTTime.setMinutes(currentISTTime.getMinutes() + 330);
     const currentHours = currentISTTime.getUTCHours();
     const currentMinutes = currentISTTime.getUTCMinutes();
-    // console.log({ currentHours });
+    const { fetchingDate } = req.params;
+    const providedDate = new Date(fetchingDate);
+    const currentDateIST = new Date(currentISTTime.toISOString().split('T')[0]);
 
-
+    const isToday = providedDate.toISOString().split('T')[0] === currentDateIST.toISOString().split('T')[0];
     const results = await ShiftModel.aggregate([
         { $match: { isDeleted: false } },
         {
@@ -152,8 +154,6 @@ export const fetchAvilableShifs = asyncHandler(async (req: CustomRequest, res: R
                                             timezone: "Asia/Kolkata"
                                         }
                                     },
-                                    startHour: { $hour: { $add: ["$$shift.startTime", 19800000] } },
-                                    startMinute: { $minute: { $add: ["$$shift.startTime", 19800000] } },
                                     endHour: {
                                         $cond: {
                                             if: { $eq: [{ $hour: { $add: ["$$shift.endTime", 19800000] } }, 0] },
@@ -161,21 +161,25 @@ export const fetchAvilableShifs = asyncHandler(async (req: CustomRequest, res: R
                                             else: { $hour: { $add: ["$$shift.endTime", 19800000] } }
                                         }
                                     },
-                                    endMinute: { $minute: { $add: ["$$shift.endTime", 19800000] } }
+                                    endMinute: { $minute: { $add: ["$$shift.endTime", 19800000] } },
+                                    _id: "$$shift._id"
                                 }
                             }
                         },
                         as: "shift",
-                        cond: {
-
+                        cond: isToday ? {
                             $or: [
                                 { $gt: ["$$shift.endHour", currentHours] },
-                                { $gt: ["$$shift.endMinute", currentMinutes] }
+                                {
+                                    $and: [
+                                        { $eq: ["$$shift.endHour", currentHours] },
+                                        { $gt: ["$$shift.endMinute", currentMinutes] }
+                                    ]
+                                }
                             ]
+                        } : {}
 
-
-                        }
-                    }
+                    },
                 }
             }
         },
@@ -183,10 +187,14 @@ export const fetchAvilableShifs = asyncHandler(async (req: CustomRequest, res: R
             $project: {
                 _id: 1,
                 shiftName: 1,
-                // shiftTimes: 1
+                'shiftTimes._id': 1,
                 'shiftTimes.startTime': 1,
                 'shiftTimes.endTime': 1,
-                // 'shiftTimes.endHour': 1,
+            }
+        },
+        {
+            $match: {
+                $expr: { $gt: [{ $size: "$shiftTimes" }, 0] }
             }
         }
     ]);
@@ -199,49 +207,6 @@ export const fetchAvilableShifs = asyncHandler(async (req: CustomRequest, res: R
     }
 });
 
-
-// fetch avilable shifts  controller
-// export const fetchAvilableShifs = asyncHandler(async (req: Request, res: Response) => {
-//     const now = new Date().toISOString();
-
-//     const results = await ShiftModel.aggregate([
-//         {
-//             $match: {
-//                 isDeleted: false
-//             }
-//         },
-//         {
-//             $addFields: {
-//                 validTimeSlots: {
-//                     $filter: {
-//                         input: "$shiftTimes",
-//                         as: "slot",
-//                         cond:
-//                             { $gte: ["$$slot.startTime", now] },
-//                         // $and: [
-//                         //     { $lt: ["$$slot.endTime", now] },
-//                         // ]
-
-//                     }
-//                 }
-//             }
-//         },
-//         {
-//             $project: {
-//                 shiftTimes: 0,
-//                 __v: 0,
-//                 isDeleted: 0,
-//             }
-//         }
-
-//     ])
-
-//     const responseData = results.length
-//         ? sendSuccessResponse(res, 200, results, "Avilable shift timings retrieved successfully.")
-//         : sendErrorResponse(res, new ApiError(400, "Shift not found."));
-//     return responseData;
-
-// });
 
 // updateShift Controller
 export const updateShift = asyncHandler(async (req: Request, res: Response) => {

@@ -11,7 +11,7 @@ import {
 
 const router: Router = express.Router();
 
-router.route('/fetch-avilable-shift').get(fetchAvilableShifs)
+router.route('/fetch-avilable-shift/:fetchingDate').get(fetchAvilableShifs)
 
 router.use(VerifyJWTToken);
 

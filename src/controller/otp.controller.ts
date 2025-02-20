@@ -23,6 +23,8 @@ const accountSid = TWILIO_ACCOUNT_SID;
 const authToken = TWILIO_AUTH_TOKEN;
 
 // const accountSid = "";
+
+
 // const authToken = "";
 const TWILIO_PHONE_NUMBERS = "+18286722687";
 let client = twilio(accountSid, authToken);
@@ -77,7 +79,7 @@ export const sendOTP = (async (req: Request, res: Response) => {
     const expiredAt = new Date(Date.now() + stepDuration * 1000);
 
     if (purpose !== "verifyPhone") {
-        const user = await UserModel.findOne({ phone: phoneNumber });
+        const user = await UserModel.findOne({ phone: phoneNumber, isDeleted: false });
         if (!user) {
             return sendErrorResponse(res, new ApiError(400, "User does not exist"));
         }
@@ -217,10 +219,11 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
 
     if (!isOtpValid) {
         return sendSuccessResponse(res, 400, "Invalid OTP");
+    } else {
+        // Delete OTP after successful validation
+        await OTPModel.deleteOne({ _id: otpEntry?._id });
     }
 
-    // Delete OTP after successful validation
-    await OTPModel.deleteOne({ _id: otpEntry?._id });
 
     switch (purpose) {
         case "login": {

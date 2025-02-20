@@ -158,6 +158,19 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         userId: req.user?._id
     });
 
+    if (userPhoneNumber) {
+        const addNumber = await UserModel.findByIdAndUpdate(
+            {
+                userId: req.user?._id
+            },
+            {
+                $set:{
+                    phone:userPhoneNumber
+                }
+            }
+        )
+    }
+
     if (!newService) {
         return sendErrorResponse(res, new ApiError(500, "Something went wrong while creating the Service Request."));
     };
@@ -325,9 +338,15 @@ export const getAcceptedServiceRequestInJobQueue = asyncHandler(async (req: Cust
                 totalRatings: '$userId.totalRatings',
                 userAvgRating: '$userId.userAvgRating',
                 userAvtar: '$userId.avatar',
+                isUserBanned: '$userId.isDeleted',
                 serviceProviderId: 1,
                 updatedAt: 1
 
+            }
+        },
+        {
+            $match: {
+                isUserBanned: false
             }
         },
         { $sort: { updatedAt: 1 } }
@@ -697,8 +716,14 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
                 totalRatings: '$userId.totalRatings',
                 userAvgRating: '$userId.userAvgRating',
                 userAvtar: '$userId.avatar',
+                isUserBanned: '$userId.isDeleted',
                 createdAt: 1
 
+            }
+        },
+        {
+            $match: {
+                isUserBanned: false
             }
         },
         { $sort: { createdAt: -1, isIncentiveGiven: -1, incentiveAmount: -1 } }
@@ -1178,8 +1203,10 @@ export const getJobByStatus = asyncHandler(async (req: CustomRequest, res: Respo
         requestProgress === "Accepted"
             ? { requestProgress: { $in: ["Pending", "CancelledByFA"] } }
             : requestProgress === "Assigned"
-                ? { requestProgress: { $in: ["Pending", "CancelledByFA"] }
-                , assignedAgentId: { $ne: null, $exists: true } }
+                ? {
+                    requestProgress: { $in: ["Pending", "CancelledByFA"] }
+                    , assignedAgentId: { $ne: null, $exists: true }
+                }
                 : requestProgress === "Started"
                     ? { requestProgress: "Started" }
                     : requestProgress === "All" ? {}
@@ -1265,11 +1292,17 @@ export const getJobByStatus = asyncHandler(async (req: CustomRequest, res: Respo
                 'assignedAgentId.avatar': 1,
                 'assignedAgentId.phone': 1,
                 customerAvatar: '$userId.avatar',
+                isUserBanned: '$userId.isDeleted',
                 totalCustomerRatings: '$userId.totalRatings',
                 customerAvgRating: '$userId.userAvgRating',
 
                 createdAt: 1
 
+            }
+        },
+        {
+            $match: {
+                isUserBanned: false
             }
         },
         { $sort: { createdAt: -1 } },
@@ -1375,10 +1408,16 @@ export const getJobByStatusByAgent = asyncHandler(async (req: CustomRequest, res
                 'assignedAgentId.avatar': 1,
                 'assignedAgentId.phone': 1,
                 customerAvatar: '$userId.avatar',
+                isUserBanned: '$userId.isDeleted',
                 totalCustomerRatings: '$userId.totalRatings',
                 customerAvgRating: '$userId.userAvgRating',
                 createdAt: 1
 
+            }
+        },
+        {
+            $match: {
+                isUserBanned: false
             }
         },
         { $sort: { createdAt: -1 } },

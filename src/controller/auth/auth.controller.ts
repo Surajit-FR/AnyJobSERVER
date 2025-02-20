@@ -54,7 +54,7 @@ export const fetchUserData = async (userId: string | ObjectId) => {
                 'permission.updatedAt': 0,
                 'permission.__v': 0,
                 password: 0,
-                rawPassword:0,
+                rawPassword: 0,
                 refreshToken: 0
             }
         }
@@ -164,7 +164,7 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
         return sendErrorResponse(res, new ApiError(400, "Email is required"));
     };
 
-    const user = await UserModel.findOne({ email });
+    const user = await UserModel.findOne({ email: email, isDeleted: false });
 
     if (!user) {
         return sendErrorResponse(res, new ApiError(400, "User does not exist"));

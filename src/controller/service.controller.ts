@@ -12,7 +12,7 @@ import TeamModel from "../models/teams.model";
 import UserModel from "../models/user.model";
 import { PipelineStage } from 'mongoose';
 import axios from "axios";
-import sendNotification from "../utils/sendPushNotification";
+import { sendPushNotification } from "../utils/sendPushNotification";
 import { isNotificationPreferenceOn } from "../utils/auth";
 import { NotificationModel } from "../models/notification.model";
 
@@ -477,12 +477,12 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
                 updateData.requestProgress = "Pending";
             }
 
-            const notificationContent =`Your Service Request is accepted by ${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""}`;
+            const notificationContent = `Your Service Request is accepted by ${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""}`;
 
 
-            await sendNotification(
-                // customerDetails?.fcmToken || "",
-                testFcm,
+            await sendPushNotification(
+                serviceRequest?.userId.toString() as string,
+                // userId?.toString() as string,
                 "Service Request Accepted",
                 notificationContent,
                 { senderId: req.user?._id, receiverId: serviceRequest.userId, title: notificationContent, notificationType: "Service Accepted" }
@@ -496,9 +496,9 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
 
             const notificationContent = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as started`;
 
-            await sendNotification(
-                // serviceProviderDetails?.fcmToken || "",
-                testFcm,
+            await sendPushNotification(
+                serviceRequest?.serviceProviderId.toString() as string,
+                // userId?.toString() as string,
                 "Mark job as started",
                 notificationContent,
                 { senderId: req.user?._id, receiverId: serviceRequest.serviceProviderId, title: notificationContent, notificationType: "Service Started" }
@@ -513,9 +513,8 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
             const notificationContent = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as completed`;
 
 
-            await sendNotification(
-                // serviceProviderDetails?.fcmToken || "",
-                testFcm,
+            await sendPushNotification(
+                serviceRequest?.serviceProviderId.toString() as string,
                 "Mark job as completed",
                 notificationContent,
                 { senderId: req.user?._id, receiverId: serviceRequest.serviceProviderId, title: notificationContent, notificationType: "Service Completed" }
@@ -538,9 +537,8 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
 
         const notificationContent = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as cancelled`;
 
-        await sendNotification(
-            // serviceProviderDetails?.fcmToken || "",
-            testFcm,
+        await sendPushNotification(
+            serviceRequest?.serviceProviderId.toString() as string,
             "Mark job as cancelled",
             notificationContent,
             { senderId: req.user?._id, receiverId: serviceRequest.serviceProviderId, title: notificationContent, notificationType: "Service Cancelled" }

@@ -22,10 +22,14 @@ import { VerifyJWTToken, verifyUserType } from "../middlewares/auth/userAuth";
 import { HandleSocialAuthError } from '../middlewares/auth/socialAuth';
 import { rateLimiter } from '../middlewares/rateLimiter.middleware';
 import { CheckJWTTokenExpiration } from '../utils/auth';
+import { storeFcmToken, removeStaleFcmTokens } from "../utils/sendPushNotification";
+
 
 
 
 const router: Router = express.Router();
+
+router.route('/store-fcm-token').post(storeFcmToken)
 
 //sign-up
 router.route('/signup').post(
@@ -78,7 +82,7 @@ router.route('/refresh-token').post(
 );
 
 router.route("/forget-password").post(forgetPassword);
-router.route("/reset-password").post( resetPassword);
+router.route("/reset-password").post(resetPassword);
 
 //check-token-expiration
 router.route("/check-token-expiration").get([VerifyJWTToken], CheckJWTTokenExpiration);

@@ -52,6 +52,10 @@ import ratingRouter from './routes/rating.routes';
 import googleCloudRouter from './routes/googleCloud.routes';
 import chatRouter from './routes/chat.routes';
 import imageRouter from './routes/upload.routes';
+import { removeStaleFcmTokens } from "../src/utils/sendPushNotification";
+
+// Schedule cleanup every day at midnight
+// cron.schedule("0 0 * * *", removeStaleFcmTokens);
 
 //Admin routes
 app.use("/api/v1/healthcheck", healthcheckRouter);

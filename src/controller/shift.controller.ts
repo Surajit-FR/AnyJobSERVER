@@ -1,4 +1,4 @@
-import { Request, Response } from "express";;
+import { Request, Response } from "express";
 import mongoose from "mongoose";
 import { asyncHandler } from "../utils/asyncHandler";
 import { CustomRequest } from "../../types/commonType";
@@ -127,6 +127,11 @@ export const fetchAvilableShifs = asyncHandler(async (req: CustomRequest, res: R
     const { fetchingDate } = req.params;
     const providedDate = new Date(fetchingDate);
     const currentDateIST = new Date(currentISTTime.toISOString().split('T')[0]);
+
+    // Check if fetchingDate is in the past
+    if (providedDate < currentDateIST) {
+        return sendErrorResponse(res, new ApiError(400, "Booking date cannot be in the past."));
+    }
 
     const isToday = providedDate.toISOString().split('T')[0] === currentDateIST.toISOString().split('T')[0];
     const results = await ShiftModel.aggregate([

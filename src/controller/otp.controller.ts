@@ -78,6 +78,13 @@ export const sendOTP = (async (req: Request, res: Response) => {
 
     const expiredAt = new Date(Date.now() + stepDuration * 1000);
 
+
+    const message = await client.messages.create({
+        body: `Your OTP code is ${otp}`,
+        from: TWILIO_PHONE_NUMBERS,
+        to: phoneNumber,
+    });
+
     if (purpose !== "verifyPhone") {
         const user = await UserModel.findOne({ phone: phoneNumber, isDeleted: false });
         if (!user) {
@@ -102,18 +109,7 @@ export const sendOTP = (async (req: Request, res: Response) => {
         await otpEntry.save();
     }
 
-    const message = await client.messages.create({
-        body: `Your OTP code is ${otp}`,
-        from: TWILIO_PHONE_NUMBERS,
-        to: phoneNumber,
-    });
-
     return sendSuccessResponse(res, 201, message, "OTP sent successfully");
-
-
-
-
-
 });
 
 

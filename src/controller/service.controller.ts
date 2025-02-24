@@ -271,6 +271,13 @@ export const getServiceRequestList = asyncHandler(async (req: Request, res: Resp
 
 // get accepted ServiceRequest controller
 export const getAcceptedServiceRequestInJobQueue = asyncHandler(async (req: CustomRequest, res: Response) => {
+    
+    const { page = '1', limit = '10' } = req.query;
+    const pageNumber = parseInt(page as string, 10) || 1;
+    const limitNumber = parseInt(limit as string, 10) || 10;
+    const skip = (pageNumber - 1) * limitNumber;
+
+
     const results = await ServiceModel.aggregate([
         {
             $match: {
@@ -351,10 +358,17 @@ export const getAcceptedServiceRequestInJobQueue = asyncHandler(async (req: Cust
                 isUserBanned: false
             }
         },
+        { $skip: skip },
+        { $limit: limitNumber },
         { $sort: { updatedAt: 1 } }
     ]);
 
-    return sendSuccessResponse(res, 200, results, "Job queue retrieved successfully.");
+    return sendSuccessResponse(res, 200, {
+        results, pagination: {
+            page: pageNumber,
+            limit: limitNumber
+        }
+    }, "Job queue retrieved successfully.");
 });
 
 // updateService controller by customer
@@ -1045,6 +1059,11 @@ export const fetchAssociatedCustomer = async (serviceId: string) => {
 
 //get service request for customer
 export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const { page = '1', limit = '10' } = req.query;
+    const pageNumber = parseInt(page as string, 10) || 1;
+    const limitNumber = parseInt(limit as string, 10) || 10;
+    const skip = (pageNumber - 1) * limitNumber;
+
 
     const userId = req.user?._id
     const { requestProgress } = req.body;
@@ -1184,7 +1203,8 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
                 path: "$assignedAgentId"
             }
         },
-
+        { $skip: skip },
+        { $limit: limitNumber },
         {
             $project: {
                 _id: 1,
@@ -1214,13 +1234,30 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
         { $sort: { createdAt: -1 } },
     ]);
 
-    const totalRequest = results.length;
+    const totalDocs = await ServiceModel.aggregate([{
+        $match: {
+            ...progressFilter,
+            userId: userId
+        }
+    },])
+    const totalRequest = totalDocs.length;
 
-    return sendSuccessResponse(res, 200, { results, totalRequest: totalRequest }, "Service request retrieved successfully.");
+    return sendSuccessResponse(res, 200, {
+        results, totalRequest: totalRequest, pagination: {
+            page: pageNumber,
+            limit: limitNumber
+        }
+    }, "Service request retrieved successfully.");
 });
 
 //get service request for service provider
 export const getJobByStatus = asyncHandler(async (req: CustomRequest, res: Response) => {
+
+    const { page = '1', limit = '10' } = req.query;
+    const pageNumber = parseInt(page as string, 10) || 1;
+    const limitNumber = parseInt(limit as string, 10) || 10;
+    const skip = (pageNumber - 1) * limitNumber;
+
 
     const serviceProviderId = req.user?._id
     const { requestProgress } = req.body;
@@ -1330,18 +1367,30 @@ export const getJobByStatus = asyncHandler(async (req: CustomRequest, res: Respo
                 isUserBanned: false
             }
         },
+        { $skip: skip },
+        { $limit: limitNumber },
         { $sort: { createdAt: -1 } },
 
     ]);
 
     const totalRequest = results.length;
 
-    return sendSuccessResponse(res, 200, { results, totalRequest: totalRequest }, "Service request retrieved successfully.");
+    return sendSuccessResponse(res, 200, {
+        results, totalRequest: totalRequest, pagination: {
+            page: pageNumber,
+            limit: limitNumber
+        }
+    }, "Service request retrieved successfully.");
 });
 
 //get service request for field agent
 export const getJobByStatusByAgent = asyncHandler(async (req: CustomRequest, res: Response) => {
     // console.log(req.user?._id);
+    const { page = '1', limit = '10' } = req.query;
+    const pageNumber = parseInt(page as string, 10) || 1;
+    const limitNumber = parseInt(limit as string, 10) || 10;
+    const skip = (pageNumber - 1) * limitNumber;
+
     const assignedAgentId = req.user?._id
     const { requestProgress } = req.body;
     const progressFilter =
@@ -1445,13 +1494,20 @@ export const getJobByStatusByAgent = asyncHandler(async (req: CustomRequest, res
                 isUserBanned: false
             }
         },
+        { $skip: skip },
+        { $limit: limitNumber },
         { $sort: { createdAt: -1 } },
 
     ]);
 
     const totalRequest = results.length;
 
-    return sendSuccessResponse(res, 200, { results, totalRequest: totalRequest }, "Service request retrieved successfully.");
+    return sendSuccessResponse(res, 200, {
+        results, totalRequest: totalRequest, pagination: {
+            page: pageNumber,
+            limit: limitNumber
+        }
+    }, "Service request retrieved successfully.");
 });
 
 

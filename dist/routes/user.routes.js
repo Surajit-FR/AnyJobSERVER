@@ -11,6 +11,7 @@ const permission_controller_1 = require("../controller/permission.controller");
 const service_controller_1 = require("../controller/service.controller");
 const IP_middleware_1 = require("../middlewares/IP.middleware");
 const contactUs_controller_1 = require("../controller/contactUs.controller");
+const notification_controller_1 = require("../controller/notification.controller");
 const router = express_1.default.Router();
 //Protected routes for users
 router.use(userAuth_1.VerifyJWTToken);
@@ -59,4 +60,5 @@ router.route('/create-iplog').post((0, userAuth_1.verifyUserType)(["ServiceProvi
 router.route('/fetch-query-messages').get((0, userAuth_1.verifyUserType)(["SuperAdmin",]), contactUs_controller_1.fetchQueryMessage);
 router.route('/delete-query-message/:messageId').delete((0, userAuth_1.verifyUserType)(["SuperAdmin",]), contactUs_controller_1.deleteQueryMessage);
 router.route('/update-user-preference').put((0, userAuth_1.verifyUserType)(['ServiceProvider', 'Customer', 'FieldAgent', 'TeamLead']), user_controller_1.updateUserPreference);
+router.route('/fetch-notifications').get((0, userAuth_1.verifyUserType)(["SuperAdmin", "ServiceProvider", "Customer", "Admin", "Finance", "FieldAgent", "TeamLead"]), notification_controller_1.getNotifications);
 exports.default = router;

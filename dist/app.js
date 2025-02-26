@@ -48,6 +48,8 @@ const rating_routes_1 = __importDefault(require("./routes/rating.routes"));
 const googleCloud_routes_1 = __importDefault(require("./routes/googleCloud.routes"));
 const chat_routes_1 = __importDefault(require("./routes/chat.routes"));
 const upload_routes_1 = __importDefault(require("./routes/upload.routes"));
+// Schedule cleanup every day at midnight
+// cron.schedule("0 0 * * *", removeStaleFcmTokens);
 //Admin routes
 app.use("/api/v1/healthcheck", healthcheck_routes_1.default);
 app.use("/api/v1/auth", auth_routes_1.default);

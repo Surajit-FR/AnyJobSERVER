@@ -23,9 +23,11 @@ const permission_model_1 = __importDefault(require("../models/permission.model")
 const teams_model_1 = __importDefault(require("../models/teams.model"));
 const user_model_1 = __importDefault(require("../models/user.model"));
 const axios_1 = __importDefault(require("axios"));
+const sendPushNotification_1 = require("../utils/sendPushNotification");
+const testFcm = "fVSB8tntRb2ufrLcySfGxs:APA91bH3CCLoxCPSmRuTo4q7j0aAxWLCdu6WtAdBWogzo79j69u8M_qFwcNygw7LIGrLYBXFqz2SUZI-4js8iyHxe12BMe-azVy2v7d22o4bvxy2pzTZ4kE";
 // addService controller
 exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d, _e, _f, _g;
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     let locationDetails, finalLongitude, finalLatitude, finalLocation;
     const { categoryId, serviceStartDate, serviceShifftId, SelectedShiftTime, serviceZipCode, serviceAddress, serviceLatitude, serviceLongitude, useMyCurrentLocation, serviceLandMark, userPhoneNumber, isIncentiveGiven, incentiveAmount, isTipGiven, tipAmount, otherInfo, serviceProductImage, answerArray, serviceAddressId // Expecting answerArray instead of answers
      } = req.body;
@@ -132,6 +134,15 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
         serviceProductImage,
         userId: (_g = req.user) === null || _g === void 0 ? void 0 : _g._id
     });
+    if (userPhoneNumber) {
+        const addNumber = yield user_model_1.default.findByIdAndUpdate({
+            userId: (_h = req.user) === null || _h === void 0 ? void 0 : _h._id
+        }, {
+            $set: {
+                phone: userPhoneNumber
+            }
+        });
+    }
     if (!newService) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(500, "Something went wrong while creating the Service Request."));
     }
@@ -216,6 +227,10 @@ exports.getServiceRequestList = (0, asyncHandler_1.asyncHandler)((req, res) => _
 // get accepted ServiceRequest controller
 exports.getAcceptedServiceRequestInJobQueue = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
+    const { page = '1', limit = '10' } = req.query;
+    const pageNumber = parseInt(page, 10) || 1;
+    const limitNumber = parseInt(limit, 10) || 10;
+    const skip = (pageNumber - 1) * limitNumber;
     const results = yield service_model_1.default.aggregate([
         {
             $match: {
@@ -284,13 +299,26 @@ exports.getAcceptedServiceRequestInJobQueue = (0, asyncHandler_1.asyncHandler)((
                 totalRatings: '$userId.totalRatings',
                 userAvgRating: '$userId.userAvgRating',
                 userAvtar: '$userId.avatar',
+                isUserBanned: '$userId.isDeleted',
                 serviceProviderId: 1,
                 updatedAt: 1
             }
         },
+        {
+            $match: {
+                isUserBanned: false
+            }
+        },
+        { $skip: skip },
+        { $limit: limitNumber },
         { $sort: { updatedAt: 1 } }
     ]);
-    return (0, response_1.sendSuccessResponse)(res, 200, results, "Job queue retrieved successfully.");
+    return (0, response_1.sendSuccessResponse)(res, 200, {
+        results, pagination: {
+            page: pageNumber,
+            limit: limitNumber
+        }
+    }, "Job queue retrieved successfully.");
 }));
 // updateService controller by customer
 exports.cancelServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -347,7 +375,7 @@ exports.addorUpdateIncentive = (0, asyncHandler_1.asyncHandler)((req, res) => __
     return (0, response_1.sendSuccessResponse)(res, 200, "Incentive added for the service request.");
 }));
 exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z;
     const userType = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userType;
     let userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
     const { serviceId } = req.params;
@@ -394,53 +422,41 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
             if (requestProgress === "Pending") {
                 updateData.requestProgress = "Pending";
             }
-            // await sendNotification(
-            //     customerDetails?.fcmToken || "",
-            //     "Service Request Accepted",
-            //     `Your Service Request is accepted by ${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""}`,
-            //     { senderId: req.user?._id, receiverId: serviceRequest.userId, title: "Service Accepted", notificationType: "Service Accepted" }
-            // );
+            const notificationContent = `Your Service Request is accepted by ${(_d = (_c = req.user) === null || _c === void 0 ? void 0 : _c.firstName) !== null && _d !== void 0 ? _d : "User"} ${(_f = (_e = req.user) === null || _e === void 0 ? void 0 : _e.lastName) !== null && _f !== void 0 ? _f : ""}`;
+            yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.userId.toString(), 
+            // userId?.toString() as string,
+            "Service Request Accepted", notificationContent, { senderId: (_g = req.user) === null || _g === void 0 ? void 0 : _g._id, receiverId: serviceRequest.userId, title: notificationContent, notificationType: "Service Accepted" });
         }
         //if a service is in accepted mode  and CancelledByFA mode then one can start that service by assigning FA...
         if ((serviceRequest.requestProgress === "Pending" || serviceRequest.requestProgress === "CancelledByFA") && requestProgress === "Started") {
             updateData.requestProgress = "Started";
             updateData.startedAt = new Date();
-            // await sendNotification(
-            //     serviceProviderDetails?.fcmToken || "",
-            //     "Mark job as started",
-            //     `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as started`,
-            //     { senderId: req.user?._id, receiverId: serviceRequest.serviceProviderId, title: "Service Started", notificationType: "Service Started" }
-            // );
+            const notificationContent = `${(_j = (_h = req.user) === null || _h === void 0 ? void 0 : _h.firstName) !== null && _j !== void 0 ? _j : "User"} ${(_l = (_k = req.user) === null || _k === void 0 ? void 0 : _k.lastName) !== null && _l !== void 0 ? _l : ""} has marked the job as started`;
+            yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.serviceProviderId.toString(), 
+            // userId?.toString() as string,
+            "Mark job as started", notificationContent, { senderId: (_m = req.user) === null || _m === void 0 ? void 0 : _m._id, receiverId: serviceRequest.serviceProviderId, title: notificationContent, notificationType: "Service Started" });
         }
         if (serviceRequest.requestProgress === "Started" && requestProgress === "Completed") {
             updateData.requestProgress = "Completed";
             updateData.completedAt = new Date();
-            // await sendNotification(
-            //     serviceProviderDetails?.fcmToken || "",
-            //     "Mark job as completed",
-            //     `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as completed`,
-            //     { senderId: req.user?._id, receiverId: serviceRequest.serviceProviderId, title: "Service Completed", notificationType: "Service Completed" }
-            // );
+            const notificationContent = `${(_p = (_o = req.user) === null || _o === void 0 ? void 0 : _o.firstName) !== null && _p !== void 0 ? _p : "User"} ${(_r = (_q = req.user) === null || _q === void 0 ? void 0 : _q.lastName) !== null && _r !== void 0 ? _r : ""} has marked the job as completed`;
+            yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.serviceProviderId.toString(), "Mark job as completed", notificationContent, { senderId: (_s = req.user) === null || _s === void 0 ? void 0 : _s._id, receiverId: serviceRequest.serviceProviderId, title: notificationContent, notificationType: "Service Completed" });
         }
     }
     if (serviceRequest.requestProgress !== "NotStarted" && requestProgress === "Cancelled") {
         if (userType === "ServiceProvider") {
             updateData.requestProgress = "CancelledBySP",
                 updateData.isReqAcceptedByServiceProvider = false;
-            updateData.cancelledBy = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
+            updateData.cancelledBy = (_t = req.user) === null || _t === void 0 ? void 0 : _t._id;
             updateData.serviceProviderId = null;
         }
         if (userType === "FieldAgent") {
             updateData.requestProgress = "CancelledByFA",
-                updateData.cancelledBy = (_d = req.user) === null || _d === void 0 ? void 0 : _d._id;
+                updateData.cancelledBy = (_u = req.user) === null || _u === void 0 ? void 0 : _u._id;
             updateData.assignedAgentId = null;
         }
-        // await sendNotification(
-        //     serviceProviderDetails?.fcmToken || "",
-        //     "Mark job as cancelled",
-        //     `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as cancelled`,
-        //     { senderId: req.user?._id, receiverId: serviceRequest.serviceProviderId, title: "Service Cancelled", notificationType: "Service Cancelled" }
-        // );
+        const notificationContent = `${(_w = (_v = req.user) === null || _v === void 0 ? void 0 : _v.firstName) !== null && _w !== void 0 ? _w : "User"} ${(_y = (_x = req.user) === null || _x === void 0 ? void 0 : _x.lastName) !== null && _y !== void 0 ? _y : ""} has marked the job as cancelled`;
+        yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.serviceProviderId.toString(), "Mark job as cancelled", notificationContent, { senderId: (_z = req.user) === null || _z === void 0 ? void 0 : _z._id, receiverId: serviceRequest.serviceProviderId, title: notificationContent, notificationType: "Service Cancelled" });
     }
     const updatedService = yield service_model_1.default.findByIdAndUpdate(serviceId, { $set: updateData }, { new: true });
     if (!updatedService) {
@@ -541,7 +557,16 @@ exports.fetchServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __a
                 maxDistance: radius,
             }
         },
-        { $match: { isDeleted: false, isReqAcceptedByServiceProvider: false, } },
+        {
+            $match: {
+                isDeleted: false,
+                isReqAcceptedByServiceProvider: false,
+                $or: [
+                    { requestProgress: "NotStarted" },
+                    { requestProgress: "CancelledBySP" },
+                ]
+            }
+        },
         {
             $lookup: {
                 from: 'users',
@@ -605,7 +630,13 @@ exports.fetchServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __a
                 totalRatings: '$userId.totalRatings',
                 userAvgRating: '$userId.userAvgRating',
                 userAvtar: '$userId.avatar',
+                isUserBanned: '$userId.isDeleted',
                 createdAt: 1
+            }
+        },
+        {
+            $match: {
+                isUserBanned: false
             }
         },
         { $sort: { createdAt: -1, isIncentiveGiven: -1, incentiveAmount: -1 } }
@@ -880,6 +911,10 @@ exports.fetchAssociatedCustomer = fetchAssociatedCustomer;
 //get service request for customer
 exports.getServiceRequestByStatus = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
+    const { page = '1', limit = '10' } = req.query;
+    const pageNumber = parseInt(page, 10) || 1;
+    const limitNumber = parseInt(limit, 10) || 10;
+    const skip = (pageNumber - 1) * limitNumber;
     const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
     const { requestProgress } = req.body;
     const progressFilter = requestProgress === "InProgress"
@@ -1013,6 +1048,8 @@ exports.getServiceRequestByStatus = (0, asyncHandler_1.asyncHandler)((req, res) 
                 path: "$assignedAgentId"
             }
         },
+        { $skip: skip },
+        { $limit: limitNumber },
         {
             $project: {
                 _id: 1,
@@ -1040,19 +1077,33 @@ exports.getServiceRequestByStatus = (0, asyncHandler_1.asyncHandler)((req, res) 
         },
         { $sort: { createdAt: -1 } },
     ]);
-    const totalRequest = results.length;
-    return (0, response_1.sendSuccessResponse)(res, 200, { results, totalRequest: totalRequest }, "Service request retrieved successfully.");
+    const totalDocs = yield service_model_1.default.aggregate([{
+            $match: Object.assign(Object.assign({}, progressFilter), { userId: userId })
+        },]);
+    const totalRequest = totalDocs.length;
+    return (0, response_1.sendSuccessResponse)(res, 200, {
+        results, totalRequest: totalRequest, pagination: {
+            page: pageNumber,
+            limit: limitNumber
+        }
+    }, "Service request retrieved successfully.");
 }));
 //get service request for service provider
 exports.getJobByStatus = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
+    const { page = '1', limit = '10' } = req.query;
+    const pageNumber = parseInt(page, 10) || 1;
+    const limitNumber = parseInt(limit, 10) || 10;
+    const skip = (pageNumber - 1) * limitNumber;
     const serviceProviderId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
     const { requestProgress } = req.body;
     const progressFilter = requestProgress === "Accepted"
         ? { requestProgress: { $in: ["Pending", "CancelledByFA"] } }
         : requestProgress === "Assigned"
-            ? { requestProgress: { $in: ["Pending", "CancelledByFA"] },
-                assignedAgentId: { $ne: null, $exists: true } }
+            ? {
+                requestProgress: { $in: ["Pending", "CancelledByFA"] },
+                assignedAgentId: { $ne: null, $exists: true }
+            }
             : requestProgress === "Started"
                 ? { requestProgress: "Started" }
                 : requestProgress === "All" ? {}
@@ -1134,20 +1185,37 @@ exports.getJobByStatus = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
                 'assignedAgentId.avatar': 1,
                 'assignedAgentId.phone': 1,
                 customerAvatar: '$userId.avatar',
+                isUserBanned: '$userId.isDeleted',
                 totalCustomerRatings: '$userId.totalRatings',
                 customerAvgRating: '$userId.userAvgRating',
                 createdAt: 1
             }
         },
+        {
+            $match: {
+                isUserBanned: false
+            }
+        },
+        { $skip: skip },
+        { $limit: limitNumber },
         { $sort: { createdAt: -1 } },
     ]);
     const totalRequest = results.length;
-    return (0, response_1.sendSuccessResponse)(res, 200, { results, totalRequest: totalRequest }, "Service request retrieved successfully.");
+    return (0, response_1.sendSuccessResponse)(res, 200, {
+        results, totalRequest: totalRequest, pagination: {
+            page: pageNumber,
+            limit: limitNumber
+        }
+    }, "Service request retrieved successfully.");
 }));
 //get service request for field agent
 exports.getJobByStatusByAgent = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
     // console.log(req.user?._id);
+    const { page = '1', limit = '10' } = req.query;
+    const pageNumber = parseInt(page, 10) || 1;
+    const limitNumber = parseInt(limit, 10) || 10;
+    const skip = (pageNumber - 1) * limitNumber;
     const assignedAgentId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
     const { requestProgress } = req.body;
     const progressFilter = requestProgress === "Assigned"
@@ -1233,15 +1301,28 @@ exports.getJobByStatusByAgent = (0, asyncHandler_1.asyncHandler)((req, res) => _
                 'assignedAgentId.avatar': 1,
                 'assignedAgentId.phone': 1,
                 customerAvatar: '$userId.avatar',
+                isUserBanned: '$userId.isDeleted',
                 totalCustomerRatings: '$userId.totalRatings',
                 customerAvgRating: '$userId.userAvgRating',
                 createdAt: 1
             }
         },
+        {
+            $match: {
+                isUserBanned: false
+            }
+        },
+        { $skip: skip },
+        { $limit: limitNumber },
         { $sort: { createdAt: -1 } },
     ]);
     const totalRequest = results.length;
-    return (0, response_1.sendSuccessResponse)(res, 200, { results, totalRequest: totalRequest }, "Service request retrieved successfully.");
+    return (0, response_1.sendSuccessResponse)(res, 200, {
+        results, totalRequest: totalRequest, pagination: {
+            page: pageNumber,
+            limit: limitNumber
+        }
+    }, "Service request retrieved successfully.");
 }));
 exports.assignJob = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c;

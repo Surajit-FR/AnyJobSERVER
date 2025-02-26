@@ -7,7 +7,7 @@ const express_1 = __importDefault(require("express"));
 const userAuth_1 = require("../middlewares/auth/userAuth");
 const shift_controller_1 = require("../controller/shift.controller");
 const router = express_1.default.Router();
-router.route('/fetch-avilable-shift').get(shift_controller_1.fetchAvilableShifs);
+router.route('/fetch-avilable-shift/:fetchingDate').get(shift_controller_1.fetchAvilableShifs);
 router.use(userAuth_1.VerifyJWTToken);
 router.route('/')
     .get(shift_controller_1.fetchShifs)

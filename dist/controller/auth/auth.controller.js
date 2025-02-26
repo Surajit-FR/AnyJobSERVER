@@ -147,7 +147,7 @@ exports.loginUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Email is required"));
     }
     ;
-    const user = yield user_model_1.default.findOne({ email });
+    const user = yield user_model_1.default.findOne({ email: email, isDeleted: false });
     if (!user) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "User does not exist"));
     }

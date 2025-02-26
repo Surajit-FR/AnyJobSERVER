@@ -79,8 +79,13 @@ exports.sendOTP = ((req, res) => __awaiter(void 0, void 0, void 0, function* () 
     // const formattedPhoneNumber = `+91${phoneNumber}`;
     // console.log({ formattedPhoneNumber });
     const expiredAt = new Date(Date.now() + stepDuration * 1000);
+    const message = yield client.messages.create({
+        body: `Your OTP code is ${otp}`,
+        from: TWILIO_PHONE_NUMBERS,
+        to: phoneNumber,
+    });
     if (purpose !== "verifyPhone") {
-        const user = yield user_model_1.default.findOne({ phone: phoneNumber });
+        const user = yield user_model_1.default.findOne({ phone: phoneNumber, isDeleted: false });
         if (!user) {
             return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "User does not exist"));
         }
@@ -102,11 +107,6 @@ exports.sendOTP = ((req, res) => __awaiter(void 0, void 0, void 0, function* () 
         });
         yield otpEntry.save();
     }
-    const message = yield client.messages.create({
-        body: `Your OTP code is ${otp}`,
-        from: TWILIO_PHONE_NUMBERS,
-        to: phoneNumber,
-    });
     return (0, response_1.sendSuccessResponse)(res, 201, message, "OTP sent successfully");
 }));
 // Verify OTP controller
@@ -187,8 +187,10 @@ exports.verifyOTP = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
     if (!isOtpValid) {
         return (0, response_1.sendSuccessResponse)(res, 400, "Invalid OTP");
     }
-    // Delete OTP after successful validation
-    yield otp_model_1.default.deleteOne({ _id: otpEntry === null || otpEntry === void 0 ? void 0 : otpEntry._id });
+    else {
+        // Delete OTP after successful validation
+        yield otp_model_1.default.deleteOne({ _id: otpEntry === null || otpEntry === void 0 ? void 0 : otpEntry._id });
+    }
     switch (purpose) {
         case "login": {
             const user = yield user_model_1.default.findOne({ phone: identifier });

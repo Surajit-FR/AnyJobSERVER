@@ -10,7 +10,6 @@ import QuestionModel from "../models/question.model";
 import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary";
 import { IAddCategoryPayloadReq } from "../../types/requests_responseType";
 import { deleteUploadedFiles } from "../middlewares/multer.middleware";
-import fs from 'fs';
 
 
 // addCategory controller
@@ -60,7 +59,7 @@ export const getCategories = asyncHandler(async (req: Request, res: Response) =>
 
     const results = await CategoryModel.aggregate([
         {
-            $match: { isDeleted: false,categoryType:"Regular" }
+            $match: { isDeleted: false, categoryType: "Regular" }
         },
     ]);
     return sendSuccessResponse(res, 200, results, "Regular category retrieved successfully.");
@@ -172,14 +171,21 @@ export const getCategorieById = asyncHandler(async (req: Request, res: Response)
     return sendSuccessResponse(res, 200, categoryToFetch, "Category retrieved successfully.");
 });
 
+//search category controller
 export const searchCategories = asyncHandler(async (req: Request, res: Response) => {
     const { serachKey } = req.body;
+
+    if (!serachKey || serachKey.trim().length < 3) {
+        return res.status(400).json({
+            success: false,
+            message: "Search key must be at least 3 characters long."
+        });
+    }
     const categoryData = await CategoryModel.aggregate([
         {
             $match: {
                 isDeleted: false,
                 name: { $regex: serachKey, $options: "i" }
-
             }
         },
         {

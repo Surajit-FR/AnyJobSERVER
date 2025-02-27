@@ -271,7 +271,7 @@ export const getServiceRequestList = asyncHandler(async (req: Request, res: Resp
 
 // get accepted ServiceRequest controller
 export const getAcceptedServiceRequestInJobQueue = asyncHandler(async (req: CustomRequest, res: Response) => {
-    
+
     const { page = '1', limit = '10' } = req.query;
     const pageNumber = parseInt(page as string, 10) || 1;
     const limitNumber = parseInt(limit as string, 10) || 10;
@@ -738,8 +738,7 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
         },
         { $match: searchQuery },
         // { $sort: { isIncentiveGiven: validSortType } },
-        { $skip: skip },
-        { $limit: limitNumber },
+
         {
             $project: {
                 categoryName: "$categoryDetails.name",
@@ -765,12 +764,20 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
                 isUserBanned: false
             }
         },
+        { $skip: skip },
+        { $limit: limitNumber },
         { $sort: { createdAt: -1, isIncentiveGiven: -1, incentiveAmount: -1 } }
     ]);
     if (!serviceRequests.length) {
         return sendSuccessResponse(res, 200, serviceRequests, 'No nearby service request found');
     }
-    const totalRecords = await ServiceModel.countDocuments({ isDeleted: false, isReqAcceptedByServiceProvider: false, requestProgress: "NotStarted" });
+    const totalRecords = await ServiceModel.countDocuments({
+        isDeleted: false, isReqAcceptedByServiceProvider: false, $or: [
+            { requestProgress: "NotStarted" },
+            { requestProgress: "CancelledBySP" },
+
+        ]
+    });
     // const total = serviceRequests[0] ? serviceRequests.length : 0
     return sendSuccessResponse(res, 200, {
         serviceRequests, pagination: {
@@ -1071,7 +1078,7 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
         requestProgress === "InProgress"
             ? { requestProgress: { $in: ["Pending", "Started"] } }
             : requestProgress === "jobQueue"
-                ? { requestProgress: { $in: ["NotStarted", "Cancelled"] } }
+                ? { requestProgress: { $in: ["NotStarted", "CancelledBySP"] } }
                 : { requestProgress };
 
     const results = await ServiceModel.aggregate([

@@ -17,7 +17,7 @@ export const GOOGLE_API_KEY = "AIzaSyDtPUxp_vFvbx9og_F-q0EBkJPAiCAbj8w";
 export const FIREBASE_TYPE = "service_account";
 export const FIREBASE_PROJECT_ID = "anyjob-6ae3d";
 export const FIREBASE_PRIVATE_KEY_ID = "";
-export const FIREBASE_PRIVATE_KEY = ``;
+export const FIREBASE_PRIVATE_KEY = "";
 export const FIREBASE_CLIENT_EMAIL =
   "firebase-adminsdk-zg0by@anyjob-6ae3d.iam.gserviceaccount.com";
 export const FIREBASE_CLIENT_ID = "116503242416136942380";

@@ -57,14 +57,14 @@ import imageRouter from './routes/upload.routes';
 import { removeStaleFcmTokens } from "../src/utils/sendPushNotification";
 
 // Schedule cleanup every day at midnight
-cron.schedule("0 0 * * *", () => {
-    console.log("Midnight cron job starts...");
+// cron.schedule("0 0 * * *", () => {
+//     console.log("Midnight cron job starts...");
 
-    // Schedule a task every minute after midnight
-    cron.schedule("*/1 * * * *", removeStaleFcmTokens);
+//     // Schedule a task every minute after midnight
+//     cron.schedule("*/1 * * * *", removeStaleFcmTokens);
 
-    console.log("Scheduled the job to run every minute after midnight.");
-});
+//     console.log("Scheduled the job to run every minute after midnight.");
+// });
 
 //Admin routes
 app.use("/api/v1/healthcheck", healthcheckRouter);

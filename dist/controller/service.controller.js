@@ -613,8 +613,6 @@ exports.fetchServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __a
         },
         { $match: searchQuery },
         // { $sort: { isIncentiveGiven: validSortType } },
-        { $skip: skip },
-        { $limit: limitNumber },
         {
             $project: {
                 categoryName: "$categoryDetails.name",
@@ -639,12 +637,19 @@ exports.fetchServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __a
                 isUserBanned: false
             }
         },
+        { $skip: skip },
+        { $limit: limitNumber },
         { $sort: { createdAt: -1, isIncentiveGiven: -1, incentiveAmount: -1 } }
     ]);
     if (!serviceRequests.length) {
         return (0, response_1.sendSuccessResponse)(res, 200, serviceRequests, 'No nearby service request found');
     }
-    const totalRecords = yield service_model_1.default.countDocuments({ isDeleted: false, isReqAcceptedByServiceProvider: false, requestProgress: "NotStarted" });
+    const totalRecords = yield service_model_1.default.countDocuments({
+        isDeleted: false, isReqAcceptedByServiceProvider: false, $or: [
+            { requestProgress: "NotStarted" },
+            { requestProgress: "CancelledBySP" },
+        ]
+    });
     // const total = serviceRequests[0] ? serviceRequests.length : 0
     return (0, response_1.sendSuccessResponse)(res, 200, {
         serviceRequests, pagination: {
@@ -920,7 +925,7 @@ exports.getServiceRequestByStatus = (0, asyncHandler_1.asyncHandler)((req, res) 
     const progressFilter = requestProgress === "InProgress"
         ? { requestProgress: { $in: ["Pending", "Started"] } }
         : requestProgress === "jobQueue"
-            ? { requestProgress: { $in: ["NotStarted", "Cancelled"] } }
+            ? { requestProgress: { $in: ["NotStarted", "CancelledBySP"] } }
             : { requestProgress };
     const results = yield service_model_1.default.aggregate([
         {

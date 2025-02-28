@@ -148,8 +148,15 @@ exports.getCategorieById = (0, asyncHandler_1.asyncHandler)((req, res) => __awai
     ;
     return (0, response_1.sendSuccessResponse)(res, 200, categoryToFetch, "Category retrieved successfully.");
 }));
+//search category controller
 exports.searchCategories = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { serachKey } = req.body;
+    if (!serachKey || serachKey.trim().length < 3) {
+        return res.status(400).json({
+            success: false,
+            message: "Search key must be at least 3 characters long."
+        });
+    }
     const categoryData = yield category_model_1.default.aggregate([
         {
             $match: {

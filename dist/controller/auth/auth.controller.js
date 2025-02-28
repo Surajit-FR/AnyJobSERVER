@@ -141,7 +141,7 @@ exports.registerUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(
 // login user controller
 exports.loginUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, password, userType, fcmToken, isAdminPanel } = req.body;
-    console.log(req.body.password, "password from body");
+    // console.log(req.body.password, "password from body");
     console.log(typeof (req.body.password));
     if (!email) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Email is required"));

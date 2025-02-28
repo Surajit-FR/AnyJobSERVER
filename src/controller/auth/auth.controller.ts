@@ -154,8 +154,8 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
 // login user controller
 export const loginUser = asyncHandler(async (req: Request, res: Response) => {
     const { email, password, userType, fcmToken, isAdminPanel }: IUser & { isAdminPanel?: boolean, userType: Array<string> } = req.body;
-    console.log(req.body.password, "password from body");
-    console.log(typeof (req.body.password));
+    // console.log(req.body.password, "password from body");
+    // console.log(typeof (req.body.password));
 
 
 

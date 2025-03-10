@@ -42,10 +42,7 @@ const UserSchema: Schema<IUser> = new Schema({
     password: {
         type: String,
         // required: [true, "Password is required"],
-    },
-    rawPassword: {
-        type: String,
-    },
+    },  
     oldPassword: {
         type: String,
         // required: [true, "Password is required"],

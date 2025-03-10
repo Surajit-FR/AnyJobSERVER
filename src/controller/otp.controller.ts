@@ -39,22 +39,7 @@ export const generateVerificationCode = (length: number): number => {
     return Math.floor(min + Math.random() * (max - min + 1));
 };
 
-// Function to update Auth Token
-async function updateAuthTokenPromotion() {
-    try {
-        console.log("token promotion runs");
 
-        const authTokenPromotion = await client.accounts.v1.authTokenPromotion().update();
-        console.log("Updated Twilio Auth Token for account:", authTokenPromotion);
-
-        // Reinitialize Twilio client with updated token
-        let newAccountSid = authTokenPromotion.accountSid;
-        let newAuthToken = authTokenPromotion.authToken!;
-        client = twilio(newAccountSid, newAuthToken);
-    } catch (error) {
-        console.error("Failed to update Twilio Auth Token:", error);
-    }
-}
 
 //send otp
 export const sendOTP = (async (req: Request, res: Response) => {

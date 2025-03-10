@@ -12,7 +12,6 @@ export interface IUser extends Document {
     email: string;
     phone: string;
     dob: Date;
-    rawPassword: string;
     oldPassword: string;
     password: string;
     avatar: string;
@@ -189,9 +188,11 @@ export interface IOTPSchema extends Document {
     email: string;
     otp: string;
     secret: string;
+    twilioSid: string;
     createdAt?: Date;
     expiredAt: Date;
     updatedAt?: Date;
+    isVerified?: boolean;
 };
 
 export interface IRatingSchema extends Document {

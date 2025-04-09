@@ -22,7 +22,7 @@ import {
     updateUserPreference
 } from "../controller/user.controller";
 import { givePermission, getUserPermissions } from "../controller/permission.controller";
-import { getJobByStatus, getJobByStatusByAgent } from "../controller/service.controller";
+import { fetchIncentiveDetails, getJobByStatus, getJobByStatusByAgent } from "../controller/service.controller";
 import { captureIP } from "../middlewares/IP.middleware";
 import { fetchQueryMessage, deleteQueryMessage } from "../controller/contactUs.controller";
 import { getNotifications } from "../controller/notification.controller";
@@ -127,6 +127,8 @@ router.route('/delete-query-message/:messageId').delete(verifyUserType(["SuperAd
 router.route('/update-user-preference').put(verifyUserType(['ServiceProvider', 'Customer', 'FieldAgent', 'TeamLead']), updateUserPreference);
 
 router.route('/fetch-notifications').get(verifyUserType(["SuperAdmin", "ServiceProvider", "Customer", "Admin", "Finance", "FieldAgent", "TeamLead"]), getNotifications);
+
+router.route('/fetch-incentive-details').get(verifyUserType(["SuperAdmin", "ServiceProvider"]), fetchIncentiveDetails);
 
 
 

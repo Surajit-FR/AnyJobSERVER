@@ -8,7 +8,7 @@ import { log } from 'console';
 export const socketAuthMiddleware = (socket: Socket, next: (err?: ExtendedError) => void) => {
     const JWT_SECRET = process.env.ACCESS_TOKEN_SECRET;
     const token = socket.handshake.headers.accesstoken || socket.handshake.auth.accessToken;
-    console.log(token);
+    // console.log(token);
 
 
     if (!token) {

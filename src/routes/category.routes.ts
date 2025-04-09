@@ -19,7 +19,6 @@ router.route('/').post(
     upload.fields([
         { name: "categoryImage" },
     ]),
-    [ModelAuth(validateCategory)],
     verifyUserType(['SuperAdmin']),
     addCategory);
 

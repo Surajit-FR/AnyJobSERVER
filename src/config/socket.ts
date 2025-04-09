@@ -31,7 +31,7 @@ export const initSocket = (server: HttpServer) => {
 
         const userId = socket.data.userId;
         const usertype = socket.data.userType;
-        console.log({ usertype });
+        // console.log({ usertype });
 
         const userToken = socket.handshake.headers.accesstoken || socket.handshake.auth.accessToken;
         console.log(`A ${usertype} with userId ${userId} connected on socket ${socket.id}`);

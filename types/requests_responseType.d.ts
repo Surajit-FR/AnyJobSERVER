@@ -16,8 +16,9 @@ export interface IRegisterCredentials extends ICredentials {
 };
 
 export interface IAddCategoryPayloadReq {
-    name: String,
-    categoryImage: String
+    name: string,
+    categoryImage: string
+    serviceCost: string
 };
 
 export interface IAddSubCategoryPayloadReq {

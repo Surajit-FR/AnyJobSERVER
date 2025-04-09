@@ -81,6 +81,10 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
         type: Boolean,
         default: false
     },
+    acceptedAt: {
+        type: Date,
+        default: null
+    },
     startedAt: {
         type: Date,
         default: null
@@ -104,11 +108,6 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
     tipAmount: {
         type: Number,
         default: 0,
-    },
-    isApproved: {
-        type: String,
-        enum: ["Pending", "Approved", "Rejected"],
-        default: "Pending"
     },
     isReqAcceptedByServiceProvider: {
         type: Boolean,

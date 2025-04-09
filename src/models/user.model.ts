@@ -1,7 +1,16 @@
 import mongoose, { Schema, Model } from "mongoose";
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { IUser } from "../../types/schemaTypes";
+import { IUser, IPaymentMethod } from "../../types/schemaTypes";
+
+const PaymentMethodSchema = new Schema<IPaymentMethod>({
+    stripe_payment_method_id: { type: String, required: true },
+    last4: { type: String, required: true },
+    brand: { type: String, required: true },
+    exp_month: { type: Number, required: true },
+    exp_year: { type: Number, required: true },
+    is_default: { type: Boolean, default: false },
+});
 
 
 const UserSchema: Schema<IUser> = new Schema({
@@ -35,14 +44,14 @@ const UserSchema: Schema<IUser> = new Schema({
     },
     phone: {
         type: String,
-        default:"",
+        default: "",
         required: false,
         // unique:true
     },
     password: {
         type: String,
         // required: [true, "Password is required"],
-    },  
+    },
     oldPassword: {
         type: String,
         // required: [true, "Password is required"],
@@ -52,6 +61,11 @@ const UserSchema: Schema<IUser> = new Schema({
         default: "",
         required: false,
     },
+    userType: {
+        type: String,
+        enum: ["SuperAdmin", "ServiceProvider", "Customer", "FieldAgent", "TeamLead", "Admin", "Finance"],
+        default: ""
+    },
     coverImage: {
         type: String,
     },
@@ -59,10 +73,12 @@ const UserSchema: Schema<IUser> = new Schema({
         type: Boolean,
         default: false
     },
-    userType: {
+    stripeCustomerId: {
         type: String,
-        enum: ["SuperAdmin", "ServiceProvider", "Customer", "FieldAgent", "TeamLead", "Admin", "Finance"],
         default: ""
+    },
+    paymentMethodId: {
+        type: String,
     },
     refreshToken: {
         type: String,
@@ -118,13 +134,14 @@ UserSchema.methods.generateAccessToken = function (): string {
         phone: this.phone,
         username: this.username,
         fullName: this.fullName,
-    }, process.env.ACCESS_TOKEN_SECRET as string, { expiresIn: process.env.ACCESS_TOKEN_EXPIRY })
+    }, process.env.ACCESS_TOKEN_SECRET as string,
+        { expiresIn: 31536000 })
 };
 
 UserSchema.methods.generateRefreshToken = function (): string {
     return jwt.sign({
         _id: this._id
-    }, process.env.REFRESH_TOKEN_SECRET as string, { expiresIn: process.env.REFRESH_TOKEN_EXPIRY })
+    }, process.env.REFRESH_TOKEN_SECRET as string, { expiresIn: 864000 })
 };
 
 //adding geospatial index

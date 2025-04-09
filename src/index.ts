@@ -20,7 +20,6 @@ connectDB().then(() => {
     });
 }).catch((err) => {
     console.log("MongoDB Connection Failed!!", err);
-
 });
 
 

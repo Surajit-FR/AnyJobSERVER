@@ -30,6 +30,9 @@ const CategorySchema = new mongoose_1.Schema({
         default: "",
         required: true
     },
+    serviceCost: {
+        type: String
+    },
     categoryImage: {
         type: String,
         default: "",

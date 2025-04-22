@@ -82,6 +82,7 @@ export interface ICategorySchema extends Document {
     isDeleted: boolean;
     createdAt?: Date;
     updatedAt?: Date;
+    serviceCost: string;
 };
 
 export interface ISubCategorySchema extends Document {

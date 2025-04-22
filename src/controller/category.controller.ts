@@ -66,59 +66,101 @@ export const getCategories = asyncHandler(async (req: Request, res: Response) =>
 });
 
 // updateCategory controller
+// export const updateCategory = asyncHandler(async (req: Request, res: Response) => {
+//     const { CategoryId } = req.params;
+//     const { name,  }: { name: string,  } = req.body;
+
+//     if (!CategoryId) {
+//         return sendErrorResponse(res, new ApiError(400, "Category ID is required."));
+//     };
+
+//     const trimmedName = name.trim();
+
+//     const existingCategory = await CategoryModel.findOne({
+//         _id: { $ne: new mongoose.Types.ObjectId(CategoryId) },
+//         name: { $regex: new RegExp(`^${trimmedName}$`, 'i') }
+//     });
+
+//     if (existingCategory) {
+//         const categoryImageFile = req.files as { [key: string]: Express.Multer.File[] } | undefined;
+//         const catImgFile = categoryImageFile?.categoryImage ? categoryImageFile.categoryImage[0] : undefined;
+
+//         if (catImgFile) {
+//             deleteUploadedFiles({ categoryImage: categoryImageFile?.categoryImage })
+//         }
+
+//         return sendErrorResponse(res, new ApiError(400, "Category with the same name already exists."));
+//     }
+
+//     const categoryImageFile = req.files as { [key: string]: Express.Multer.File[] } | undefined;
+//     const catImgFile = categoryImageFile?.categoryImage ? categoryImageFile.categoryImage[0] : undefined;
+
+//     let catImgUrl;
+//     if (catImgFile) {
+//         const catImg = await uploadOnCloudinary(catImgFile.path);
+//         catImgUrl = catImg?.secure_url;
+//     }
+
+//     const updatedCategory = await CategoryModel.findByIdAndUpdate(
+//         new mongoose.Types.ObjectId(CategoryId),
+//         {
+//             $set: {
+//                 name: trimmedName,
+//                 ...(catImgUrl && { categoryImage: catImgUrl }) // Only update image if uploaded
+//             },
+//         },
+//         { new: true }
+//     );
+
+//     if (!updatedCategory) {
+//         return sendErrorResponse(res, new ApiError(400, "Category not found for updating."));
+//     };
+
+//     return sendSuccessResponse(res, 200, updatedCategory, "Category updated Successfully");
+// });
 export const updateCategory = asyncHandler(async (req: Request, res: Response) => {
     const { CategoryId } = req.params;
-    const { name }: { name: string } = req.body;
-
+    const { name, serviceCost }: { name: string, serviceCost: string } = req.body;
+    console.log(req.body);
     if (!CategoryId) {
         return sendErrorResponse(res, new ApiError(400, "Category ID is required."));
     };
-
     const trimmedName = name.trim();
-
     const existingCategory = await CategoryModel.findOne({
         _id: { $ne: new mongoose.Types.ObjectId(CategoryId) },
         name: { $regex: new RegExp(`^${trimmedName}$`, 'i') }
     });
-
     if (existingCategory) {
         const categoryImageFile = req.files as { [key: string]: Express.Multer.File[] } | undefined;
         const catImgFile = categoryImageFile?.categoryImage ? categoryImageFile.categoryImage[0] : undefined;
-
         if (catImgFile) {
             deleteUploadedFiles({ categoryImage: categoryImageFile?.categoryImage })
         }
-
         return sendErrorResponse(res, new ApiError(400, "Category with the same name already exists."));
     }
-
     const categoryImageFile = req.files as { [key: string]: Express.Multer.File[] } | undefined;
     const catImgFile = categoryImageFile?.categoryImage ? categoryImageFile.categoryImage[0] : undefined;
-
     let catImgUrl;
     if (catImgFile) {
         const catImg = await uploadOnCloudinary(catImgFile.path);
         catImgUrl = catImg?.secure_url;
     }
-
     const updatedCategory = await CategoryModel.findByIdAndUpdate(
         new mongoose.Types.ObjectId(CategoryId),
         {
             $set: {
                 name: trimmedName,
+                serviceCost,
                 ...(catImgUrl && { categoryImage: catImgUrl }) // Only update image if uploaded
             },
         },
         { new: true }
     );
-
     if (!updatedCategory) {
         return sendErrorResponse(res, new ApiError(400, "Category not found for updating."));
     };
-
     return sendSuccessResponse(res, 200, updatedCategory, "Category updated Successfully");
 });
-
 // deleteCategory controller
 export const deleteCategory = asyncHandler(async (req: Request, res: Response) => {
     const { CategoryId } = req.params;

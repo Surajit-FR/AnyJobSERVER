@@ -132,40 +132,53 @@ export const initSocket = (server: HttpServer) => {
         // Handle chat messages
         socket.on("chatMessage", async (message: { toUserId: string; content: string }) => {
             const { toUserId, content } = message;
-
+        
             // Validate payload
             if (!toUserId || !content) {
                 return socket.emit("error", {
                     error: "Invalid payload: toUserId and content are required.",
                 });
             }
-            // Save the chat message in the database
-            await saveChatMessage({
-                fromUserId: userId,
-                toUserId,
-                content,
-                timestamp: new Date(),
-            });
+        
             const now = new Date();
-
-            await updateChatList(userId, toUserId, content, now);
-            await updateChatList(toUserId, userId, content, now);
-
-            // Send the chat message to the recipient if they're connected
-            if (usertype === "Customer" || connectedProviders[toUserId]) {
-                io.to(connectedProviders[toUserId]).emit("chatMessage", {
+        
+            try {
+                // Save the chat message in the database
+                await saveChatMessage({
                     fromUserId: userId,
+                    toUserId,
                     content,
-                    timestamp: new Date(),
+                    timestamp: now,
                 });
-            } else if (usertype === "ServiceProvider" || connectedCustomers[toUserId]) {
-                io.to(connectedCustomers[toUserId]).emit("chatMessage", {
-                    fromUserId: userId,
-                    content,
-                    timestamp: new Date(),
+        
+                // Update chat lists for both users
+                await updateChatList(userId, toUserId, content, now);
+                await updateChatList(toUserId, userId, content, now);
+        
+                // Identify recipient socket ID
+                const recipientSocketId =
+                    connectedProviders[toUserId] || connectedCustomers[toUserId];
+        
+                if (recipientSocketId) {
+                    console.log("Sending message to:", toUserId, "Socket ID:", recipientSocketId);
+        
+                    io.to(recipientSocketId).emit("chatMessage", {
+                        fromUserId: userId,
+                        content,
+                        timestamp: now,
+                    });
+                } else {
+                    console.log("Recipient is not connected:", toUserId);
+                }
+            } catch (error) {
+                console.error("Error handling chatMessage:", error);
+                socket.emit("error", {
+                    error: "Failed to send message. Please try again.",
                 });
             }
         });
+        
+   
         socket.on("disconnect", () => {
             // Mark user as offline
             const userId = socket.data.userId;

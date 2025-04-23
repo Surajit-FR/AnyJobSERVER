@@ -1,8 +1,8 @@
 import mongoose, { Model, Schema } from "mongoose";
-import {  IPurchaseSchema } from "../../types/schemaTypes";
+import {  ICancellationFeeSchema } from "../../types/schemaTypes";
 
 
-const PurchaseSchema: Schema<IPurchaseSchema> = new mongoose.Schema(
+const CancellationFeeSchema: Schema<ICancellationFeeSchema> = new mongoose.Schema(
     {
         userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
         serviceId: { type: Schema.Types.ObjectId, ref: "Service", required: false },
@@ -24,10 +24,9 @@ const PurchaseSchema: Schema<IPurchaseSchema> = new mongoose.Schema(
         currency: { type: String, required: true },
         amount: { type: Number, required: true },
         status: { type: String, enum: ["pending", "succeeded", "failed"], default: "pending" },
-        receipt_url: { type: String, default: null },
     },
     { timestamps: true }
 );
 
-const PurchaseModel: Model<IPurchaseSchema> = mongoose.model("Purchase", PurchaseSchema);
-export default PurchaseModel;
+const CancellationFeeModel: Model<ICancellationFeeSchema> = mongoose.model("CancellationFee", CancellationFeeSchema);
+export default CancellationFeeModel;

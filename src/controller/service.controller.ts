@@ -407,7 +407,7 @@ export const getAcceptedServiceRequestInJobQueue = asyncHandler(async (req: Cust
 
 // updateService controller by customer
 export const cancelServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const { requestProgress, serviceId }: { requestProgress: string, serviceId: string } = req.body;
+    const { requestProgress, serviceId, cancellationReason }: { requestProgress: string, serviceId: string, cancellationReason: string } = req.body;
     console.log(req.body);
 
 
@@ -431,6 +431,7 @@ export const cancelServiceRequest = asyncHandler(async (req: CustomRequest, res:
             $set: {
                 requestProgress: "Blocked",
                 cancelledBy: req.user?._id,
+                cancellationReason: cancellationReason,
                 serviceProviderId: null,
                 assignedAgentId: null
             }
@@ -696,8 +697,6 @@ export const deleteService = asyncHandler(async (req: Request, res: Response) =>
 });
 
 // fetch nearby ServiceRequest controller
-
-
 export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {
 
     const { page = "1", limit = "10", query = '', sortBy = 'isIncentiveGiven', sortType = 'desc', categoryName = '' } = req.query;
@@ -1102,6 +1101,7 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
                 serviceProviderName: {
                     $concat: ["$serviceProviderId.firstName", " ", "$serviceProviderId.lastName"]
                 },
+                'serviceProviderID': "$serviceProviderId._id",
                 'serviceProviderEmail': "$serviceProviderId.email",
                 'serviceProviderAvatar': "$serviceProviderId.avatar",
                 'serviceProviderPhone': "$serviceProviderId.phone",
@@ -1111,6 +1111,7 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
                 assignedAgentName: {
                     $concat: ["$assignedAgentId.firstName", " ", "$assignedAgentId.lastName"]
                 },
+                'assignedAgentID': "$assignedAgentId._id",
                 'assignedAgentEmail': "$assignedAgentId.email",
                 'assignedAgentAvatar': "$assignedAgentId.avatar",
                 'assignedAgentPhone': "$assignedAgentId.phone",
@@ -1271,7 +1272,7 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
                                     else: 0
                                 }
                             },
-                            spBusinessImage:"$serviceProviderAdditionalInfo.businessImage",
+                            spBusinessImage: "$serviceProviderAdditionalInfo.businessImage",
                         }
                     }
                 ]
@@ -1334,7 +1335,7 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
                 'serviceProviderId.firstName': 1,
                 'serviceProviderId.lastName': 1,
                 'serviceProviderId.avatar': 1,
-                'serviceProviderId.spBusinessImage':1,
+                'serviceProviderId.spBusinessImage': 1,
                 'serviceProviderId.numberOfRatings': 1,
                 'serviceProviderId.serviceProviderRatings': 1,
                 'assignedAgentId.firstName': 1,
@@ -1908,6 +1909,7 @@ export const fetchServiceAddressHistory = asyncHandler(async (req: CustomRequest
     return sendSuccessResponse(res, 200, { results, totalRequest: results.length }, "Unique service address history retrieved successfully.");
 });
 
+
 //fetch incentive details
 export const fetchIncentiveDetails = asyncHandler(async (req: CustomRequest, res: Response) => {
     const userId = req.user?._id;
@@ -1922,4 +1924,4 @@ export const fetchIncentiveDetails = asyncHandler(async (req: CustomRequest, res
         }
     ]);
     return sendSuccessResponse(res, 200, { results, totalRequest: results.length }, "Incentive details retrieved successfully.");
-})
+});

@@ -19,6 +19,7 @@ import googleCloudRouter from "./routes/googleCloud.routes";
 import chatRouter from "./routes/chat.routes";
 import imageRouter from "./routes/upload.routes";
 import { removeStaleFcmTokens } from "../src/utils/sendPushNotification";
+import walletRouter from "./routes/wallet.routes";
 
 const app = express();
 
@@ -61,6 +62,7 @@ app.use("/api/v1/shift", shiftRouter);
 app.use("/api/v1/google-cloud", googleCloudRouter);
 app.use("/api/v1/chat", chatRouter);
 app.use("/api/v1/", imageRouter);
+app.use("/api/v1/wallet", walletRouter);
 
 // ✅ 6. Customer Routes
 app.use("/api/v1/customer", customerRouter);

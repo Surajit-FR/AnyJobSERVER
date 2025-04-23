@@ -2,40 +2,138 @@ import { Request, Response } from 'express';
 import Stripe from "stripe";
 import { STRIPE_SECRET_KEY } from '../config/config';
 import UserModel from '../models/user.model';
+import WalletModel from '../models/wallet.model';
 import mongoose from 'mongoose';
 import PurchaseModel from '../models/purchase.model';
 import PaymentMethodModel from '../models/paymentMethod.model';
+import { CustomRequest } from '../../types/commonType';
+import ServiceModel from '../models/service.model';
+import CategoryModel from '../models/category.model';
+import AdditionalInfoModel from '../models/userAdditionalInfo.model';
 
-const stripe = new Stripe(STRIPE_SECRET_KEY);
+const stripe = new Stripe(STRIPE_SECRET_KEY, {
+    apiVersion: '2024-09-30.acacia' as any,
+});
 
 
-export const createCustomerIfNotExists = async (req: Request, res: Response) => {
-    try {
+export async function createCustomerIfNotExists(userId: string) {
+    console.log("func runs");
 
-        const { userId } = req.body
-        const user = await UserModel.findById({ _id: userId });
+    const user = await UserModel.findById({ _id: userId });
 
-        if (!user) throw new Error("User not found");
+    if (!user) throw new Error("User not found");
 
-        if (user.stripeCustomerId) {
-            return res.status(200).json({ success: true, message: "Stripe customer already exist", customerId: user.stripeCustomerId });
-        }
-
+    if (!user.stripeCustomerId) {
         const customer = await stripe.customers.create({
             email: user.email,
             name: user.firstName + ' ' + user.lastName || 'default',
         });
-
         await UserModel.findByIdAndUpdate({ _id: userId }, { stripeCustomerId: customer.id });
-
-        // return customer.id;
-        return res.status(200).json({ success: true, message: "Stripe customer created successfully", customerId: customer.id });
-
-    } catch (error) {
-        console.error("Error creating Stripe customer:", error);
-        throw error;
     }
 };
+// createCustomerIfNotExists('67ac773812c4396eb2f5d588')
+
+export const createCheckoutsession = async (req: CustomRequest, res: Response) => {
+    const { amount, serviceId } = req.body;
+    const userId = req.user?._id;
+    const currency = 'usd'
+
+    const user = await UserModel.findById(userId);
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    let stripeCustomerId = user.stripeCustomerId;
+    if (!stripeCustomerId) {
+        const customer = await stripe.customers.create({
+            email: user.email,
+            name: `${user.firstName} ${user.lastName}`,
+        });
+        stripeCustomerId = customer.id;
+        await UserModel.findByIdAndUpdate(userId, { stripeCustomerId });
+    }
+
+    const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        mode: 'payment',
+        customer: stripeCustomerId,
+        line_items: [
+            {
+                price_data: {
+                    currency,
+                    unit_amount: amount * 100,
+                    product_data: {
+                        name: 'Service Payment',
+                    },
+                },
+                quantity: 1,
+            },
+        ],
+        payment_intent_data: {
+            setup_future_usage: 'on_session',
+        },
+
+        payment_method_data: {
+            allow_redisplay: 'always'
+        },
+
+        metadata: {
+            serviceId
+        },
+
+        success_url: 'https://frontend.theassure.co.uk/payment-success',
+        cancel_url: 'https://frontend.theassure.co.uk/payment-error',
+    } as Stripe.Checkout.SessionCreateParams);
+
+    res.json({ url: session.url });
+};
+
+export const chargeSavedCard = async (req: CustomRequest, res: Response) => {
+    const userId = req.user?._id;
+    const { amount, serviceId } = req.body;
+    const currency = 'usd';
+
+    const user = await UserModel.findById(userId);
+    if (!user || !user.stripeCustomerId || !user.paymentMethodId) {
+        return res.status(400).json({ message: 'Missing Stripe data for user' });
+    }
+
+    try {
+        const session = await stripe.checkout.sessions.create({
+            mode: 'payment',
+            customer: user.stripeCustomerId,
+            payment_method_data: {
+                allow_redisplay: 'always'
+                // user.paymentMethodId, // attach saved card
+            },
+            payment_method_types: ['card'],
+            line_items: [
+                {
+                    price_data: {
+                        currency,
+                        unit_amount: amount * 100,
+                        product_data: {
+                            name: 'Service Payment',
+                        },
+                    },
+                    quantity: 1,
+                },
+            ],
+            payment_intent_data: {
+                setup_future_usage: 'off_session', // Save again if needed
+                metadata: {
+                    serviceId,
+                },
+            },
+            success_url: 'https://frontend.theassure.co.uk/payment-success',
+            cancel_url: 'https://frontend.theassure.co.uk/payment-error',
+        } as Stripe.Checkout.SessionCreateParams);
+
+        return res.status(200).json({ url: session.url });
+    } catch (error: any) {
+        console.error("Stripe checkout session error:", error);
+        return res.status(500).json({ message: error.message });
+    }
+};
+
 
 export const attatchPaymentMethod = async (req: Request, res: Response) => {
     try {
@@ -176,19 +274,381 @@ export const createPaymentIntent = async (req: Request, res: Response) => {
     }
 };
 
-export const createCheckoutsession = async (req: Request, res: Response) => {
+export async function createCustomConnectedAccount(req: CustomRequest, res: Response) {
     try {
-        const { email } = req.body;
-        const session = await stripe.checkout.sessions.create({
-            payment_method_types: ["card"], 
-            mode: "setup", 
-            customer_email: email, 
-            success_url: "http://localhost:3000/success",
-            cancel_url: "http://localhost:3000/cancel",
+        const userWallet = await WalletModel.findOne({ userId: req.user?._id });
+
+        if (userWallet?.stripeConnectedAccountId) {
+            return res.status(200).json({
+                message: 'Account already exists',
+            });
+        }
+
+        const dob = req.user?.dob;
+        if (!dob || !(dob instanceof Date)) {
+            return res.status(400).json({ error: 'Invalid date of birth' });
+        }
+
+        const accountParams: Stripe.AccountCreateParams = {
+            type: 'custom',
+            country: 'US',
+            email: req.user?.email,
+            business_type: 'individual',
+            capabilities: {
+                transfers: { requested: true },
+            },
+            individual: {
+                first_name: req.user?.firstName,
+                last_name: req.user?.lastName,
+                email: req.user?.email,
+                phone: req.user?.phone,
+                dob: {
+                    day: dob.getDate(),
+                    month: dob.getMonth() + 1,
+                    year: dob.getFullYear(),
+                },
+            },
+            tos_acceptance: {
+                date: Math.floor(Date.now() / 1000),
+                ip: req.ip || '127.0.0.1',
+            },
+        };
+
+        const account = await stripe.accounts.create(accountParams);
+
+        await new WalletModel({
+            userId: req.user?._id,
+            stripeConnectedAccountId: account.id,
+            balance: 0,
+        }).save();
+
+        await stripe.accounts.update(account.id, {
+            settings: {
+                payouts: {
+                    schedule: {
+                        interval: 'manual',
+                    },
+                },
+            },
         });
 
-        res.json({ id: session.url });
+        res.status(200).json({
+            message: 'Custom connected account created successfully',
+            accountId: account.id,
+        });
     } catch (error: any) {
+        console.error('Stripe Custom Account Error:', error);
         res.status(500).json({ error: error.message });
     }
-}
+
+};
+
+//-------------------------------------create connected account-------------------------------------------->>
+export const createConnectedAccountAndRedirect = async (req: CustomRequest, res: Response) => {
+    try {
+        const user = req.user; // assuming auth middleware attached user
+
+        if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+        const dob = user.dob;
+        if (!dob || !(dob instanceof Date)) {
+            return res.status(400).json({ error: 'Invalid or missing date of birth' });
+        }
+
+        const additionalInfo = await AdditionalInfoModel.findOne({ userId: user._id });
+
+        // Step 1: Create the Stripe custom account (without external_account)
+        const account = await stripe.accounts.create({
+            type: 'custom',
+            country: 'US',
+            email: user.email,
+            business_type: 'individual',
+            capabilities: {
+                transfers: { requested: true },
+            },
+            individual: {
+                first_name: user.firstName,
+                last_name: user.lastName,
+                email: user.email,
+                phone: user.phone?.slice(3),
+                ssn_last_4: additionalInfo?.socialSecurity,
+                dob: {
+                    day: dob.getDate(),
+                    month: dob.getMonth() + 1,
+                    year: dob.getFullYear(),
+                },
+            },
+            business_profile: {
+                url: 'https://your-test-business.com',
+                mcc: '5818',
+            },
+            tos_acceptance: {
+                date: Math.floor(Date.now() / 1000),
+                ip: req.ip || '127.0.0.1',
+            },
+        });
+
+        // Save to DB (create Wallet entry)
+        await new WalletModel({
+            userId: user._id,
+            stripeConnectedAccountId: account.id,
+            balance: 0,
+        }).save();
+
+        // Step 2: Create the Stripe onboarding link (redirect user to it)
+        const accountLink = await stripe.accountLinks.create({
+            account: account.id,
+            refresh_url: 'https://your-frontend.com/onboarding-refresh',
+            return_url: 'https://your-frontend.com/onboarding-return',
+            type: 'account_onboarding',
+        });
+
+        // Send back the onboarding URL
+        res.status(200).json({
+            message: 'Stripe account created. Redirect user to onboarding.',
+            onboardingUrl: accountLink.url,
+        });
+
+    } catch (err: any) {
+        console.error('Stripe onboarding error:', err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
+
+
+
+//----------------------wallet integration------------------------------------------------------------------>>
+
+// //add fund into wallet
+export const createAddFundsSession = async (req: CustomRequest, res: Response) => {
+    try {
+        const { amount } = req.body;
+
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            mode: 'payment',
+            customer: req.user?.stripeCustomerId,
+            line_items: [
+                {
+                    price_data: {
+                        currency: 'usd',
+                        unit_amount: amount * 100,
+                        product_data: {
+                            name: 'Add Funds to Wallet',
+                        },
+                    },
+                    quantity: 1,
+                },
+            ],
+            payment_intent_data: {
+                setup_future_usage: 'on_session',
+            },
+
+            payment_method_data: {
+                allow_redisplay: 'always'
+            },
+            metadata: {
+                purpose: 'wallet_topup'
+            },
+            success_url: `https://frontend.theassure.co.uk/payment-success`,
+            cancel_url: `https://frontend.theassure.co.uk/payment-error`,
+        });
+
+        res.status(200).json({ url: session.url });
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+// pay lead generation fee with stripe hosted UI
+export const createLeadGenerationCheckoutSession = async (req: CustomRequest, res: Response) => {
+    try {
+        const { serviceId } = req.body;
+        const userId = req.user?._id;
+
+        const serviceDetails = await ServiceModel.findOne({ _id: serviceId });
+        const categoryId = serviceDetails?.categoryId
+        const categoryDetails = await CategoryModel.findById({ _id: categoryId });
+        const leadGenerationFee = Math.floor(Number(categoryDetails?.serviceCost) * 0.25)
+        const amount = leadGenerationFee;
+
+        const user = await UserModel.findById(userId);
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        let stripeCustomerId = user.stripeCustomerId;
+        if (!stripeCustomerId) {
+            const customer = await stripe.customers.create({
+                email: user.email,
+                name: `${user.firstName} ${user.lastName}`,
+            });
+            stripeCustomerId = customer.id;
+            await UserModel.findByIdAndUpdate(userId, { stripeCustomerId });
+        }
+
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            mode: 'payment',
+            customer: stripeCustomerId,
+            line_items: [
+                {
+                    price_data: {
+                        currency: 'usd',
+                        unit_amount: amount * 100,
+                        product_data: {
+                            name: 'Lead Generation Fee',
+                        },
+                    },
+                    quantity: 1,
+                },
+            ],
+            metadata: {
+                purpose: 'leadGenerationee',
+                serviceId,
+                userId: userId?.toString()
+            },
+            success_url: 'https://frontend.theassure.co.uk/service-payment-success',
+            cancel_url: 'https://frontend.theassure.co.uk/service-payment-cancel',
+        } as Stripe.Checkout.SessionCreateParams);
+
+        res.json({ url: session.url });
+    } catch (err: any) {
+        console.error('Error creating Checkout Session for service fee:', err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
+
+// pay lead generation fee without stripe hosted UI
+export const payForService = async (req: CustomRequest, res: Response) => {
+    try {
+        const { serviceId } = req.body;
+        const userId = req.user?._id;
+        const spWalletDetails = await WalletModel.findOne({ userId })
+        if (!spWalletDetails) {
+            return res.status(400).json({ error: 'User does not have a connected Wallet account' });
+        }
+        //calculate fee
+        const serviceDetails = await ServiceModel.findOne({ _id: serviceId });
+        const categoryId = serviceDetails?.categoryId
+        const categoryDetails = await CategoryModel.findById({ _id: categoryId });
+        const leadGenerationFee = Math.floor(Number(categoryDetails?.serviceCost) * 0.25)
+        const amount = leadGenerationFee;
+        //---------------------------------------------------------------------------------->
+        if ((spWalletDetails?.balance - amount) < 200) {
+            return res.status(400).json({ error: 'Insufficient balance' });
+        }
+        const account = await stripe.accounts.retrieve();
+
+        // Transfer funds from user's connected account to platform (admin)
+        const transfer = await stripe.transfers.create({
+            amount: 100 * amount,
+            currency: 'usd',
+            destination: account?.id,
+            // transfer_group: `service-67ac74fb12c4396eb2f5d52b}-${Date.now()}`,
+        }, {
+            stripeAccount: spWalletDetails?.stripeConnectedAccountId,
+        });
+        const transactionData = {
+            type: 'debit',
+            amount: amount,
+            description: 'LeadGenerationFee',
+            serviceId: serviceId,
+            stripeTransactionId: transfer.id
+        };
+        await WalletModel.findOneAndUpdate(
+            { userId: req.user?._id },
+            {
+                $push: {
+                    transactions: transactionData
+                },
+                $inc: {
+                    balance: transactionData.type === 'credit'
+                        ? transactionData.amount
+                        : -transactionData.amount
+                },
+                updatedAt: Date.now()
+            },
+            { new: true }
+        );
+        res.status(200).json({
+            message: 'Payment for the Service made successfully',
+            success: true,
+            transfer,
+        });
+    } catch (error: any) {
+        console.error('Service payment error:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const isTheFirstPurchase = async (req: CustomRequest, res: Response) => {
+    const userId = req.user?._id;
+    const checkPurchaseModel = await PurchaseModel.find({ userId });
+    const isTheFirstPurchase = checkPurchaseModel.length > 0 ? true : false;
+    res.status(200).json({
+        message: 'Payment status check successfully',
+        isTheFirstPurchase: isTheFirstPurchase,
+    });
+};
+
+
+//checkout session for service cancellation by customer
+export const createServiceCancellationCheckoutSession = async (req: CustomRequest, res: Response) => {
+    try {
+        const { serviceId,cancellationReason } = req.body;
+        const userId = req.user?._id;
+        const amount = 10;
+
+        const user = await UserModel.findById(userId);
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        let stripeCustomerId = user.stripeCustomerId;
+        if (!stripeCustomerId) {
+            const customer = await stripe.customers.create({
+                email: user.email,
+                name: `${user.firstName} ${user.lastName}`,
+            });
+            stripeCustomerId = customer.id;
+            await UserModel.findByIdAndUpdate(userId, { stripeCustomerId });
+        }
+
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            mode: 'payment',
+            customer: stripeCustomerId,
+            line_items: [
+                {
+                    price_data: {
+                        currency: 'usd',
+                        unit_amount: amount * 100,
+                        product_data: {
+                            name: 'Cancellation Fee',
+                        },
+                    },
+                    quantity: 1,
+                },
+            ],
+            payment_intent_data: {
+                setup_future_usage: 'on_session',
+            },
+
+            payment_method_data: {
+                allow_redisplay: 'always'
+            },
+            metadata: {
+                purpose: 'CancellationFee',
+                serviceId, 
+                cancellationReason,         
+                userId: userId?.toString()
+            },
+            success_url: 'https://frontend.theassure.co.uk/payment-success',
+            cancel_url: 'https://frontend.theassure.co.uk/payment-cancel',
+        } as Stripe.Checkout.SessionCreateParams);
+
+        res.json({ url: session.url });
+    } catch (err: any) {
+        console.error('Error creating Checkout Session for service fee:', err);
+        res.status(500).json({ error: err.message });
+    }
+};

@@ -1,16 +1,9 @@
 import mongoose, { Schema, Model } from "mongoose";
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { IUser, IPaymentMethod } from "../../types/schemaTypes";
+import { IUser, IPaymentMethodSchema } from "../../types/schemaTypes";
 
-const PaymentMethodSchema = new Schema<IPaymentMethod>({
-    stripe_payment_method_id: { type: String, required: true },
-    last4: { type: String, required: true },
-    brand: { type: String, required: true },
-    exp_month: { type: Number, required: true },
-    exp_year: { type: Number, required: true },
-    is_default: { type: Boolean, default: false },
-});
+
 
 
 const UserSchema: Schema<IUser> = new Schema({

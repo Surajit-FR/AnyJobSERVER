@@ -69,8 +69,8 @@ export const getCategories = asyncHandler(async (req: Request, res: Response) =>
 // updateCategory controller
 export const updateCategory = asyncHandler(async (req: Request, res: Response) => {
     const { CategoryId } = req.params;
-    const { name, serviceCost }: { name: string, serviceCost: number } = req.body;
-
+    const { name, serviceCost }: { name: string, serviceCost: string } = req.body;
+    console.log(req.body);    
     if (!CategoryId) {
         return sendErrorResponse(res, new ApiError(400, "Category ID is required."));
     };

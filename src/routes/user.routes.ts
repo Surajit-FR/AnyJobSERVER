@@ -19,7 +19,9 @@ import {
     updateUser,
     getIpLogs,
     addBankDetails,
-    updateUserPreference
+    updateUserPreference,
+    getPaymentMethods,
+    getCustomersTransaction
 } from "../controller/user.controller";
 import { givePermission, getUserPermissions } from "../controller/permission.controller";
 import { fetchIncentiveDetails, getJobByStatus, getJobByStatusByAgent } from "../controller/service.controller";
@@ -129,6 +131,9 @@ router.route('/update-user-preference').put(verifyUserType(['ServiceProvider', '
 router.route('/fetch-notifications').get(verifyUserType(["SuperAdmin", "ServiceProvider", "Customer", "Admin", "Finance", "FieldAgent", "TeamLead"]), getNotifications);
 
 router.route('/fetch-incentive-details').get(verifyUserType(["SuperAdmin", "ServiceProvider"]), fetchIncentiveDetails);
+
+router.route('/fetch-payment-method').get(verifyUserType(["SuperAdmin", "Customer"]), getPaymentMethods);
+router.route('/fetch-transactions').get(verifyUserType(["SuperAdmin", "Customer"]), getCustomersTransaction);
 
 
 

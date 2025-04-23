@@ -45,9 +45,9 @@ export const generateVerificationCode = (length: number): number => {
 export const sendOTP = (async (req: Request, res: Response) => {
     const { phoneNumber, purpose, userType } = req.body;//phone number with country code
 
-    if (!phoneNumber || !userType) {
-        return res.status(400).json({ success: false, message: "phoneNumber, userType are required" });
-    }
+    // if (!phoneNumber || !userType) {
+    //     return res.status(400).json({ success: false, message: "phoneNumber, userType are required" });
+    // }
 
     let stepDuration = 4 * 60;
     if (purpose === "service") {
@@ -75,7 +75,7 @@ export const sendOTP = (async (req: Request, res: Response) => {
     });
 
     if (purpose !== "verifyPhone") {
-        const user = await UserModel.findOne({ phone: phoneNumber, userType: userType, isDeleted: false, });
+        const user = await UserModel.findOne({ phone: phoneNumber, isDeleted: false, });
         if (!user) {
             return sendErrorResponse(res, new ApiError(400, "User does not exist"));
         }

@@ -8,6 +8,22 @@ export interface IPurchaseSchema {
     userId: ObjectId;
     serviceId: ObjectId;
     paymentMethodId: string;
+    paymentMethodDetails: IPaymentMethodSchema;
+    stripeCustomerId: string;
+    lastPendingPaymentIntentId: string;
+    paymentIntentId: string;
+    currency: string;
+    amount: number;
+    status: string;
+    receipt_url: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+};
+export interface ICancellationFeeSchema {
+    userId: ObjectId;
+    serviceId: ObjectId;
+    paymentMethodId: string;
+    paymentMethodDetails: IPaymentMethodSchema;
     stripeCustomerId: string;
     lastPendingPaymentIntentId: string;
     paymentIntentId: string;
@@ -21,7 +37,8 @@ export interface IPurchaseSchema {
 export interface IPaymentMethodSchema {
     userId: ObjectId;
     paymentMethodId: string;
-    last4: number;
+    stripeCustomerId: string;
+    last4: string;
     brand: string;
     exp_month: number;
     exp_year: number;
@@ -30,15 +47,6 @@ export interface IPaymentMethodSchema {
     createdAt?: Date;
     updatedAt?: Date;
 };
-
-export interface IPaymentMethod {
-    stripe_payment_method_id: string;
-    last4: string;
-    brand: string;
-    exp_month: number;
-    exp_year: number;
-    is_default: boolean;
-}
 
 export interface IUser extends Document {
     _id: string | ObjectId;
@@ -169,6 +177,7 @@ export interface IServiceSchema extends Document {
     updatedAt?: Date;
     acceptedAt?: Date;
     cancelledBy: ObjectId;
+    cancellationReason: string;
 };
 
 export interface IDerivedQuestion {

@@ -154,6 +154,9 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
         type: Schema.Types.ObjectId,
         ref: "user"
     },
+    cancellationReason : {
+        type: String,
+    },
     isDeleted: {
         type: Boolean,
         default: false,

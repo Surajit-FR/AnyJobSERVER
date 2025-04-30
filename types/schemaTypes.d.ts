@@ -4,6 +4,50 @@ export interface IGeoJSONPoint {
     coordinates: [string, string]; // [longitude, latitude]
 }
 
+export interface IPurchaseSchema {
+    userId: ObjectId;
+    serviceId: ObjectId;
+    paymentMethodId: string;
+    paymentMethodDetails: IPaymentMethodSchema;
+    stripeCustomerId: string;
+    lastPendingPaymentIntentId: string;
+    paymentIntentId: string;
+    currency: string;
+    amount: number;
+    status: string;
+    receipt_url: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+};
+export interface ICancellationFeeSchema {
+    userId: ObjectId;
+    serviceId: ObjectId;
+    paymentMethodId: string;
+    paymentMethodDetails: IPaymentMethodSchema;
+    stripeCustomerId: string;
+    lastPendingPaymentIntentId: string;
+    paymentIntentId: string;
+    currency: string;
+    amount: number;
+    status: string;
+    receipt_url: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+};
+export interface IPaymentMethodSchema {
+    userId: ObjectId;
+    paymentMethodId: string;
+    stripeCustomerId: string;
+    last4: string;
+    brand: string;
+    exp_month: number;
+    exp_year: number;
+    is_default: boolean;
+    isDeleted: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
+};
+
 export interface IUser extends Document {
     _id: string | ObjectId;
     fullName: string;
@@ -12,7 +56,6 @@ export interface IUser extends Document {
     email: string;
     phone: string;
     dob: Date;
-    rawPassword: string;
     oldPassword: string;
     password: string;
     avatar: string;
@@ -21,6 +64,8 @@ export interface IUser extends Document {
     userType: string;
     refreshToken?: string;
     fcmToken?: string;
+    stripeCustomerId?: string;
+    paymentMethodId?: string;
     isPasswordCorrect(password: string): Promise<boolean>;
     generateAccessToken(): string;
     generateRefreshToken(): string;
@@ -77,6 +122,7 @@ export interface ICategorySchema extends Document {
     _id: ObjectId;
     name: string;
     categoryImage: string;
+    serviceCost: string;
     categoryType: string;
     owner: ObjectId;
     isDeleted: boolean;
@@ -126,11 +172,13 @@ export interface IServiceSchema extends Document {
     userId: ObjectId;
     answerArray: Array<any>;
     requestProgress: string;
-    useMyCurrentLocation:boolean,
+    useMyCurrentLocation: boolean,
     isDeleted: boolean;
     createdAt?: Date;
     updatedAt?: Date;
-    cancelledBy:ObjectId;
+    acceptedAt?: Date;
+    cancelledBy: ObjectId;
+    cancellationReason: string;
 };
 
 export interface IDerivedQuestion {
@@ -190,9 +238,11 @@ export interface IOTPSchema extends Document {
     email: string;
     otp: string;
     secret: string;
+    twilioSid: string;
     createdAt?: Date;
     expiredAt: Date;
     updatedAt?: Date;
+    isVerified?: boolean;
 };
 
 export interface IRatingSchema extends Document {
@@ -309,6 +359,7 @@ export interface IAppReviewSchema {
     createdAt?: Date;
     updatedAt?: Date;
 };
+
 
 
 

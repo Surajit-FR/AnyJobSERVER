@@ -77,9 +77,6 @@ const UserSchema = new mongoose_1.Schema({
         type: String,
         // required: [true, "Password is required"],
     },
-    rawPassword: {
-        type: String,
-    },
     oldPassword: {
         type: String,
         // required: [true, "Password is required"],
@@ -89,6 +86,11 @@ const UserSchema = new mongoose_1.Schema({
         default: "",
         required: false,
     },
+    userType: {
+        type: String,
+        enum: ["SuperAdmin", "ServiceProvider", "Customer", "FieldAgent", "TeamLead", "Admin", "Finance"],
+        default: ""
+    },
     coverImage: {
         type: String,
     },
@@ -96,10 +98,12 @@ const UserSchema = new mongoose_1.Schema({
         type: Boolean,
         default: false
     },
-    userType: {
+    stripeCustomerId: {
         type: String,
-        enum: ["SuperAdmin", "ServiceProvider", "Customer", "FieldAgent", "TeamLead", "Admin", "Finance"],
         default: ""
+    },
+    paymentMethodId: {
+        type: String,
     },
     refreshToken: {
         type: String,
@@ -157,12 +161,12 @@ UserSchema.methods.generateAccessToken = function () {
         phone: this.phone,
         username: this.username,
         fullName: this.fullName,
-    }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: process.env.ACCESS_TOKEN_EXPIRY });
+    }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: 31536000 });
 };
 UserSchema.methods.generateRefreshToken = function () {
     return jsonwebtoken_1.default.sign({
         _id: this._id
-    }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: process.env.REFRESH_TOKEN_EXPIRY });
+    }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: 864000 });
 };
 //adding geospatial index
 UserSchema.index({ geoLocation: "2dsphere" });

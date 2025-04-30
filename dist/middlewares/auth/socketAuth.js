@@ -19,7 +19,7 @@ const user_model_1 = __importDefault(require("../../models/user.model"));
 const socketAuthMiddleware = (socket, next) => {
     const JWT_SECRET = process.env.ACCESS_TOKEN_SECRET;
     const token = socket.handshake.headers.accesstoken || socket.handshake.auth.accessToken;
-    console.log(token);
+    // console.log(token);
     if (!token) {
         return next(new Error("Authentication error: No token provided"));
     }

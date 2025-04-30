@@ -10,12 +10,13 @@ import { sendErrorResponse } from "./response";
 import cardValidator from 'card-validator';
 import UserPreferenceModel from "../models/userPreference.model";
 import mongoose from "mongoose";
+import { createCustomerIfNotExists } from "../controller/stripe.controller";
 
 
 
-export const generateRandomPassword = (length = 10): string => {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$!";
-    return Array.from({ length }, () => chars.charAt(Math.floor(Math.random() * chars.length))).join("");
+export const generatePasswordFromFirstName = (firstName: string): string => {
+    if (!firstName) return "User@123"; // Default fallback password
+    return `${firstName.charAt(0).toUpperCase()}${firstName.slice(1).toLowerCase()}@123`;
 };
 
 
@@ -32,7 +33,7 @@ export const addUser = async (userData: IRegisterCredentials) => {
             throw new ApiError(409, "User with phone already exists");
         }
     }
-    
+
     if (email) {
         const existingEmail = await UserModel.findOne({ email });
         if (existingEmail) {
@@ -41,7 +42,7 @@ export const addUser = async (userData: IRegisterCredentials) => {
     }
 
     if (!password || (email && phone)) {
-        password = generateRandomPassword();
+        password = generatePasswordFromFirstName(firstName);
     }
     generatedPass = password;
     // Generate a random password
@@ -54,7 +55,6 @@ export const addUser = async (userData: IRegisterCredentials) => {
         lastName,
         email,
         password,
-        rawPassword: password,        
         userType,
         phone,
         avatar
@@ -92,7 +92,6 @@ export const addUser = async (userData: IRegisterCredentials) => {
             notificationPreference: true
         }
         const UserPreferenceSet = await new UserPreferenceModel(UserPreference).save();
-
     }
 
 
@@ -104,12 +103,19 @@ export const addUser = async (userData: IRegisterCredentials) => {
         await sendMail(to, subject, html);
     }
 
+    //add as stripe customer
+    if (userType === 'ServiceProvider' || userType === 'Customer') {
+        await createCustomerIfNotExists((newUser._id).toString())
+    }
+
     return savedUser;
 };
 
 export const CheckJWTTokenExpiration = async (req: Request, res: Response) => {
     try {
         let token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
+        console.log(token, "given token");
+
 
         if (!token) {
             console.log("Token is missing or empty");
@@ -130,8 +136,8 @@ export const CheckJWTTokenExpiration = async (req: Request, res: Response) => {
         if (remainingTimeInSeconds <= 0) {
             return res.status(200).json({ isExpired: true, remainingTimeInSeconds: 0 });
         }
-
         return res.status(200).json({ isExpired: false, remainingTimeInSeconds });
+
     } catch (error: any) {
         console.error("Error checking token expiration:", error.message);
         return sendErrorResponse(res, new ApiError(500, "Internal Server Error"));

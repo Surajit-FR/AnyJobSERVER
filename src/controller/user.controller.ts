@@ -1,4 +1,3 @@
-import fs from 'fs';
 import { Request, Response } from "express";
 import UserModel from "../models/user.model";
 import AddressModel from "../models/address.model";
@@ -13,8 +12,16 @@ import mongoose from 'mongoose';
 import { deleteUploadedFiles } from '../middlewares/multer.middleware';
 import IPLog from '../models/IP.model';
 import BankDetails from '../models/bankDetails.model';
+import PaymentMethodModel from "../models/paymentMethod.model";
 import { getCardType } from '../utils/auth';
 import UserPreferenceModel from '../models/userPreference.model';
+import PurchaseModel from '../models/purchase.model';
+import WalletModel from "../models/wallet.model";
+import { STRIPE_SECRET_KEY } from "../config/config";
+import Stripe from "stripe";
+const stripe = new Stripe(STRIPE_SECRET_KEY, {
+    apiVersion: '2024-09-30.acacia' as any,
+});
 
 
 // get loggedin user
@@ -789,6 +796,74 @@ export const verifyServiceProvider = asyncHandler(async (req: Request, res: Resp
         return sendErrorResponse(res, new ApiError(400, "Service Provider not found."));
     }
 
+    const additionalInfo = await additionalInfoModel.findOne({ userId: serviceProviderId })
+
+    if (isVerified && results.userType === "ServiceProvider") {
+        const userWallet = await WalletModel.findOne({ userId: results?._id });
+
+        if (userWallet?.stripeConnectedAccountId) {
+            return res.status(200).json({
+                message: 'Account already exists',
+            });
+        }
+
+        const dob = results?.dob;
+        if (!dob || !(dob instanceof Date)) {
+            return res.status(400).json({ error: 'Invalid date of birth' });
+        }
+
+        const accountParams: Stripe.AccountCreateParams = {
+            type: 'custom',
+            country: 'US',
+            email: results?.email,
+            business_type: 'individual',
+            capabilities: {
+                transfers: { requested: true },
+            },
+            individual: {
+                first_name: results?.firstName,
+                last_name: results?.lastName,
+                email: results?.email,
+                phone: results?.phone.slice(3),
+                ssn_last_4: additionalInfo?.socialSecurity,
+                dob: {
+                    day: dob.getDate(),
+                    month: dob.getMonth() + 1,
+                    year: dob.getFullYear(),
+                },
+            },
+            business_profile: {
+                url: 'https://your-test-business.com',
+                mcc: '5818',
+            },
+            external_account: 'btok_us_verified',
+            tos_acceptance: {
+                date: Math.floor(Date.now() / 1000),
+                ip: req.ip || '127.0.0.1',
+            },
+        };
+
+        const account = await stripe.accounts.create(accountParams);
+
+        await stripe.accounts.update(account.id, {
+            settings: {
+                payouts: {
+                    schedule: {
+                        interval: 'manual',
+                    },
+                },
+            },
+        });
+
+        await new WalletModel({
+            userId: results?._id,
+            stripeConnectedAccountId: account.id,
+            balance: 0,
+        }).save();
+
+        console.log("Stripe account created successfully:", account.id);
+    }
+
     const message = isVerified
         ? "Service Provider profile verified successfully."
         : "Service Provider profile made unverified.";
@@ -1249,3 +1324,86 @@ export const updateUserPreference = asyncHandler(async (req: CustomRequest, res:
 
     return sendSuccessResponse(res, 200, updatedUserPreference, "User preference updated successfully");
 });
+
+// GET /api/payment-methods
+export const getPaymentMethods = async (req: CustomRequest, res: Response) => {
+    try {
+        const userId = req.user?._id;
+
+        const paymentMethodDetails = await PaymentMethodModel.find({ userId })
+
+        if (!paymentMethodDetails) {
+            return res.status(404).json({ message: 'Payment Method not found' });
+        }
+
+        return sendSuccessResponse(res, 200,
+            paymentMethodDetails,
+            "Payment Method found successfully");
+
+    } catch (error) {
+        console.error('Error fetching payment methods:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+export const getCustomersTransaction = async (req: CustomRequest, res: Response) => {
+    try {
+        const userId = req.user?._id;
+
+        const transactionsDetails = await PurchaseModel.aggregate([
+            {
+                $match: {
+                    userId: userId
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    foreignField: "_id",
+                    localField: "userId",
+                    as: "userDetails"
+                }
+            },
+            {
+                $unwind: {
+                    preserveNullAndEmptyArrays: true,
+                    path: "$userDetails"
+                }
+            },
+            {
+                $addFields: {
+                    userName: { $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"] },
+                    userImage: "$userDetails.avatar"
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    userId: 1,
+                    userName:1,
+                    userImage:1,
+                    serviceId: 1,
+                    paymentMethodDetails: 1,
+                    paymentIntentId: 1,
+                    currency: 1,
+                    amount: 1,
+                    status: 1,
+                    createdAt: 1,
+                    updatedAt: 1,
+                }
+            }
+        ])
+
+        if (!transactionsDetails) {
+            return res.status(404).json({ message: 'No transaction was found' });
+        }
+
+        return sendSuccessResponse(res, 200,
+            transactionsDetails,
+            "Transaction history fetched successfully");
+
+    } catch (error) {
+        console.error('Error fetching payment methods:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};

@@ -39,26 +39,15 @@ export const generateVerificationCode = (length: number): number => {
     return Math.floor(min + Math.random() * (max - min + 1));
 };
 
-// Function to update Auth Token
-async function updateAuthTokenPromotion() {
-    try {
-        console.log("token promotion runs");
 
-        const authTokenPromotion = await client.accounts.v1.authTokenPromotion().update();
-        console.log("Updated Twilio Auth Token for account:", authTokenPromotion);
-
-        // Reinitialize Twilio client with updated token
-        let newAccountSid = authTokenPromotion.accountSid;
-        let newAuthToken = authTokenPromotion.authToken!;
-        client = twilio(newAccountSid, newAuthToken);
-    } catch (error) {
-        console.error("Failed to update Twilio Auth Token:", error);
-    }
-}
 
 //send otp
 export const sendOTP = (async (req: Request, res: Response) => {
-    const { phoneNumber, purpose } = req.body;//phone number with country code
+    const { phoneNumber, purpose, userType } = req.body;//phone number with country code
+
+    // if (!phoneNumber || !userType) {
+    //     return res.status(400).json({ success: false, message: "phoneNumber, userType are required" });
+    // }
 
     let stepDuration = 4 * 60;
     if (purpose === "service") {
@@ -86,7 +75,7 @@ export const sendOTP = (async (req: Request, res: Response) => {
     });
 
     if (purpose !== "verifyPhone") {
-        const user = await UserModel.findOne({ phone: phoneNumber, isDeleted: false });
+        const user = await UserModel.findOne({ phone: phoneNumber, isDeleted: false, });
         if (!user) {
             return sendErrorResponse(res, new ApiError(400, "User does not exist"));
         }

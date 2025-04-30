@@ -99,6 +99,10 @@ const ServiceSchema = new mongoose_1.Schema({
         type: Boolean,
         default: false
     },
+    acceptedAt: {
+        type: Date,
+        default: null
+    },
     startedAt: {
         type: Date,
         default: null
@@ -122,11 +126,6 @@ const ServiceSchema = new mongoose_1.Schema({
     tipAmount: {
         type: Number,
         default: 0,
-    },
-    isApproved: {
-        type: String,
-        enum: ["Pending", "Approved", "Rejected"],
-        default: "Pending"
     },
     isReqAcceptedByServiceProvider: {
         type: Boolean,
@@ -171,6 +170,9 @@ const ServiceSchema = new mongoose_1.Schema({
     cancelledBy: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "user"
+    },
+    cancellationReason: {
+        type: String,
     },
     isDeleted: {
         type: Boolean,

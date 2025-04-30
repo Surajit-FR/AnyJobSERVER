@@ -1,10 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FIREBASE_UNIVERSE_DOMAIN = exports.FIREBASE_CLIENT_CERT_URL = exports.FIREBASE_AUTH_PROVIDER_CERT_URL = exports.FIREBASE_TOKEN_URI = exports.FIREBASE_AUTH_URI = exports.FIREBASE_CLIENT_ID = exports.FIREBASE_CLIENT_EMAIL = exports.FIREBASE_PRIVATE_KEY = exports.FIREBASE_PRIVATE_KEY_ID = exports.FIREBASE_PROJECT_ID = exports.FIREBASE_TYPE = exports.GOOGLE_API_KEY = exports.SMTP_PASS = exports.SMTP_USER = exports.SMTP_SECURE = exports.SMTP_PORT = exports.SMTP_HOST = exports.TWILIO_PHONE_NUMBER = exports.TWILIO_AUTH_TOKEN = exports.TWILIO_ACCOUNT_SID = exports.CLOUDINARY_API_SECRET = exports.CLOUDINARY_API_KEY = exports.CLOUDINARY_CLOUD_NAME = void 0;
+exports.STRIPE_WEBHOOK_SECRET = exports.STRIPE_SECRET_KEY = exports.FIREBASE_UNIVERSE_DOMAIN = exports.FIREBASE_CLIENT_CERT_URL = exports.FIREBASE_AUTH_PROVIDER_CERT_URL = exports.FIREBASE_TOKEN_URI = exports.FIREBASE_AUTH_URI = exports.FIREBASE_CLIENT_ID = exports.FIREBASE_CLIENT_EMAIL = exports.FIREBASE_PRIVATE_KEY = exports.FIREBASE_PRIVATE_KEY_ID = exports.FIREBASE_PROJECT_ID = exports.FIREBASE_TYPE = exports.GOOGLE_API_KEY = exports.SMTP_PASS = exports.SMTP_USER = exports.SMTP_SECURE = exports.SMTP_PORT = exports.SMTP_HOST = exports.TWILIO_PHONE_NUMBER = exports.TWILIO_AUTH_TOKEN = exports.TWILIO_ACCOUNT_SID = exports.CLOUDINARY_API_SECRET = exports.CLOUDINARY_API_KEY = exports.CLOUDINARY_CLOUD_NAME = void 0;
 exports.CLOUDINARY_CLOUD_NAME = "dhj5yyosd";
 exports.CLOUDINARY_API_KEY = "165417273536245";
 exports.CLOUDINARY_API_SECRET = "bhadtrccRbIK7TG6EjqNyr2Zc6Q";
-exports.TWILIO_ACCOUNT_SID = "AC27e2012ed6ed7e8ba69b0193fa18081a";
+exports.TWILIO_ACCOUNT_SID = "";
 exports.TWILIO_AUTH_TOKEN = "";
 exports.TWILIO_PHONE_NUMBER = "+18286722687";
 exports.SMTP_HOST = "live.smtp.mailtrap.io";
@@ -24,3 +24,5 @@ exports.FIREBASE_TOKEN_URI = "https://oauth2.googleapis.com/token";
 exports.FIREBASE_AUTH_PROVIDER_CERT_URL = "https://www.googleapis.com/oauth2/v1/certs";
 exports.FIREBASE_CLIENT_CERT_URL = "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-zg0by%40anyjob-6ae3d.iam.gserviceaccount.com";
 exports.FIREBASE_UNIVERSE_DOMAIN = "googleapis.com";
+exports.STRIPE_SECRET_KEY = '';
+exports.STRIPE_WEBHOOK_SECRET = '';

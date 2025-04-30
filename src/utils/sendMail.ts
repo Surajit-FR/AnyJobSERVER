@@ -17,10 +17,10 @@ var transporter = nodemailer.createTransport({
     host: "sandbox.smtp.mailtrap.io",
     port: 2525,
     auth: {
-      user: "19024c0621b3e6",
-      pass: "c1a5ae6cf88e23"
+        user: "19024c0621b3e6",
+        pass: "c1a5ae6cf88e23"
     }
-  });
+});
 
 export const sendMail = async (to: string, subject: string, html?: string) => {
     try {

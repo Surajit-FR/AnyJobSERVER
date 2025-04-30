@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateUserPreference = exports.addBankDetails = exports.getIpLogs = exports.updateUser = exports.fetchIPlogs = exports.getAgentEngagementStatus = exports.assignTeamLead = exports.fetchAssociates = exports.banUser = exports.verifyServiceProvider = exports.getSingleUser = exports.getUsers = exports.getAdminUsersList = exports.getRegisteredCustomerList = exports.getServiceProviderList = exports.addAdditionalInfo = exports.addAddress = exports.getUser = void 0;
+exports.getCustomersTransaction = exports.getPaymentMethods = exports.updateUserPreference = exports.addBankDetails = exports.getIpLogs = exports.updateUser = exports.fetchIPlogs = exports.getAgentEngagementStatus = exports.assignTeamLead = exports.fetchAssociates = exports.banUser = exports.verifyServiceProvider = exports.getSingleUser = exports.getUsers = exports.getAdminUsersList = exports.getRegisteredCustomerList = exports.getServiceProviderList = exports.addAdditionalInfo = exports.addAddress = exports.getUser = void 0;
 const user_model_1 = __importDefault(require("../models/user.model"));
 const address_model_1 = __importDefault(require("../models/address.model"));
 const userAdditionalInfo_model_1 = __importDefault(require("../models/userAdditionalInfo.model"));
@@ -25,8 +25,16 @@ const mongoose_1 = __importDefault(require("mongoose"));
 const multer_middleware_1 = require("../middlewares/multer.middleware");
 const IP_model_1 = __importDefault(require("../models/IP.model"));
 const bankDetails_model_1 = __importDefault(require("../models/bankDetails.model"));
+const paymentMethod_model_1 = __importDefault(require("../models/paymentMethod.model"));
 const auth_1 = require("../utils/auth");
 const userPreference_model_1 = __importDefault(require("../models/userPreference.model"));
+const purchase_model_1 = __importDefault(require("../models/purchase.model"));
+const wallet_model_1 = __importDefault(require("../models/wallet.model"));
+const config_1 = require("../config/config");
+const stripe_1 = __importDefault(require("stripe"));
+const stripe = new stripe_1.default(config_1.STRIPE_SECRET_KEY, {
+    apiVersion: '2024-09-30.acacia',
+});
 // get loggedin user
 exports.getUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
@@ -692,6 +700,65 @@ exports.verifyServiceProvider = (0, asyncHandler_1.asyncHandler)((req, res) => _
     if (!results) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service Provider not found."));
     }
+    const additionalInfo = yield userAdditionalInfo_model_1.default.findOne({ userId: serviceProviderId });
+    if (isVerified && results.userType === "ServiceProvider") {
+        const userWallet = yield wallet_model_1.default.findOne({ userId: results === null || results === void 0 ? void 0 : results._id });
+        if (userWallet === null || userWallet === void 0 ? void 0 : userWallet.stripeConnectedAccountId) {
+            return res.status(200).json({
+                message: 'Account already exists',
+            });
+        }
+        const dob = results === null || results === void 0 ? void 0 : results.dob;
+        if (!dob || !(dob instanceof Date)) {
+            return res.status(400).json({ error: 'Invalid date of birth' });
+        }
+        const accountParams = {
+            type: 'custom',
+            country: 'US',
+            email: results === null || results === void 0 ? void 0 : results.email,
+            business_type: 'individual',
+            capabilities: {
+                transfers: { requested: true },
+            },
+            individual: {
+                first_name: results === null || results === void 0 ? void 0 : results.firstName,
+                last_name: results === null || results === void 0 ? void 0 : results.lastName,
+                email: results === null || results === void 0 ? void 0 : results.email,
+                phone: results === null || results === void 0 ? void 0 : results.phone.slice(3),
+                ssn_last_4: additionalInfo === null || additionalInfo === void 0 ? void 0 : additionalInfo.socialSecurity,
+                dob: {
+                    day: dob.getDate(),
+                    month: dob.getMonth() + 1,
+                    year: dob.getFullYear(),
+                },
+            },
+            business_profile: {
+                url: 'https://your-test-business.com',
+                mcc: '5818',
+            },
+            external_account: 'btok_us_verified',
+            tos_acceptance: {
+                date: Math.floor(Date.now() / 1000),
+                ip: req.ip || '127.0.0.1',
+            },
+        };
+        const account = yield stripe.accounts.create(accountParams);
+        yield stripe.accounts.update(account.id, {
+            settings: {
+                payouts: {
+                    schedule: {
+                        interval: 'manual',
+                    },
+                },
+            },
+        });
+        yield new wallet_model_1.default({
+            userId: results === null || results === void 0 ? void 0 : results._id,
+            stripeConnectedAccountId: account.id,
+            balance: 0,
+        }).save();
+        console.log("Stripe account created successfully:", account.id);
+    }
     const message = isVerified
         ? "Service Provider profile verified successfully."
         : "Service Provider profile made unverified.";
@@ -1084,3 +1151,78 @@ exports.updateUserPreference = (0, asyncHandler_1.asyncHandler)((req, res) => __
     ;
     return (0, response_1.sendSuccessResponse)(res, 200, updatedUserPreference, "User preference updated successfully");
 }));
+// GET /api/payment-methods
+const getPaymentMethods = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    try {
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+        const paymentMethodDetails = yield paymentMethod_model_1.default.find({ userId });
+        if (!paymentMethodDetails) {
+            return res.status(404).json({ message: 'Payment Method not found' });
+        }
+        return (0, response_1.sendSuccessResponse)(res, 200, paymentMethodDetails, "Payment Method found successfully");
+    }
+    catch (error) {
+        console.error('Error fetching payment methods:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+exports.getPaymentMethods = getPaymentMethods;
+const getCustomersTransaction = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    try {
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+        const transactionsDetails = yield purchase_model_1.default.aggregate([
+            {
+                $match: {
+                    userId: userId
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    foreignField: "_id",
+                    localField: "userId",
+                    as: "userDetails"
+                }
+            },
+            {
+                $unwind: {
+                    preserveNullAndEmptyArrays: true,
+                    path: "$userDetails"
+                }
+            },
+            {
+                $addFields: {
+                    userName: { $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"] },
+                    userImage: "$userDetails.avatar"
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    userId: 1,
+                    userName: 1,
+                    userImage: 1,
+                    serviceId: 1,
+                    paymentMethodDetails: 1,
+                    paymentIntentId: 1,
+                    currency: 1,
+                    amount: 1,
+                    status: 1,
+                    createdAt: 1,
+                    updatedAt: 1,
+                }
+            }
+        ]);
+        if (!transactionsDetails) {
+            return res.status(404).json({ message: 'No transaction was found' });
+        }
+        return (0, response_1.sendSuccessResponse)(res, 200, transactionsDetails, "Transaction history fetched successfully");
+    }
+    catch (error) {
+        console.error('Error fetching payment methods:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+exports.getCustomersTransaction = getCustomersTransaction;

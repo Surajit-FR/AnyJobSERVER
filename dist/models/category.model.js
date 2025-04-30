@@ -37,9 +37,12 @@ const CategorySchema = new mongoose_1.Schema({
         type: String,
         default: "",
     },
+    serviceCost: {
+        type: String,
+    },
     categoryType: {
         type: String,
-        enum: ["Regular", "Sessional "],
+        enum: ["Regular", "Sessional"],
         default: "Regular",
     },
     isDeleted: {

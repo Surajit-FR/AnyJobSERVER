@@ -14,8 +14,8 @@ import { deleteUploadedFiles } from "../middlewares/multer.middleware";
 
 // addCategory controller
 export const addCategory = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const { name }: IAddCategoryPayloadReq = req.body;
-
+    
+    const { name, serviceCost }: IAddCategoryPayloadReq = req.body;
 
     const trimmedName = name.trim();
     const existingCategory = await CategoryModel.findOne({ name: { $regex: new RegExp(`^${trimmedName}$`, 'i') } });
@@ -44,8 +44,9 @@ export const addCategory = asyncHandler(async (req: CustomRequest, res: Response
     const newCategory = await CategoryModel.create({
         name: trimmedName,
         categoryImage: catImg?.secure_url,
+        serviceCost,
         owner: req.user?._id,
-    });
+    });    
 
     if (!newCategory) {
         return sendErrorResponse(res, new ApiError(500, "Something went wrong while adding the Category."));
@@ -121,7 +122,11 @@ export const getCategories = asyncHandler(async (req: Request, res: Response) =>
 export const updateCategory = asyncHandler(async (req: Request, res: Response) => {
     const { CategoryId } = req.params;
     const { name, serviceCost }: { name: string, serviceCost: string } = req.body;
+<<<<<<< HEAD
     console.log(req.body);
+=======
+    console.log(req.body);    
+>>>>>>> simran
     if (!CategoryId) {
         return sendErrorResponse(res, new ApiError(400, "Category ID is required."));
     };

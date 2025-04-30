@@ -12,7 +12,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fetchServiceAddressHistory = exports.getCompletedService = exports.fetchAssignedserviceProvider = exports.totalJobCount = exports.assignJob = exports.getJobByStatusByAgent = exports.getJobByStatus = exports.getServiceRequestByStatus = exports.fetchAssociatedCustomer = exports.fetchSingleServiceRequest = exports.fetchNearByServiceProvider = exports.fetchServiceRequest = exports.deleteService = exports.handleServiceRequestState = exports.addorUpdateIncentive = exports.cancelServiceRequest = exports.getAcceptedServiceRequestInJobQueue = exports.getServiceRequestList = exports.addService = void 0;
+exports.fetchIncentiveDetails = exports.fetchServiceAddressHistory = exports.getCompletedService = exports.fetchAssignedserviceProvider = exports.totalJobCount = exports.assignJob = exports.getJobByStatusByAgent = exports.getJobByStatus = exports.getServiceRequestByStatus = exports.fetchAssociatedCustomer = exports.fetchSingleServiceRequest = exports.fetchNearByServiceProvider = exports.fetchServiceRequest = exports.deleteService = exports.handleServiceRequestState = exports.addorUpdateIncentive = exports.cancelServiceRequest = exports.getAcceptedServiceRequestInJobQueue = exports.getServiceRequestList = exports.addService = void 0;
+exports.isCancellationFeeApplicable = isCancellationFeeApplicable;
 const service_model_1 = __importDefault(require("../models/service.model"));
 const address_model_1 = __importDefault(require("../models/address.model"));
 const ApisErrors_1 = require("../utils/ApisErrors");
@@ -25,6 +26,32 @@ const user_model_1 = __importDefault(require("../models/user.model"));
 const axios_1 = __importDefault(require("axios"));
 const sendPushNotification_1 = require("../utils/sendPushNotification");
 const testFcm = "fVSB8tntRb2ufrLcySfGxs:APA91bH3CCLoxCPSmRuTo4q7j0aAxWLCdu6WtAdBWogzo79j69u8M_qFwcNygw7LIGrLYBXFqz2SUZI-4js8iyHxe12BMe-azVy2v7d22o4bvxy2pzTZ4kE";
+<<<<<<< HEAD
+=======
+//is cancellation fee is applicable or not
+function isCancellationFeeApplicable(serviceId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let serviceDeatils = yield service_model_1.default.findById(serviceId);
+        let requestProgress = '', isCancellationFeeApplicable = false;
+        requestProgress = (serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.requestProgress) || '';
+        var serviceAcceptedAt = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.acceptedAt;
+        if (requestProgress === "Pending" || requestProgress === "CancelledBySP") {
+            const givenTimestamp = serviceAcceptedAt && new Date(serviceAcceptedAt);
+            const currentTimestamp = new Date();
+            const diffInMilliseconds = givenTimestamp && (currentTimestamp.getTime() - givenTimestamp.getTime());
+            const diffInHours = diffInMilliseconds && diffInMilliseconds / (1000 * 60 * 60);
+            // console.log(diffInHours, " ");
+            if (diffInHours && diffInHours > 24) {
+                isCancellationFeeApplicable = true;
+            }
+        }
+        else if (requestProgress === "Started" || requestProgress === "Completed" || requestProgress === "CancelledByFA") {
+            isCancellationFeeApplicable = true;
+        }
+        return isCancellationFeeApplicable;
+    });
+}
+>>>>>>> simran
 // addService controller
 exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c, _d, _e, _f, _g, _h;
@@ -211,7 +238,7 @@ exports.getServiceRequestList = (0, asyncHandler_1.asyncHandler)((req, res) => _
         { $unwind: '$userId' },
         { $match: searchQuery },
         { $count: 'total' },
-        { $sort: { createdAt: -1 } }
+        { $sort: { updatedAt: -1 } }
     ]);
     const total = ((_a = totalRecords[0]) === null || _a === void 0 ? void 0 : _a.total) || 0;
     // console.log(total);
@@ -227,10 +254,24 @@ exports.getServiceRequestList = (0, asyncHandler_1.asyncHandler)((req, res) => _
 // get accepted ServiceRequest controller
 exports.getAcceptedServiceRequestInJobQueue = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
+<<<<<<< HEAD
     const { page = '1', limit = '10' } = req.query;
     const pageNumber = parseInt(page, 10) || 1;
     const limitNumber = parseInt(limit, 10) || 10;
     const skip = (pageNumber - 1) * limitNumber;
+=======
+    console.log(yield isCancellationFeeApplicable("67d27d035ddbaf78d6bea182"));
+    const { page = '1', limit = '10', query = '', } = req.query;
+    const pageNumber = parseInt(page, 10) || 1;
+    const limitNumber = parseInt(limit, 10) || 10;
+    const skip = (pageNumber - 1) * limitNumber;
+    const searchQuery = Object.assign({ isUserBanned: false }, (query && {
+        $or: [
+            { customerName: { $regex: query, $options: "i" } },
+            { requestProgress: { $regex: query, $options: "i" } },
+        ]
+    }));
+>>>>>>> simran
     const results = yield service_model_1.default.aggregate([
         {
             $match: {
@@ -304,11 +345,20 @@ exports.getAcceptedServiceRequestInJobQueue = (0, asyncHandler_1.asyncHandler)((
                 updatedAt: 1
             }
         },
+<<<<<<< HEAD
         {
             $match: {
                 isUserBanned: false
             }
         },
+=======
+        // {
+        //     $match: {
+        //         isUserBanned: false
+        //     }
+        // },
+        { $match: searchQuery },
+>>>>>>> simran
         { $skip: skip },
         { $limit: limitNumber },
         { $sort: { updatedAt: 1 } }
@@ -323,17 +373,26 @@ exports.getAcceptedServiceRequestInJobQueue = (0, asyncHandler_1.asyncHandler)((
 // updateService controller by customer
 exports.cancelServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c, _d, _e, _f, _g, _h;
-    const { requestProgress, serviceId } = req.body;
+    const { requestProgress, serviceId, cancellationReason } = req.body;
+    console.log(req.body);
     if (!serviceId || !requestProgress) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service ID and request progress is required."));
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service ID and request progress are required."));
     }
-    ;
+    const serviceDetails = yield service_model_1.default.findById(serviceId);
+    if (!serviceDetails) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, "Service not found."));
+    }
+    let isChragesAppicable = yield isCancellationFeeApplicable(serviceId);
+    if (isChragesAppicable) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service cancelled after 24 hours. A cancellation fee of 25% will be charged."));
+    }
     const updatedService = yield service_model_1.default.findOneAndUpdate({ _id: new mongoose_1.default.Types.ObjectId(serviceId), userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id }, {
         $set: {
             requestProgress: "Blocked",
-            cancelledBy: (_b = req.user) === null || _b === void 0 ? void 0 : _b._id
-            // serviceProviderId:null,
-            // assignedAgentId:null
+            cancelledBy: (_b = req.user) === null || _b === void 0 ? void 0 : _b._id,
+            cancellationReason: cancellationReason,
+            serviceProviderId: null,
+            assignedAgentId: null
         }
     }, { new: true });
     if (!updatedService) {
@@ -343,7 +402,7 @@ exports.cancelServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __
     if (updatedService.serviceProviderId) {
         const userFcm = ((_c = req.user) === null || _c === void 0 ? void 0 : _c.fcmToken) || "";
         const notiTitle = "Service Requested Cancelled by Customer ";
-        const notiBody = ` ${(_e = (_d = req.user) === null || _d === void 0 ? void 0 : _d.firstName) !== null && _e !== void 0 ? _e : "User"} ${(_g = (_f = req.user) === null || _f === void 0 ? void 0 : _f.lastName) !== null && _g !== void 0 ? _g : ""} has cancelled the service request`;
+        const notiBody = `${(_e = (_d = req.user) === null || _d === void 0 ? void 0 : _d.firstName) !== null && _e !== void 0 ? _e : "User"} ${(_g = (_f = req.user) === null || _f === void 0 ? void 0 : _f.lastName) !== null && _g !== void 0 ? _g : ""} has cancelled the service request`;
         const notiData1 = {
             senderId: (_h = req.user) === null || _h === void 0 ? void 0 : _h._id,
             receiverId: updatedService.serviceProviderId,
@@ -375,7 +434,11 @@ exports.addorUpdateIncentive = (0, asyncHandler_1.asyncHandler)((req, res) => __
     return (0, response_1.sendSuccessResponse)(res, 200, "Incentive added for the service request.");
 }));
 exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+<<<<<<< HEAD
     var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z;
+=======
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12;
+>>>>>>> simran
     const userType = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userType;
     let userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
     const { serviceId } = req.params;
@@ -421,42 +484,93 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
         if (serviceRequest.requestProgress === "NotStarted" || serviceRequest.requestProgress === "CancelledBySP") {
             if (requestProgress === "Pending") {
                 updateData.requestProgress = "Pending";
+                updateData.acceptedAt = Date.now();
             }
             const notificationContent = `Your Service Request is accepted by ${(_d = (_c = req.user) === null || _c === void 0 ? void 0 : _c.firstName) !== null && _d !== void 0 ? _d : "User"} ${(_f = (_e = req.user) === null || _e === void 0 ? void 0 : _e.lastName) !== null && _f !== void 0 ? _f : ""}`;
             yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.userId.toString(), 
             // userId?.toString() as string,
             "Service Request Accepted", notificationContent, { senderId: (_g = req.user) === null || _g === void 0 ? void 0 : _g._id, receiverId: serviceRequest.userId, title: notificationContent, notificationType: "Service Accepted" });
         }
-        //if a service is in accepted mode  and CancelledByFA mode then one can start that service by assigning FA...
+        //if a service is in accepted mode or CancelledByFA mode then one can start that service by assigning FA...
         if ((serviceRequest.requestProgress === "Pending" || serviceRequest.requestProgress === "CancelledByFA") && requestProgress === "Started") {
             updateData.requestProgress = "Started";
             updateData.startedAt = new Date();
             const notificationContent = `${(_j = (_h = req.user) === null || _h === void 0 ? void 0 : _h.firstName) !== null && _j !== void 0 ? _j : "User"} ${(_l = (_k = req.user) === null || _k === void 0 ? void 0 : _k.lastName) !== null && _l !== void 0 ? _l : ""} has marked the job as started`;
+<<<<<<< HEAD
             yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.serviceProviderId.toString(), 
             // userId?.toString() as string,
             "Mark job as started", notificationContent, { senderId: (_m = req.user) === null || _m === void 0 ? void 0 : _m._id, receiverId: serviceRequest.serviceProviderId, title: notificationContent, notificationType: "Service Started" });
+=======
+            if (((_m = req.user) === null || _m === void 0 ? void 0 : _m.userType) === "ServiceProvider") {
+                yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.userId.toString(), 
+                // userId?.toString() as string,
+                "Mark job as started", notificationContent, { senderId: (_o = req.user) === null || _o === void 0 ? void 0 : _o._id, receiverId: serviceRequest.userId, title: notificationContent, notificationType: "Service Started" });
+            }
+            else if (((_p = req.user) === null || _p === void 0 ? void 0 : _p.userType) === "FieldAgent") {
+                yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.serviceProviderId.toString(), 
+                // userId?.toString() as string,
+                "Mark job as started", notificationContent, { senderId: (_q = req.user) === null || _q === void 0 ? void 0 : _q._id, receiverId: serviceRequest.serviceProviderId, title: notificationContent, notificationType: "Service Started" });
+                yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.userId.toString(), 
+                // userId?.toString() as string,
+                "Mark job as started", notificationContent, { senderId: (_r = req.user) === null || _r === void 0 ? void 0 : _r._id, receiverId: serviceRequest.userId, title: notificationContent, notificationType: "Service Started" });
+            }
+>>>>>>> simran
         }
         if (serviceRequest.requestProgress === "Started" && requestProgress === "Completed") {
             updateData.requestProgress = "Completed";
             updateData.completedAt = new Date();
+<<<<<<< HEAD
             const notificationContent = `${(_p = (_o = req.user) === null || _o === void 0 ? void 0 : _o.firstName) !== null && _p !== void 0 ? _p : "User"} ${(_r = (_q = req.user) === null || _q === void 0 ? void 0 : _q.lastName) !== null && _r !== void 0 ? _r : ""} has marked the job as completed`;
             yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.serviceProviderId.toString(), "Mark job as completed", notificationContent, { senderId: (_s = req.user) === null || _s === void 0 ? void 0 : _s._id, receiverId: serviceRequest.serviceProviderId, title: notificationContent, notificationType: "Service Completed" });
+=======
+            const notificationContent = `${(_t = (_s = req.user) === null || _s === void 0 ? void 0 : _s.firstName) !== null && _t !== void 0 ? _t : "User"} ${(_v = (_u = req.user) === null || _u === void 0 ? void 0 : _u.lastName) !== null && _v !== void 0 ? _v : ""} has marked the job as completed`;
+            if (((_w = req.user) === null || _w === void 0 ? void 0 : _w.userType) === "ServiceProvider") {
+                yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.userId.toString(), 
+                // userId?.toString() as string,
+                "Mark job as completed", notificationContent, { senderId: (_x = req.user) === null || _x === void 0 ? void 0 : _x._id, receiverId: serviceRequest.userId, title: notificationContent, notificationType: "Service Started" });
+            }
+            else if (((_y = req.user) === null || _y === void 0 ? void 0 : _y.userType) === "FieldAgent") {
+                yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.serviceProviderId.toString(), 
+                // userId?.toString() as string,
+                "Mark job as completed", notificationContent, { senderId: (_z = req.user) === null || _z === void 0 ? void 0 : _z._id, receiverId: serviceRequest.serviceProviderId, title: notificationContent, notificationType: "Service Started" });
+                yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.userId.toString(), 
+                // userId?.toString() as string,
+                "Mark job as completed", notificationContent, { senderId: (_0 = req.user) === null || _0 === void 0 ? void 0 : _0._id, receiverId: serviceRequest.userId, title: notificationContent, notificationType: "Service Started" });
+            }
+>>>>>>> simran
         }
     }
     if (serviceRequest.requestProgress !== "NotStarted" && requestProgress === "Cancelled") {
         if (userType === "ServiceProvider") {
             updateData.requestProgress = "CancelledBySP",
                 updateData.isReqAcceptedByServiceProvider = false;
+<<<<<<< HEAD
             updateData.cancelledBy = (_t = req.user) === null || _t === void 0 ? void 0 : _t._id;
+=======
+            updateData.cancelledBy = (_1 = req.user) === null || _1 === void 0 ? void 0 : _1._id;
+>>>>>>> simran
             updateData.serviceProviderId = null;
+            const notificationContent = `${(_3 = (_2 = req.user) === null || _2 === void 0 ? void 0 : _2.firstName) !== null && _3 !== void 0 ? _3 : "User"} ${(_5 = (_4 = req.user) === null || _4 === void 0 ? void 0 : _4.lastName) !== null && _5 !== void 0 ? _5 : ""} has marked the job as cancelled`;
+            yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.userId.toString(), 
+            // userId?.toString() as string,
+            "Mark job as cancelled", notificationContent, { senderId: (_6 = req.user) === null || _6 === void 0 ? void 0 : _6._id, receiverId: serviceRequest.userId, title: notificationContent, notificationType: "Service Started" });
         }
         if (userType === "FieldAgent") {
             updateData.requestProgress = "CancelledByFA",
+<<<<<<< HEAD
                 updateData.cancelledBy = (_u = req.user) === null || _u === void 0 ? void 0 : _u._id;
+=======
+                updateData.cancelledBy = (_7 = req.user) === null || _7 === void 0 ? void 0 : _7._id;
+>>>>>>> simran
             updateData.assignedAgentId = null;
+            const notificationContent = `${(_9 = (_8 = req.user) === null || _8 === void 0 ? void 0 : _8.firstName) !== null && _9 !== void 0 ? _9 : "User"} ${(_11 = (_10 = req.user) === null || _10 === void 0 ? void 0 : _10.lastName) !== null && _11 !== void 0 ? _11 : ""} has marked the job as cancelled`;
+            yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.serviceProviderId.toString(), "Mark job as cancelled", notificationContent, { senderId: (_12 = req.user) === null || _12 === void 0 ? void 0 : _12._id, receiverId: serviceRequest.serviceProviderId, title: notificationContent, notificationType: "Service Cancelled" });
         }
+<<<<<<< HEAD
         const notificationContent = `${(_w = (_v = req.user) === null || _v === void 0 ? void 0 : _v.firstName) !== null && _w !== void 0 ? _w : "User"} ${(_y = (_x = req.user) === null || _x === void 0 ? void 0 : _x.lastName) !== null && _y !== void 0 ? _y : ""} has marked the job as cancelled`;
         yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.serviceProviderId.toString(), "Mark job as cancelled", notificationContent, { senderId: (_z = req.user) === null || _z === void 0 ? void 0 : _z._id, receiverId: serviceRequest.serviceProviderId, title: notificationContent, notificationType: "Service Cancelled" });
+=======
+>>>>>>> simran
     }
     const updatedService = yield service_model_1.default.findByIdAndUpdate(serviceId, { $set: updateData }, { new: true });
     if (!updatedService) {
@@ -862,6 +976,7 @@ exports.fetchSingleServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) 
                 serviceProviderName: {
                     $concat: ["$serviceProviderId.firstName", " ", "$serviceProviderId.lastName"]
                 },
+                'serviceProviderID': "$serviceProviderId._id",
                 'serviceProviderEmail': "$serviceProviderId.email",
                 'serviceProviderAvatar': "$serviceProviderId.avatar",
                 'serviceProviderPhone': "$serviceProviderId.phone",
@@ -871,6 +986,7 @@ exports.fetchSingleServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) 
                 assignedAgentName: {
                     $concat: ["$assignedAgentId.firstName", " ", "$assignedAgentId.lastName"]
                 },
+                'assignedAgentID': "$assignedAgentId._id",
                 'assignedAgentEmail': "$assignedAgentId.email",
                 'assignedAgentAvatar': "$assignedAgentId.avatar",
                 'assignedAgentPhone': "$assignedAgentId.phone",
@@ -916,10 +1032,24 @@ exports.fetchAssociatedCustomer = fetchAssociatedCustomer;
 //get service request for customer
 exports.getServiceRequestByStatus = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
+<<<<<<< HEAD
     const { page = '1', limit = '10' } = req.query;
     const pageNumber = parseInt(page, 10) || 1;
     const limitNumber = parseInt(limit, 10) || 10;
     const skip = (pageNumber - 1) * limitNumber;
+=======
+    const { page = '1', limit = '10', query = '' } = req.query;
+    const pageNumber = parseInt(page, 10) || 1;
+    const limitNumber = parseInt(limit, 10) || 10;
+    const skip = (pageNumber - 1) * limitNumber;
+    const searchQuery = Object.assign({}, (query && {
+        $or: [
+            { requestProgress: { $regex: query, $options: "i" } },
+            { serviceAddress: { $regex: query, $options: "i" } },
+            { 'categoryId.name': { $regex: query, $options: "i" } },
+        ]
+    }));
+>>>>>>> simran
     const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
     const { requestProgress } = req.body;
     const progressFilter = requestProgress === "InProgress"
@@ -939,12 +1069,6 @@ exports.getServiceRequestByStatus = (0, asyncHandler_1.asyncHandler)((req, res) 
                 as: "categoryId"
             }
         },
-        // {
-        //     $unwind: {
-        //         // preserveNullAndEmptyArrays: true,
-        //         path: "$categoryId"
-        //     }
-        // },
         {
             $lookup: {
                 from: "users",
@@ -997,6 +1121,14 @@ exports.getServiceRequestByStatus = (0, asyncHandler_1.asyncHandler)((req, res) 
                         }
                     },
                     {
+                        $lookup: {
+                            from: "additionalinfos",
+                            foreignField: "userId",
+                            localField: "_id",
+                            as: "serviceProviderAdditionalInfo",
+                        }
+                    },
+                    {
                         $addFields: {
                             numberOfRatings: { $size: "$serviceProviderIdRatings" },
                             serviceProviderRatings: {
@@ -1005,7 +1137,8 @@ exports.getServiceRequestByStatus = (0, asyncHandler_1.asyncHandler)((req, res) 
                                     then: { $avg: "$serviceProviderIdRatings.rating" },
                                     else: 0
                                 }
-                            }
+                            },
+                            spBusinessImage: "$serviceProviderAdditionalInfo.businessImage",
                         }
                     }
                 ]
@@ -1070,6 +1203,7 @@ exports.getServiceRequestByStatus = (0, asyncHandler_1.asyncHandler)((req, res) 
                 'serviceProviderId.firstName': 1,
                 'serviceProviderId.lastName': 1,
                 'serviceProviderId.avatar': 1,
+                'serviceProviderId.spBusinessImage': 1,
                 'serviceProviderId.numberOfRatings': 1,
                 'serviceProviderId.serviceProviderRatings': 1,
                 'assignedAgentId.firstName': 1,
@@ -1080,6 +1214,9 @@ exports.getServiceRequestByStatus = (0, asyncHandler_1.asyncHandler)((req, res) 
                 createdAt: 1
             }
         },
+        { $match: searchQuery },
+        { $skip: skip },
+        { $limit: limitNumber },
         { $sort: { createdAt: -1 } },
     ]);
     const totalDocs = yield service_model_1.default.aggregate([{
@@ -1096,10 +1233,25 @@ exports.getServiceRequestByStatus = (0, asyncHandler_1.asyncHandler)((req, res) 
 //get service request for service provider
 exports.getJobByStatus = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
+<<<<<<< HEAD
     const { page = '1', limit = '10' } = req.query;
     const pageNumber = parseInt(page, 10) || 1;
     const limitNumber = parseInt(limit, 10) || 10;
     const skip = (pageNumber - 1) * limitNumber;
+=======
+    const { page = '1', limit = '10', query = '' } = req.query;
+    const pageNumber = parseInt(page, 10) || 1;
+    const limitNumber = parseInt(limit, 10) || 10;
+    const skip = (pageNumber - 1) * limitNumber;
+    const searchQuery = Object.assign({ isUserBanned: false }, (query && {
+        $or: [
+            { requestProgress: { $regex: query, $options: "i" } },
+            { categoryName: { $regex: query, $options: "i" } },
+            { customerFirstName: { $regex: query, $options: "i" } },
+            { 'assignedAgentId.firstName': { $regex: query, $options: "i" } },
+        ]
+    }));
+>>>>>>> simran
     const serviceProviderId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
     const { requestProgress } = req.body;
     const progressFilter = requestProgress === "Accepted"
@@ -1175,6 +1327,7 @@ exports.getJobByStatus = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
                 path: "$userId"
             }
         },
+        { $sort: { updatedAt: -1 } },
         {
             $project: {
                 _id: 1,
@@ -1197,6 +1350,7 @@ exports.getJobByStatus = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
             }
         },
         {
+<<<<<<< HEAD
             $match: {
                 isUserBanned: false
             }
@@ -1204,6 +1358,12 @@ exports.getJobByStatus = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
         { $skip: skip },
         { $limit: limitNumber },
         { $sort: { createdAt: -1 } },
+=======
+            $match: searchQuery
+        },
+        { $skip: skip },
+        { $limit: limitNumber },
+>>>>>>> simran
     ]);
     const totalRequest = results.length;
     return (0, response_1.sendSuccessResponse)(res, 200, {
@@ -1217,10 +1377,24 @@ exports.getJobByStatus = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
 exports.getJobByStatusByAgent = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
     // console.log(req.user?._id);
+<<<<<<< HEAD
     const { page = '1', limit = '10' } = req.query;
     const pageNumber = parseInt(page, 10) || 1;
     const limitNumber = parseInt(limit, 10) || 10;
     const skip = (pageNumber - 1) * limitNumber;
+=======
+    const { page = '1', limit = '10', query = '' } = req.query;
+    const pageNumber = parseInt(page, 10) || 1;
+    const limitNumber = parseInt(limit, 10) || 10;
+    const skip = (pageNumber - 1) * limitNumber;
+    const searchQuery = Object.assign({ isUserBanned: false }, (query && {
+        $or: [
+            { categoryName: { $regex: query, $options: "i" } },
+            { customerFirstName: { $regex: query, $options: "i" } },
+            { 'assignedAgentId.firstName': { $regex: query, $options: "i" } },
+        ]
+    }));
+>>>>>>> simran
     const assignedAgentId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
     const { requestProgress } = req.body;
     const progressFilter = requestProgress === "Assigned"
@@ -1313,9 +1487,13 @@ exports.getJobByStatusByAgent = (0, asyncHandler_1.asyncHandler)((req, res) => _
             }
         },
         {
+<<<<<<< HEAD
             $match: {
                 isUserBanned: false
             }
+=======
+            $match: searchQuery
+>>>>>>> simran
         },
         { $skip: skip },
         { $limit: limitNumber },
@@ -1481,48 +1659,6 @@ exports.getCompletedService = (0, asyncHandler_1.asyncHandler)((req, res) => __a
                 as: "categoryId"
             }
         },
-        // {
-        //     $unwind: {
-        //         // preserveNullAndEmptyArrays: true,
-        //         path: "$categoryId"
-        //     }
-        // },
-        // {
-        //     $lookup: {
-        //         from: "users",
-        //         foreignField: "_id",
-        //         localField: "userId",
-        //         as: "userId",
-        //         pipeline: [
-        //             {
-        //                 $lookup: {
-        //                     from: "ratings",
-        //                     foreignField: "ratedTo",
-        //                     localField: "_id",
-        //                     as: "customerRatings",
-        //                 }
-        //             },
-        //             {
-        //                 $addFields: {
-        //                     numberOfRatings: { $size: "$customerRatings" },
-        //                     customerAvgRating: {
-        //                         $cond: {
-        //                             if: { $gt: [{ $size: "$customerRatings" }, 0] },
-        //                             then: { $avg: "$customerRatings.rating" },
-        //                             else: 0
-        //                         }
-        //                     }
-        //                 }
-        //             }
-        //         ]
-        //     }
-        // },
-        // {
-        //     $unwind: {
-        //         preserveNullAndEmptyArrays: true,
-        //         path: "$userId"
-        //     }
-        // },
         {
             $lookup: {
                 from: "users",
@@ -1606,4 +1742,20 @@ exports.fetchServiceAddressHistory = (0, asyncHandler_1.asyncHandler)((req, res)
         }
     ]);
     return (0, response_1.sendSuccessResponse)(res, 200, { results, totalRequest: results.length }, "Unique service address history retrieved successfully.");
+}));
+//fetch incentive details
+exports.fetchIncentiveDetails = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+    const results = yield service_model_1.default.aggregate([
+        {
+            $match: {
+                isDeleted: false,
+                requestProgress: "Completed",
+                isIncentiveGiven: true,
+                serviceProviderId: userId
+            }
+        }
+    ]);
+    return (0, response_1.sendSuccessResponse)(res, 200, { results, totalRequest: results.length }, "Incentive details retrieved successfully.");
 }));

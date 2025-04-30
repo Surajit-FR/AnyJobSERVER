@@ -5,7 +5,7 @@ import AddressModel from "../models/address.model";
 import { ApiError } from "../utils/ApisErrors";
 import { sendErrorResponse, sendSuccessResponse } from "../utils/response";
 import { asyncHandler } from "../utils/asyncHandler";
-import mongoose, { ObjectId } from "mongoose";
+import mongoose from "mongoose";
 import { IAddServicePayloadReq } from "../../types/requests_responseType";
 import PermissionModel from "../models/permission.model";
 import TeamModel from "../models/teams.model";
@@ -14,9 +14,31 @@ import { PipelineStage } from 'mongoose';
 import axios from "axios";
 import { sendPushNotification } from "../utils/sendPushNotification";
 import { isNotificationPreferenceOn } from "../utils/auth";
-import { NotificationModel } from "../models/notification.model";
 
-const testFcm = "fVSB8tntRb2ufrLcySfGxs:APA91bH3CCLoxCPSmRuTo4q7j0aAxWLCdu6WtAdBWogzo79j69u8M_qFwcNygw7LIGrLYBXFqz2SUZI-4js8iyHxe12BMe-azVy2v7d22o4bvxy2pzTZ4kE"
+const testFcm = "fVSB8tntRb2ufrLcySfGxs:APA91bH3CCLoxCPSmRuTo4q7j0aAxWLCdu6WtAdBWogzo79j69u8M_qFwcNygw7LIGrLYBXFqz2SUZI-4js8iyHxe12BMe-azVy2v7d22o4bvxy2pzTZ4kE";
+
+//is cancellation fee is applicable or not
+export async function isCancellationFeeApplicable(serviceId: String) {
+    let serviceDeatils = await ServiceModel.findById(serviceId)
+    let requestProgress: String = '', isCancellationFeeApplicable = false;
+    requestProgress = serviceDeatils?.requestProgress || '';
+    var serviceAcceptedAt = serviceDeatils?.acceptedAt;
+
+    if (requestProgress === "Pending" || requestProgress === "CancelledBySP") {
+        const givenTimestamp = serviceAcceptedAt && new Date(serviceAcceptedAt);
+        const currentTimestamp = new Date();
+        const diffInMilliseconds = givenTimestamp && (currentTimestamp.getTime() - givenTimestamp.getTime());
+        const diffInHours = diffInMilliseconds && diffInMilliseconds / (1000 * 60 * 60);
+        // console.log(diffInHours, " ");
+
+        if (diffInHours && diffInHours > 24) {
+            isCancellationFeeApplicable = true
+        }
+    }
+    else if (requestProgress === "Started" || requestProgress === "Completed" || requestProgress === "CancelledByFA") { isCancellationFeeApplicable = true }
+
+    return isCancellationFeeApplicable;
+}
 
 
 
@@ -251,7 +273,7 @@ export const getServiceRequestList = asyncHandler(async (req: Request, res: Resp
         { $unwind: '$userId' },
         { $match: searchQuery },
         { $count: 'total' },
-        { $sort: { createdAt: -1 } }
+        { $sort: { updatedAt: -1 } }
     ]);
 
 
@@ -269,14 +291,25 @@ export const getServiceRequestList = asyncHandler(async (req: Request, res: Resp
     }, "All Service requests retrieved successfully.");
 });
 
+
 // get accepted ServiceRequest controller
 export const getAcceptedServiceRequestInJobQueue = asyncHandler(async (req: CustomRequest, res: Response) => {
+    console.log(await isCancellationFeeApplicable("67d27d035ddbaf78d6bea182"));
 
-    const { page = '1', limit = '10' } = req.query;
+    const { page = '1', limit = '10', query = '', } = req.query;
     const pageNumber = parseInt(page as string, 10) || 1;
     const limitNumber = parseInt(limit as string, 10) || 10;
     const skip = (pageNumber - 1) * limitNumber;
 
+    const searchQuery = {
+        isUserBanned: false,
+        ...(query && {
+            $or: [
+                { customerName: { $regex: query, $options: "i" } },
+                { requestProgress: { $regex: query, $options: "i" } },
+            ]
+        })
+    };
 
     const results = await ServiceModel.aggregate([
         {
@@ -353,11 +386,12 @@ export const getAcceptedServiceRequestInJobQueue = asyncHandler(async (req: Cust
 
             }
         },
-        {
-            $match: {
-                isUserBanned: false
-            }
-        },
+        // {
+        //     $match: {
+        //         isUserBanned: false
+        //     }
+        // },
+        { $match: searchQuery },
         { $skip: skip },
         { $limit: limitNumber },
         { $sort: { updatedAt: 1 } }
@@ -373,20 +407,33 @@ export const getAcceptedServiceRequestInJobQueue = asyncHandler(async (req: Cust
 
 // updateService controller by customer
 export const cancelServiceRequest = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const { requestProgress, serviceId }: { requestProgress: string, serviceId: string } = req.body;
+    const { requestProgress, serviceId, cancellationReason }: { requestProgress: string, serviceId: string, cancellationReason: string } = req.body;
+    console.log(req.body);
+
 
     if (!serviceId || !requestProgress) {
-        return sendErrorResponse(res, new ApiError(400, "Service ID and request progress is required."));
-    };
+        return sendErrorResponse(res, new ApiError(400, "Service ID and request progress are required."));
+    }
+
+    const serviceDetails = await ServiceModel.findById(serviceId);
+    if (!serviceDetails) {
+        return sendErrorResponse(res, new ApiError(404, "Service not found."));
+    }
+    let isChragesAppicable = await isCancellationFeeApplicable(serviceId);
+
+    if (isChragesAppicable) {
+        return sendErrorResponse(res, new ApiError(400, "Service cancelled after 24 hours. A cancellation fee of 25% will be charged."));
+    }
 
     const updatedService = await ServiceModel.findOneAndUpdate(
         { _id: new mongoose.Types.ObjectId(serviceId), userId: req.user?._id },
         {
             $set: {
                 requestProgress: "Blocked",
-                cancelledBy: req.user?._id
-                // serviceProviderId:null,
-                // assignedAgentId:null
+                cancelledBy: req.user?._id,
+                cancellationReason: cancellationReason,
+                serviceProviderId: null,
+                assignedAgentId: null
             }
         }, { new: true }
     );
@@ -397,7 +444,7 @@ export const cancelServiceRequest = asyncHandler(async (req: CustomRequest, res:
     if (updatedService.serviceProviderId) {
         const userFcm = req.user?.fcmToken || ""
         const notiTitle = "Service Requested Cancelled by Customer "
-        const notiBody = ` ${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has cancelled the service request`
+        const notiBody = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has cancelled the service request`
         const notiData1 = {
             senderId: req.user?._id,
             receiverId: updatedService.serviceProviderId,
@@ -489,6 +536,7 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
         if (serviceRequest.requestProgress === "NotStarted" || serviceRequest.requestProgress === "CancelledBySP") {
             if (requestProgress === "Pending") {
                 updateData.requestProgress = "Pending";
+                updateData.acceptedAt = Date.now();
             }
 
             const notificationContent = `Your Service Request is accepted by ${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""}`;
@@ -503,20 +551,39 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
             );
         }
 
-        //if a service is in accepted mode  and CancelledByFA mode then one can start that service by assigning FA...
+        //if a service is in accepted mode or CancelledByFA mode then one can start that service by assigning FA...
         if ((serviceRequest.requestProgress === "Pending" || serviceRequest.requestProgress === "CancelledByFA") && requestProgress === "Started") {
             updateData.requestProgress = "Started";
             updateData.startedAt = new Date();
 
             const notificationContent = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as started`;
 
-            await sendPushNotification(
-                serviceRequest?.serviceProviderId.toString() as string,
-                // userId?.toString() as string,
-                "Mark job as started",
-                notificationContent,
-                { senderId: req.user?._id, receiverId: serviceRequest.serviceProviderId, title: notificationContent, notificationType: "Service Started" }
-            );
+            if (req.user?.userType === "ServiceProvider") {
+                await sendPushNotification(
+                    serviceRequest?.userId.toString() as string,
+                    // userId?.toString() as string,
+                    "Mark job as started",
+                    notificationContent,
+                    { senderId: req.user?._id, receiverId: serviceRequest.userId, title: notificationContent, notificationType: "Service Started" }
+                );
+            } else if (req.user?.userType === "FieldAgent") {
+                await sendPushNotification(
+                    serviceRequest?.serviceProviderId.toString() as string,
+                    // userId?.toString() as string,
+                    "Mark job as started",
+                    notificationContent,
+                    { senderId: req.user?._id, receiverId: serviceRequest.serviceProviderId, title: notificationContent, notificationType: "Service Started" }
+                );
+                await sendPushNotification(
+                    serviceRequest?.userId.toString() as string,
+                    // userId?.toString() as string,
+                    "Mark job as started",
+                    notificationContent,
+                    { senderId: req.user?._id, receiverId: serviceRequest.userId, title: notificationContent, notificationType: "Service Started" }
+                );
+            }
+
+
         }
 
 
@@ -526,13 +593,31 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
 
             const notificationContent = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as completed`;
 
+            if (req.user?.userType === "ServiceProvider") {
+                await sendPushNotification(
+                    serviceRequest?.userId.toString() as string,
+                    // userId?.toString() as string,
+                    "Mark job as completed",
+                    notificationContent,
+                    { senderId: req.user?._id, receiverId: serviceRequest.userId, title: notificationContent, notificationType: "Service Started" }
+                );
+            } else if (req.user?.userType === "FieldAgent") {
+                await sendPushNotification(
+                    serviceRequest?.serviceProviderId.toString() as string,
+                    // userId?.toString() as string,
+                    "Mark job as completed",
+                    notificationContent,
+                    { senderId: req.user?._id, receiverId: serviceRequest.serviceProviderId, title: notificationContent, notificationType: "Service Started" }
+                );
+                await sendPushNotification(
+                    serviceRequest?.userId.toString() as string,
+                    // userId?.toString() as string,
+                    "Mark job as completed",
+                    notificationContent,
+                    { senderId: req.user?._id, receiverId: serviceRequest.userId, title: notificationContent, notificationType: "Service Started" }
+                );
+            }
 
-            await sendPushNotification(
-                serviceRequest?.serviceProviderId.toString() as string,
-                "Mark job as completed",
-                notificationContent,
-                { senderId: req.user?._id, receiverId: serviceRequest.serviceProviderId, title: notificationContent, notificationType: "Service Completed" }
-            );
         }
     }
 
@@ -542,21 +627,33 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
                 updateData.isReqAcceptedByServiceProvider = false;
             updateData.cancelledBy = req.user?._id;
             updateData.serviceProviderId = null
+
+            const notificationContent = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as cancelled`;
+
+            await sendPushNotification(
+                serviceRequest?.userId.toString() as string,
+                // userId?.toString() as string,
+                "Mark job as cancelled",
+                notificationContent,
+                { senderId: req.user?._id, receiverId: serviceRequest.userId, title: notificationContent, notificationType: "Service Started" }
+            );
         }
         if (userType === "FieldAgent") {
             updateData.requestProgress = "CancelledByFA",
                 updateData.cancelledBy = req.user?._id;
             updateData.assignedAgentId = null;
+
+            const notificationContent = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as cancelled`;
+
+            await sendPushNotification(
+                serviceRequest?.serviceProviderId.toString() as string,
+                "Mark job as cancelled",
+                notificationContent,
+                { senderId: req.user?._id, receiverId: serviceRequest.serviceProviderId, title: notificationContent, notificationType: "Service Cancelled" }
+            );
         }
 
-        const notificationContent = `${req.user?.firstName ?? "User"} ${req.user?.lastName ?? ""} has marked the job as cancelled`;
 
-        await sendPushNotification(
-            serviceRequest?.serviceProviderId.toString() as string,
-            "Mark job as cancelled",
-            notificationContent,
-            { senderId: req.user?._id, receiverId: serviceRequest.serviceProviderId, title: notificationContent, notificationType: "Service Cancelled" }
-        );
     }
 
     const updatedService = await ServiceModel.findByIdAndUpdate(serviceId, { $set: updateData }, { new: true });
@@ -688,7 +785,6 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
                 $or: [
                     { requestProgress: "NotStarted" },
                     { requestProgress: "CancelledBySP" },
-
                 ]
             }
         },
@@ -756,7 +852,6 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
                 userAvtar: '$userId.avatar',
                 isUserBanned: '$userId.isDeleted',
                 createdAt: 1
-
             }
         },
         {
@@ -1006,6 +1101,7 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
                 serviceProviderName: {
                     $concat: ["$serviceProviderId.firstName", " ", "$serviceProviderId.lastName"]
                 },
+                'serviceProviderID': "$serviceProviderId._id",
                 'serviceProviderEmail': "$serviceProviderId.email",
                 'serviceProviderAvatar': "$serviceProviderId.avatar",
                 'serviceProviderPhone': "$serviceProviderId.phone",
@@ -1015,6 +1111,7 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
                 assignedAgentName: {
                     $concat: ["$assignedAgentId.firstName", " ", "$assignedAgentId.lastName"]
                 },
+                'assignedAgentID': "$assignedAgentId._id",
                 'assignedAgentEmail': "$assignedAgentId.email",
                 'assignedAgentAvatar': "$assignedAgentId.avatar",
                 'assignedAgentPhone': "$assignedAgentId.phone",
@@ -1066,11 +1163,20 @@ export const fetchAssociatedCustomer = async (serviceId: string) => {
 
 //get service request for customer
 export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest, res: Response) => {
-    const { page = '1', limit = '10' } = req.query;
+    const { page = '1', limit = '10', query = '' } = req.query;
     const pageNumber = parseInt(page as string, 10) || 1;
     const limitNumber = parseInt(limit as string, 10) || 10;
     const skip = (pageNumber - 1) * limitNumber;
 
+    const searchQuery = {
+        ...(query && {
+            $or: [
+                { requestProgress: { $regex: query, $options: "i" } },
+                { serviceAddress: { $regex: query, $options: "i" } },
+                { 'categoryId.name': { $regex: query, $options: "i" } },
+            ]
+        })
+    };
 
     const userId = req.user?._id
     const { requestProgress } = req.body;
@@ -1096,12 +1202,6 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
                 as: "categoryId"
             }
         },
-        // {
-        //     $unwind: {
-        //         // preserveNullAndEmptyArrays: true,
-        //         path: "$categoryId"
-        //     }
-        // },
         {
             $lookup: {
                 from: "users",
@@ -1154,6 +1254,15 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
                         }
                     },
                     {
+                        $lookup: {
+                            from: "additionalinfos",
+                            foreignField: "userId",
+                            localField: "_id",
+                            as: "serviceProviderAdditionalInfo",
+                        }
+
+                    },
+                    {
                         $addFields: {
                             numberOfRatings: { $size: "$serviceProviderIdRatings" },
                             serviceProviderRatings: {
@@ -1162,7 +1271,8 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
                                     then: { $avg: "$serviceProviderIdRatings.rating" },
                                     else: 0
                                 }
-                            }
+                            },
+                            spBusinessImage: "$serviceProviderAdditionalInfo.businessImage",
                         }
                     }
                 ]
@@ -1210,8 +1320,6 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
                 path: "$assignedAgentId"
             }
         },
-        { $skip: skip },
-        { $limit: limitNumber },
         {
             $project: {
                 _id: 1,
@@ -1227,6 +1335,7 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
                 'serviceProviderId.firstName': 1,
                 'serviceProviderId.lastName': 1,
                 'serviceProviderId.avatar': 1,
+                'serviceProviderId.spBusinessImage': 1,
                 'serviceProviderId.numberOfRatings': 1,
                 'serviceProviderId.serviceProviderRatings': 1,
                 'assignedAgentId.firstName': 1,
@@ -1235,9 +1344,11 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
                 'assignedAgentId.numberOfRatings': 1,
                 'assignedAgentId.filedAgentRatings': 1,
                 createdAt: 1
-
             }
         },
+        { $match: searchQuery },
+        { $skip: skip },
+        { $limit: limitNumber },
         { $sort: { createdAt: -1 } },
     ]);
 
@@ -1260,10 +1371,22 @@ export const getServiceRequestByStatus = asyncHandler(async (req: CustomRequest,
 //get service request for service provider
 export const getJobByStatus = asyncHandler(async (req: CustomRequest, res: Response) => {
 
-    const { page = '1', limit = '10' } = req.query;
+    const { page = '1', limit = '10', query = '' } = req.query;
     const pageNumber = parseInt(page as string, 10) || 1;
     const limitNumber = parseInt(limit as string, 10) || 10;
     const skip = (pageNumber - 1) * limitNumber;
+
+    const searchQuery = {
+        isUserBanned: false,
+        ...(query && {
+            $or: [
+                { requestProgress: { $regex: query, $options: "i" } },
+                { categoryName: { $regex: query, $options: "i" } },
+                { customerFirstName: { $regex: query, $options: "i" } },
+                { 'assignedAgentId.firstName': { $regex: query, $options: "i" } },
+            ]
+        })
+    };
 
 
     const serviceProviderId = req.user?._id
@@ -1346,6 +1469,7 @@ export const getJobByStatus = asyncHandler(async (req: CustomRequest, res: Respo
                 path: "$userId"
             }
         },
+        { $sort: { updatedAt: -1 } },
         {
             $project: {
                 _id: 1,
@@ -1370,14 +1494,10 @@ export const getJobByStatus = asyncHandler(async (req: CustomRequest, res: Respo
             }
         },
         {
-            $match: {
-                isUserBanned: false
-            }
+            $match: searchQuery
         },
         { $skip: skip },
         { $limit: limitNumber },
-        { $sort: { createdAt: -1 } },
-
     ]);
 
     const totalRequest = results.length;
@@ -1393,10 +1513,21 @@ export const getJobByStatus = asyncHandler(async (req: CustomRequest, res: Respo
 //get service request for field agent
 export const getJobByStatusByAgent = asyncHandler(async (req: CustomRequest, res: Response) => {
     // console.log(req.user?._id);
-    const { page = '1', limit = '10' } = req.query;
+    const { page = '1', limit = '10', query = '' } = req.query;
     const pageNumber = parseInt(page as string, 10) || 1;
     const limitNumber = parseInt(limit as string, 10) || 10;
     const skip = (pageNumber - 1) * limitNumber;
+
+    const searchQuery = {
+        isUserBanned: false,
+        ...(query && {
+            $or: [
+                { categoryName: { $regex: query, $options: "i" } },
+                { customerFirstName: { $regex: query, $options: "i" } },
+                { 'assignedAgentId.firstName': { $regex: query, $options: "i" } },
+            ]
+        })
+    };
 
     const assignedAgentId = req.user?._id
     const { requestProgress } = req.body;
@@ -1497,9 +1628,7 @@ export const getJobByStatusByAgent = asyncHandler(async (req: CustomRequest, res
             }
         },
         {
-            $match: {
-                isUserBanned: false
-            }
+            $match: searchQuery
         },
         { $skip: skip },
         { $limit: limitNumber },
@@ -1689,48 +1818,6 @@ export const getCompletedService = asyncHandler(async (req: CustomRequest, res: 
                 as: "categoryId"
             }
         },
-        // {
-        //     $unwind: {
-        //         // preserveNullAndEmptyArrays: true,
-        //         path: "$categoryId"
-        //     }
-        // },
-        // {
-        //     $lookup: {
-        //         from: "users",
-        //         foreignField: "_id",
-        //         localField: "userId",
-        //         as: "userId",
-        //         pipeline: [
-        //             {
-        //                 $lookup: {
-        //                     from: "ratings",
-        //                     foreignField: "ratedTo",
-        //                     localField: "_id",
-        //                     as: "customerRatings",
-        //                 }
-        //             },
-        //             {
-        //                 $addFields: {
-        //                     numberOfRatings: { $size: "$customerRatings" },
-        //                     customerAvgRating: {
-        //                         $cond: {
-        //                             if: { $gt: [{ $size: "$customerRatings" }, 0] },
-        //                             then: { $avg: "$customerRatings.rating" },
-        //                             else: 0
-        //                         }
-        //                     }
-        //                 }
-        //             }
-        //         ]
-        //     }
-        // },
-        // {
-        //     $unwind: {
-        //         preserveNullAndEmptyArrays: true,
-        //         path: "$userId"
-        //     }
-        // },
         {
             $lookup: {
                 from: "users",
@@ -1820,4 +1907,21 @@ export const fetchServiceAddressHistory = asyncHandler(async (req: CustomRequest
     ]);
 
     return sendSuccessResponse(res, 200, { results, totalRequest: results.length }, "Unique service address history retrieved successfully.");
+});
+
+
+//fetch incentive details
+export const fetchIncentiveDetails = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const userId = req.user?._id;
+    const results = await ServiceModel.aggregate([
+        {
+            $match: {
+                isDeleted: false,
+                requestProgress: "Completed",
+                isIncentiveGiven: true,
+                serviceProviderId: userId
+            }
+        }
+    ]);
+    return sendSuccessResponse(res, 200, { results, totalRequest: results.length }, "Incentive details retrieved successfully.");
 });

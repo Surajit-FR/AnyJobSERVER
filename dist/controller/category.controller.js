@@ -25,7 +25,7 @@ const multer_middleware_1 = require("../middlewares/multer.middleware");
 // addCategory controller
 exports.addCategory = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    const { name } = req.body;
+    const { name, serviceCost } = req.body;
     const trimmedName = name.trim();
     const existingCategory = yield category_model_1.default.findOne({ name: { $regex: new RegExp(`^${trimmedName}$`, 'i') } });
     if (existingCategory) {
@@ -47,6 +47,7 @@ exports.addCategory = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(v
     const newCategory = yield category_model_1.default.create({
         name: trimmedName,
         categoryImage: catImg === null || catImg === void 0 ? void 0 : catImg.secure_url,
+        serviceCost,
         owner: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id,
     });
     if (!newCategory) {

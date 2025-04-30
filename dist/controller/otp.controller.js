@@ -46,26 +46,12 @@ const generateVerificationCode = (length) => {
     return Math.floor(min + Math.random() * (max - min + 1));
 };
 exports.generateVerificationCode = generateVerificationCode;
-// Function to update Auth Token
-function updateAuthTokenPromotion() {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            console.log("token promotion runs");
-            const authTokenPromotion = yield client.accounts.v1.authTokenPromotion().update();
-            console.log("Updated Twilio Auth Token for account:", authTokenPromotion);
-            // Reinitialize Twilio client with updated token
-            let newAccountSid = authTokenPromotion.accountSid;
-            let newAuthToken = authTokenPromotion.authToken;
-            client = (0, twilio_1.default)(newAccountSid, newAuthToken);
-        }
-        catch (error) {
-            console.error("Failed to update Twilio Auth Token:", error);
-        }
-    });
-}
 //send otp
 exports.sendOTP = ((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { phoneNumber, purpose } = req.body; //phone number with country code
+    const { phoneNumber, purpose, userType } = req.body; //phone number with country code
+    // if (!phoneNumber || !userType) {
+    //     return res.status(400).json({ success: false, message: "phoneNumber, userType are required" });
+    // }
     let stepDuration = 4 * 60;
     if (purpose === "service") {
         stepDuration = 24 * 60 * 60;
@@ -85,7 +71,11 @@ exports.sendOTP = ((req, res) => __awaiter(void 0, void 0, void 0, function* () 
         to: phoneNumber,
     });
     if (purpose !== "verifyPhone") {
+<<<<<<< HEAD
         const user = yield user_model_1.default.findOne({ phone: phoneNumber, isDeleted: false });
+=======
+        const user = yield user_model_1.default.findOne({ phone: phoneNumber, isDeleted: false, });
+>>>>>>> simran
         if (!user) {
             return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "User does not exist"));
         }

@@ -391,7 +391,6 @@ exports.resetPassword = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
     ;
     // Update the password
     userDetails.password = req.body.password;
-    userDetails.rawPassword = req.body.password;
     yield userDetails.save();
     return (0, response_1.sendSuccessResponse)(res, 200, "Password reset successfull");
 }));

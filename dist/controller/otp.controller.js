@@ -71,11 +71,7 @@ exports.sendOTP = ((req, res) => __awaiter(void 0, void 0, void 0, function* () 
         to: phoneNumber,
     });
     if (purpose !== "verifyPhone") {
-<<<<<<< HEAD
-        const user = yield user_model_1.default.findOne({ phone: phoneNumber, isDeleted: false });
-=======
         const user = yield user_model_1.default.findOne({ phone: phoneNumber, isDeleted: false, });
->>>>>>> simran
         if (!user) {
             return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "User does not exist"));
         }

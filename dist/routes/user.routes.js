@@ -61,10 +61,7 @@ router.route('/fetch-query-messages').get((0, userAuth_1.verifyUserType)(["Super
 router.route('/delete-query-message/:messageId').delete((0, userAuth_1.verifyUserType)(["SuperAdmin",]), contactUs_controller_1.deleteQueryMessage);
 router.route('/update-user-preference').put((0, userAuth_1.verifyUserType)(['ServiceProvider', 'Customer', 'FieldAgent', 'TeamLead']), user_controller_1.updateUserPreference);
 router.route('/fetch-notifications').get((0, userAuth_1.verifyUserType)(["SuperAdmin", "ServiceProvider", "Customer", "Admin", "Finance", "FieldAgent", "TeamLead"]), notification_controller_1.getNotifications);
-<<<<<<< HEAD
-=======
 router.route('/fetch-incentive-details').get((0, userAuth_1.verifyUserType)(["SuperAdmin", "ServiceProvider"]), service_controller_1.fetchIncentiveDetails);
 router.route('/fetch-payment-method').get((0, userAuth_1.verifyUserType)(["SuperAdmin", "Customer"]), user_controller_1.getPaymentMethods);
 router.route('/fetch-transactions').get((0, userAuth_1.verifyUserType)(["SuperAdmin", "Customer"]), user_controller_1.getCustomersTransaction);
->>>>>>> simran
 exports.default = router;

@@ -8,28 +8,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-<<<<<<< HEAD
-=======
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
->>>>>>> simran
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getNotifications = void 0;
 const asyncHandler_1 = require("../utils/asyncHandler");
 const response_1 = require("../utils/response");
 const notification_model_1 = require("../models/notification.model");
-<<<<<<< HEAD
-exports.getNotifications = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
-    const results = yield notification_model_1.NotificationModel.aggregate([
-        {
-            $match: {
-                receiverId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id,
-            }
-        },
-        {
-=======
 const teams_model_1 = __importDefault(require("../models/teams.model"));
 exports.getNotifications = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c, _d, _e;
@@ -54,7 +40,6 @@ exports.getNotifications = (0, asyncHandler_1.asyncHandler)((req, res) => __awai
             $addFields: { serviceProviderId: serviceProviderId }
         },
         {
->>>>>>> simran
             $lookup: {
                 from: "users",
                 foreignField: "_id",
@@ -63,8 +48,6 @@ exports.getNotifications = (0, asyncHandler_1.asyncHandler)((req, res) => __awai
             }
         },
         {
-<<<<<<< HEAD
-=======
             $lookup: {
                 from: "additionalinfos",
                 foreignField: "userId",
@@ -73,17 +56,12 @@ exports.getNotifications = (0, asyncHandler_1.asyncHandler)((req, res) => __awai
             }
         },
         {
->>>>>>> simran
             $unwind: {
                 preserveNullAndEmptyArrays: true,
                 path: "$senderDetails"
             }
         },
         {
-<<<<<<< HEAD
-            $addFields: {
-                senderAvatar: "$senderDetails.avatar"
-=======
             $unwind: {
                 preserveNullAndEmptyArrays: true,
                 path: "$companyDetails"
@@ -93,7 +71,6 @@ exports.getNotifications = (0, asyncHandler_1.asyncHandler)((req, res) => __awai
             $addFields: {
                 senderAvatar: "$senderDetails.avatar",
                 senderCompanyImage: "$companyDetails.businessImage",
->>>>>>> simran
             }
         },
         {
@@ -102,10 +79,7 @@ exports.getNotifications = (0, asyncHandler_1.asyncHandler)((req, res) => __awai
                 title: 1,
                 createdAt: 1,
                 senderAvatar: 1,
-<<<<<<< HEAD
-=======
                 senderCompanyImage: 1,
->>>>>>> simran
             }
         }
     ]);

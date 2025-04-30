@@ -122,11 +122,7 @@ export const getCategories = asyncHandler(async (req: Request, res: Response) =>
 export const updateCategory = asyncHandler(async (req: Request, res: Response) => {
     const { CategoryId } = req.params;
     const { name, serviceCost }: { name: string, serviceCost: string } = req.body;
-<<<<<<< HEAD
-    console.log(req.body);
-=======
     console.log(req.body);    
->>>>>>> simran
     if (!CategoryId) {
         return sendErrorResponse(res, new ApiError(400, "Category ID is required."));
     };

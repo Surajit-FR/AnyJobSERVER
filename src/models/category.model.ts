@@ -14,9 +14,6 @@ const CategorySchema: Schema<ICategorySchema> = new Schema({
         type: String,
         default: "",
     },
-    serviceCost: {
-        type: String,
-    },
     categoryType: {
         type: String,
         enum: ["Regular", "Sessional"],

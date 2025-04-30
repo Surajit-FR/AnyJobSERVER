@@ -986,12 +986,6 @@ exports.fetchAssociatedCustomer = fetchAssociatedCustomer;
 //get service request for customer
 exports.getServiceRequestByStatus = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-<<<<<<< HEAD
-    const { page = '1', limit = '10' } = req.query;
-    const pageNumber = parseInt(page, 10) || 1;
-    const limitNumber = parseInt(limit, 10) || 10;
-    const skip = (pageNumber - 1) * limitNumber;
-=======
     const { page = '1', limit = '10', query = '' } = req.query;
     const pageNumber = parseInt(page, 10) || 1;
     const limitNumber = parseInt(limit, 10) || 10;
@@ -1003,7 +997,6 @@ exports.getServiceRequestByStatus = (0, asyncHandler_1.asyncHandler)((req, res) 
             { 'categoryId.name': { $regex: query, $options: "i" } },
         ]
     }));
->>>>>>> simran
     const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
     const { requestProgress } = req.body;
     const progressFilter = requestProgress === "InProgress"
@@ -1140,8 +1133,6 @@ exports.getServiceRequestByStatus = (0, asyncHandler_1.asyncHandler)((req, res) 
                 path: "$assignedAgentId"
             }
         },
-        { $skip: skip },
-        { $limit: limitNumber },
         {
             $project: {
                 _id: 1,
@@ -1187,12 +1178,6 @@ exports.getServiceRequestByStatus = (0, asyncHandler_1.asyncHandler)((req, res) 
 //get service request for service provider
 exports.getJobByStatus = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-<<<<<<< HEAD
-    const { page = '1', limit = '10' } = req.query;
-    const pageNumber = parseInt(page, 10) || 1;
-    const limitNumber = parseInt(limit, 10) || 10;
-    const skip = (pageNumber - 1) * limitNumber;
-=======
     const { page = '1', limit = '10', query = '' } = req.query;
     const pageNumber = parseInt(page, 10) || 1;
     const limitNumber = parseInt(limit, 10) || 10;
@@ -1205,7 +1190,6 @@ exports.getJobByStatus = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
             { 'assignedAgentId.firstName': { $regex: query, $options: "i" } },
         ]
     }));
->>>>>>> simran
     const serviceProviderId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
     const { requestProgress } = req.body;
     const progressFilter = requestProgress === "Accepted"
@@ -1304,20 +1288,10 @@ exports.getJobByStatus = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
             }
         },
         {
-<<<<<<< HEAD
-            $match: {
-                isUserBanned: false
-            }
-        },
-        { $skip: skip },
-        { $limit: limitNumber },
-        { $sort: { createdAt: -1 } },
-=======
             $match: searchQuery
         },
         { $skip: skip },
         { $limit: limitNumber },
->>>>>>> simran
     ]);
     const totalRequest = results.length;
     return (0, response_1.sendSuccessResponse)(res, 200, {
@@ -1331,12 +1305,6 @@ exports.getJobByStatus = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
 exports.getJobByStatusByAgent = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
     // console.log(req.user?._id);
-<<<<<<< HEAD
-    const { page = '1', limit = '10' } = req.query;
-    const pageNumber = parseInt(page, 10) || 1;
-    const limitNumber = parseInt(limit, 10) || 10;
-    const skip = (pageNumber - 1) * limitNumber;
-=======
     const { page = '1', limit = '10', query = '' } = req.query;
     const pageNumber = parseInt(page, 10) || 1;
     const limitNumber = parseInt(limit, 10) || 10;
@@ -1348,7 +1316,6 @@ exports.getJobByStatusByAgent = (0, asyncHandler_1.asyncHandler)((req, res) => _
             { 'assignedAgentId.firstName': { $regex: query, $options: "i" } },
         ]
     }));
->>>>>>> simran
     const assignedAgentId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
     const { requestProgress } = req.body;
     const progressFilter = requestProgress === "Assigned"
@@ -1441,13 +1408,7 @@ exports.getJobByStatusByAgent = (0, asyncHandler_1.asyncHandler)((req, res) => _
             }
         },
         {
-<<<<<<< HEAD
-            $match: {
-                isUserBanned: false
-            }
-=======
             $match: searchQuery
->>>>>>> simran
         },
         { $skip: skip },
         { $limit: limitNumber },

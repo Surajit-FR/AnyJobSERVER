@@ -10,7 +10,9 @@ const userAuth_1 = require("../middlewares/auth/userAuth");
 const socialAuth_1 = require("../middlewares/auth/socialAuth");
 const rateLimiter_middleware_1 = require("../middlewares/rateLimiter.middleware");
 const auth_1 = require("../utils/auth");
+const sendPushNotification_1 = require("../utils/sendPushNotification");
 const router = express_1.default.Router();
+router.route('/store-fcm-token').post(sendPushNotification_1.storeFcmToken);
 //sign-up
 router.route('/signup').post(rateLimiter_middleware_1.rateLimiter, multer_middleware_1.upload.fields([
     { name: "avatar", maxCount: 1 },
@@ -31,7 +33,7 @@ router.route('/refresh-token').post(rateLimiter_middleware_1.rateLimiter, auth_c
 router.route("/forget-password").post(auth_controller_1.forgetPassword);
 router.route("/reset-password").post(auth_controller_1.resetPassword);
 //check-token-expiration
-router.route("/check-token-expiration").get([userAuth_1.VerifyJWTToken], auth_1.CheckJWTTokenExpiration);
+router.route("/check-token-expiration").get(auth_1.CheckJWTTokenExpiration);
 //emial verification 
 router.route("/send-code-email").post(auth_controller_1.sendOTPEmail);
 exports.default = router;

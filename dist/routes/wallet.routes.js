@@ -4,14 +4,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const chat_controller_1 = require("../controller/chat.controller");
+const wallet_controller_1 = require("../controller/wallet.controller");
 const userAuth_1 = require("../middlewares/auth/userAuth");
 const router = express_1.default.Router();
-router.route('/fetch-chat-history')
-    .get(chat_controller_1.fetchChatHistory);
-router.route('/fetch-chat-list')
-    .get(chat_controller_1.fetchChatList);
-//Authorized chat routes...............
 router.use(userAuth_1.VerifyJWTToken);
-router.route('/get-unread-count').get(chat_controller_1.getUnreadMessageCount);
+router.route('/fetch-wallet-balance').get(wallet_controller_1.fetchWalletBalance);
+router.route('/fetch-transactions').get(wallet_controller_1.fetchTransaction);
 exports.default = router;

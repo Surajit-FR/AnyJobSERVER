@@ -142,12 +142,12 @@ exports.registerUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(
 exports.loginUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, password, userType, fcmToken, isAdminPanel } = req.body;
     // console.log(req.body.password, "password from body");
-    console.log(typeof (req.body.password));
+    // console.log(typeof (req.body.password));
     if (!email) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Email is required"));
     }
     ;
-    const user = yield user_model_1.default.findOne({ email });
+    const user = yield user_model_1.default.findOne({ email: email, isDeleted: false });
     if (!user) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "User does not exist"));
     }
@@ -391,7 +391,6 @@ exports.resetPassword = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
     ;
     // Update the password
     userDetails.password = req.body.password;
-    userDetails.rawPassword = req.body.password;
     yield userDetails.save();
     return (0, response_1.sendSuccessResponse)(res, 200, "Password reset successfull");
 }));

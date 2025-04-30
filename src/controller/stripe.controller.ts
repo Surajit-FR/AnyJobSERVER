@@ -35,6 +35,9 @@ export async function createCustomerIfNotExists(userId: string) {
 
 export const createCheckoutsession = async (req: CustomRequest, res: Response) => {
     console.log("checkout controller======>", req.body)
+    const attmpt = Buffer.from(req.body)
+    console.log("checkout controller buffer parse======>", attmpt.toJSON())
+
     const { amount, serviceId } = req.body;
     const userId = req.user?._id;
     const currency = 'usd'

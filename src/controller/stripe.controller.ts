@@ -75,6 +75,12 @@ export const createCheckoutsession = async (req: CustomRequest, res: Response) =
             allow_redisplay: 'always'
         },
 
+        payment_method_options: {
+            card: {
+                request_three_d_secure: 'any',
+            }
+        },
+
         metadata: {
             serviceId
         },
@@ -596,7 +602,7 @@ export const isTheFirstPurchase = async (req: CustomRequest, res: Response) => {
 //checkout session for service cancellation by customer
 export const createServiceCancellationCheckoutSession = async (req: CustomRequest, res: Response) => {
     try {
-        const { serviceId,cancellationReason } = req.body;
+        const { serviceId, cancellationReason } = req.body;
         const userId = req.user?._id;
         const amount = 10;
 
@@ -638,12 +644,12 @@ export const createServiceCancellationCheckoutSession = async (req: CustomReques
             },
             metadata: {
                 purpose: 'CancellationFee',
-                serviceId, 
-                cancellationReason,         
+                serviceId,
+                cancellationReason,
                 userId: userId?.toString()
             },
             success_url: 'https://frontend.theassure.co.uk/payment-success',
-            cancel_url: 'https://frontend.theassure.co.uk/payment-cancel',
+            cancel_url: 'https://frontend.theassure.co.uk/payment-error',
         } as Stripe.Checkout.SessionCreateParams);
 
         res.json({ url: session.url });

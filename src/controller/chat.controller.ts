@@ -4,12 +4,14 @@ import { sendSuccessResponse } from "../utils/response";
 import { asyncHandler } from "../utils/asyncHandler";
 import mongoose from "mongoose";
 import ChatListModel from "../models/chatList.model";
+import { CustomRequest } from "../../types/commonType";
 
 export const saveChatMessage = async (message: {
     fromUserId: string;
     toUserId: string;
     content: string;
     timestamp: Date;
+    isRead:boolean;
 }) => {
     const chat = new ChatModel(message);
     await chat.save();
@@ -170,3 +172,23 @@ export const fetchChatList = asyncHandler(async (req: Request, res: Response) =>
 });
 
 
+export const getUnreadMessageCount = async (req: CustomRequest, res: Response) => {
+    const userId = req.user?._id;
+    try {
+        const unreadCount = await ChatModel.countDocuments({
+            toUserId: userId,
+            isRead: false,
+        });       
+
+        return res.status(200).json({
+            success: true,
+            unreadCount,
+        });
+    } catch (error) {
+        console.error("Error fetching unread message count:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch unread messages count.",
+        });
+    }
+};

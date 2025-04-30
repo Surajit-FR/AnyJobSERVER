@@ -5,6 +5,9 @@ import { handleServiceRequestState, fetchAssociatedCustomer } from "../controlle
 import { saveChatMessage, updateChatList } from "../controller/chat.controller";
 import { emit } from "process";
 import axios from "axios";
+import { receiveMessageOnPort } from "worker_threads";
+import ChatModel from "../models/chat.model";
+
 
 
 
@@ -22,6 +25,7 @@ export const initSocket = (server: HttpServer) => {
     // Store connected customers
     const connectedCustomers: { [key: string]: string } = {};
     const connectedProviders: { [key: string]: string } = {};
+    const connectedAgent: { [key: string]: string } = {};
     const onlineUsers: { [userId: string]: boolean } = {};
 
 
@@ -34,7 +38,7 @@ export const initSocket = (server: HttpServer) => {
         // console.log({ usertype });
 
         const userToken = socket.handshake.headers.accesstoken || socket.handshake.auth.accessToken;
-        console.log(`A ${usertype} with userId ${userId} connected on socket ${socket.id}`);
+        // console.log(`A ${usertype} with userId ${userId} connected on socket ${socket.id}`);
 
         if (usertype === "Customer") {
             connectedCustomers[userId] = socket.id;
@@ -42,26 +46,23 @@ export const initSocket = (server: HttpServer) => {
             connectedProviders[userId] = socket.id;
             const serviceProvidersRoom = "ProvidersRoom";
             socket.join(serviceProvidersRoom);
-            console.log(`A Service Provider ${userId} joined to ${serviceProvidersRoom}`);
+            // console.log(`A Service Provider ${userId} joined to ${serviceProvidersRoom}`);
+        } else {
+            connectedAgent[userId] = socket.id;
         }
 
 
 
         socket.on("acceptServiceRequest", async (requestId: string) => {
-            console.log(`Service provider with _id ${userId} accepted the request ${requestId}`);
+            // console.log(`Service provider with _id ${userId} accepted the request ${requestId}`);
             //here the logic related with update service
             io.emit("requestInactive", requestId);
 
             //execute get single service request to get  associated userId
             const customerId = await fetchAssociatedCustomer(requestId);
 
-
-
-
-
-
             // Notify the customer that the service provider is on the way
-            console.log(connectedCustomers);
+            // console.log(connectedCustomers);
             if (customerId && connectedCustomers[customerId]) {
                 io.to(connectedCustomers[customerId]).emit("serviceProviderAccepted", {
                     message: `A service provider with userId ${userId} is on the way`,
@@ -77,7 +78,7 @@ export const initSocket = (server: HttpServer) => {
                         latitude: location.latitude,
                         longitude: location.longitude,
                     });
-                    console.log("Service provider location update =>");
+                    // console.log("Service provider location update =>");
 
                 }
             });
@@ -87,7 +88,7 @@ export const initSocket = (server: HttpServer) => {
         // update fetch nearby service requests list when service is accepted
         socket.on("updateNearbyServices", async () => {
             try {
-                console.log(`Fetching nearby service requests `);
+                // console.log(`Fetching nearby service requests `);
                 const date = new Date();
 
                 // Send the event back to the client
@@ -107,7 +108,7 @@ export const initSocket = (server: HttpServer) => {
         // update fetch nearby service requests list when service is assigned
         socket.on("serviceAssigned", async () => {
             try {
-                console.log(`Accepted service is assigned to field agent`);
+                // console.log(`Accepted service is assigned to field agent`);
                 const date = new Date();
 
                 // Send the event back to the client
@@ -132,43 +133,59 @@ export const initSocket = (server: HttpServer) => {
         // Handle chat messages
         socket.on("chatMessage", async (message: { toUserId: string; content: string }) => {
             const { toUserId, content } = message;
-        
+
             // Validate payload
             if (!toUserId || !content) {
                 return socket.emit("error", {
                     error: "Invalid payload: toUserId and content are required.",
                 });
             }
-        
+
             const now = new Date();
-        
+
             try {
+
+                // Identify recipient socket ID
+                const recipientSocketId =
+                    connectedProviders[toUserId] || connectedCustomers[toUserId] || connectedAgent[toUserId];
+
+
+                let isRead = false;
+
+                if (recipientSocketId) {
+                    // Recipient is online and will see the message now
+                    isRead = true;
+                }
+
                 // Save the chat message in the database
                 await saveChatMessage({
                     fromUserId: userId,
                     toUserId,
                     content,
+                    isRead,
                     timestamp: now,
                 });
-        
+
                 // Update chat lists for both users
                 await updateChatList(userId, toUserId, content, now);
                 await updateChatList(toUserId, userId, content, now);
-        
-                // Identify recipient socket ID
-                const recipientSocketId =
-                    connectedProviders[toUserId] || connectedCustomers[toUserId];
-        
+
+
+
                 if (recipientSocketId) {
                     console.log("Sending message to:", toUserId, "Socket ID:", recipientSocketId);
-        
+
                     io.to(recipientSocketId).emit("chatMessage", {
                         fromUserId: userId,
                         content,
                         timestamp: now,
                     });
-                } else {
-                    console.log("Recipient is not connected:", toUserId);
+
+                    io.to(recipientSocketId).emit("chatNotification", {
+                        fromUserId: userId,
+                        content,
+                        timestamp: now,
+                    });
                 }
             } catch (error) {
                 console.error("Error handling chatMessage:", error);
@@ -177,21 +194,35 @@ export const initSocket = (server: HttpServer) => {
                 });
             }
         });
-        
-   
+
+
+        // When a user opens a chat (marks messages as read)
+        socket.on('markMessagesRead', async ({ toUserId }) => {
+            try {
+                await ChatModel.updateMany(
+                    { toUserId, isRead: false },
+                    { $set: { isRead: true } }
+                );
+                console.log(`Marked messages as read for conversation: ${userId} `);
+            } catch (error) {
+                console.error("Error marking messages as read:", error);
+            }
+        });
+
+
         socket.on("disconnect", () => {
             // Mark user as offline
             const userId = socket.data.userId;
             if (userId) {
                 onlineUsers[userId] = false;
-                io.emit("userStatusUpdate", { userId, isOnline: false }); // Notify others about offline status
+                io.emit("userStatusUpdate", { userId, isOnline: false }); //Notify others about offline status
             }
 
             // Remove user from connected lists
             for (const customerId in connectedCustomers) {
                 if (connectedCustomers[customerId] === socket.id) {
                     delete connectedCustomers[customerId];
-                    console.log(`Customer ${customerId} disconnected`);
+                    // console.log(`Customer ${customerId} disconnected`);
                     break;
                 }
             }
@@ -199,11 +230,12 @@ export const initSocket = (server: HttpServer) => {
             for (const providerId in connectedProviders) {
                 if (connectedProviders[providerId] === socket.id) {
                     delete connectedProviders[providerId];
-                    console.log(`ServiceProvider ${providerId} disconnected`);
+                    // console.log(`ServiceProvider ${providerId} disconnected`);
                     break;
                 }
             }
         });
+
     });
 
     return io;

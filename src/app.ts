@@ -38,13 +38,13 @@ app.use(
     })
 );
 
-// ✅ 2. Raw Body Middleware for Stripe Webhook
-app.use("/stripe", express.raw({ type: "application/json" }), stripeRouter);
+// // ✅ 2. Raw Body Middleware for Stripe Webhook
+// app.use("/stripe", express.raw({ type: "application/json" }), stripeRouter);
 
 // ✅ 3. General Middleware 
 app.use(morgan("dev"));
 // ✅ 4. Regular API Routes (Stripe API but NOT webhook)
-app.use("/api/v1/stripe", stripeRouter);
+app.use("/api/v1/stripe", express.raw({ type: "application/json" }), stripeRouter);
 
 app.use(express.json({ limit: EXPRESS_CONFIG_LIMIT })); // JSON Parsing for Other Routes
 app.use(express.urlencoded({ extended: true, limit: EXPRESS_CONFIG_LIMIT }));

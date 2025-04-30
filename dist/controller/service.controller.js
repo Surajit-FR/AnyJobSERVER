@@ -26,8 +26,6 @@ const user_model_1 = __importDefault(require("../models/user.model"));
 const axios_1 = __importDefault(require("axios"));
 const sendPushNotification_1 = require("../utils/sendPushNotification");
 const testFcm = "fVSB8tntRb2ufrLcySfGxs:APA91bH3CCLoxCPSmRuTo4q7j0aAxWLCdu6WtAdBWogzo79j69u8M_qFwcNygw7LIGrLYBXFqz2SUZI-4js8iyHxe12BMe-azVy2v7d22o4bvxy2pzTZ4kE";
-<<<<<<< HEAD
-=======
 //is cancellation fee is applicable or not
 function isCancellationFeeApplicable(serviceId) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -51,7 +49,6 @@ function isCancellationFeeApplicable(serviceId) {
         return isCancellationFeeApplicable;
     });
 }
->>>>>>> simran
 // addService controller
 exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c, _d, _e, _f, _g, _h;
@@ -254,12 +251,6 @@ exports.getServiceRequestList = (0, asyncHandler_1.asyncHandler)((req, res) => _
 // get accepted ServiceRequest controller
 exports.getAcceptedServiceRequestInJobQueue = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-<<<<<<< HEAD
-    const { page = '1', limit = '10' } = req.query;
-    const pageNumber = parseInt(page, 10) || 1;
-    const limitNumber = parseInt(limit, 10) || 10;
-    const skip = (pageNumber - 1) * limitNumber;
-=======
     console.log(yield isCancellationFeeApplicable("67d27d035ddbaf78d6bea182"));
     const { page = '1', limit = '10', query = '', } = req.query;
     const pageNumber = parseInt(page, 10) || 1;
@@ -271,7 +262,6 @@ exports.getAcceptedServiceRequestInJobQueue = (0, asyncHandler_1.asyncHandler)((
             { requestProgress: { $regex: query, $options: "i" } },
         ]
     }));
->>>>>>> simran
     const results = yield service_model_1.default.aggregate([
         {
             $match: {
@@ -345,20 +335,12 @@ exports.getAcceptedServiceRequestInJobQueue = (0, asyncHandler_1.asyncHandler)((
                 updatedAt: 1
             }
         },
-<<<<<<< HEAD
-        {
-            $match: {
-                isUserBanned: false
-            }
-        },
-=======
         // {
         //     $match: {
         //         isUserBanned: false
         //     }
         // },
         { $match: searchQuery },
->>>>>>> simran
         { $skip: skip },
         { $limit: limitNumber },
         { $sort: { updatedAt: 1 } }
@@ -434,11 +416,7 @@ exports.addorUpdateIncentive = (0, asyncHandler_1.asyncHandler)((req, res) => __
     return (0, response_1.sendSuccessResponse)(res, 200, "Incentive added for the service request.");
 }));
 exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-<<<<<<< HEAD
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z;
-=======
     var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12;
->>>>>>> simran
     const userType = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userType;
     let userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
     const { serviceId } = req.params;
@@ -496,11 +474,6 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
             updateData.requestProgress = "Started";
             updateData.startedAt = new Date();
             const notificationContent = `${(_j = (_h = req.user) === null || _h === void 0 ? void 0 : _h.firstName) !== null && _j !== void 0 ? _j : "User"} ${(_l = (_k = req.user) === null || _k === void 0 ? void 0 : _k.lastName) !== null && _l !== void 0 ? _l : ""} has marked the job as started`;
-<<<<<<< HEAD
-            yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.serviceProviderId.toString(), 
-            // userId?.toString() as string,
-            "Mark job as started", notificationContent, { senderId: (_m = req.user) === null || _m === void 0 ? void 0 : _m._id, receiverId: serviceRequest.serviceProviderId, title: notificationContent, notificationType: "Service Started" });
-=======
             if (((_m = req.user) === null || _m === void 0 ? void 0 : _m.userType) === "ServiceProvider") {
                 yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.userId.toString(), 
                 // userId?.toString() as string,
@@ -514,15 +487,10 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
                 // userId?.toString() as string,
                 "Mark job as started", notificationContent, { senderId: (_r = req.user) === null || _r === void 0 ? void 0 : _r._id, receiverId: serviceRequest.userId, title: notificationContent, notificationType: "Service Started" });
             }
->>>>>>> simran
         }
         if (serviceRequest.requestProgress === "Started" && requestProgress === "Completed") {
             updateData.requestProgress = "Completed";
             updateData.completedAt = new Date();
-<<<<<<< HEAD
-            const notificationContent = `${(_p = (_o = req.user) === null || _o === void 0 ? void 0 : _o.firstName) !== null && _p !== void 0 ? _p : "User"} ${(_r = (_q = req.user) === null || _q === void 0 ? void 0 : _q.lastName) !== null && _r !== void 0 ? _r : ""} has marked the job as completed`;
-            yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.serviceProviderId.toString(), "Mark job as completed", notificationContent, { senderId: (_s = req.user) === null || _s === void 0 ? void 0 : _s._id, receiverId: serviceRequest.serviceProviderId, title: notificationContent, notificationType: "Service Completed" });
-=======
             const notificationContent = `${(_t = (_s = req.user) === null || _s === void 0 ? void 0 : _s.firstName) !== null && _t !== void 0 ? _t : "User"} ${(_v = (_u = req.user) === null || _u === void 0 ? void 0 : _u.lastName) !== null && _v !== void 0 ? _v : ""} has marked the job as completed`;
             if (((_w = req.user) === null || _w === void 0 ? void 0 : _w.userType) === "ServiceProvider") {
                 yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.userId.toString(), 
@@ -537,18 +505,13 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
                 // userId?.toString() as string,
                 "Mark job as completed", notificationContent, { senderId: (_0 = req.user) === null || _0 === void 0 ? void 0 : _0._id, receiverId: serviceRequest.userId, title: notificationContent, notificationType: "Service Started" });
             }
->>>>>>> simran
         }
     }
     if (serviceRequest.requestProgress !== "NotStarted" && requestProgress === "Cancelled") {
         if (userType === "ServiceProvider") {
             updateData.requestProgress = "CancelledBySP",
                 updateData.isReqAcceptedByServiceProvider = false;
-<<<<<<< HEAD
-            updateData.cancelledBy = (_t = req.user) === null || _t === void 0 ? void 0 : _t._id;
-=======
             updateData.cancelledBy = (_1 = req.user) === null || _1 === void 0 ? void 0 : _1._id;
->>>>>>> simran
             updateData.serviceProviderId = null;
             const notificationContent = `${(_3 = (_2 = req.user) === null || _2 === void 0 ? void 0 : _2.firstName) !== null && _3 !== void 0 ? _3 : "User"} ${(_5 = (_4 = req.user) === null || _4 === void 0 ? void 0 : _4.lastName) !== null && _5 !== void 0 ? _5 : ""} has marked the job as cancelled`;
             yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.userId.toString(), 
@@ -557,20 +520,11 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
         }
         if (userType === "FieldAgent") {
             updateData.requestProgress = "CancelledByFA",
-<<<<<<< HEAD
-                updateData.cancelledBy = (_u = req.user) === null || _u === void 0 ? void 0 : _u._id;
-=======
                 updateData.cancelledBy = (_7 = req.user) === null || _7 === void 0 ? void 0 : _7._id;
->>>>>>> simran
             updateData.assignedAgentId = null;
             const notificationContent = `${(_9 = (_8 = req.user) === null || _8 === void 0 ? void 0 : _8.firstName) !== null && _9 !== void 0 ? _9 : "User"} ${(_11 = (_10 = req.user) === null || _10 === void 0 ? void 0 : _10.lastName) !== null && _11 !== void 0 ? _11 : ""} has marked the job as cancelled`;
             yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.serviceProviderId.toString(), "Mark job as cancelled", notificationContent, { senderId: (_12 = req.user) === null || _12 === void 0 ? void 0 : _12._id, receiverId: serviceRequest.serviceProviderId, title: notificationContent, notificationType: "Service Cancelled" });
         }
-<<<<<<< HEAD
-        const notificationContent = `${(_w = (_v = req.user) === null || _v === void 0 ? void 0 : _v.firstName) !== null && _w !== void 0 ? _w : "User"} ${(_y = (_x = req.user) === null || _x === void 0 ? void 0 : _x.lastName) !== null && _y !== void 0 ? _y : ""} has marked the job as cancelled`;
-        yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.serviceProviderId.toString(), "Mark job as cancelled", notificationContent, { senderId: (_z = req.user) === null || _z === void 0 ? void 0 : _z._id, receiverId: serviceRequest.serviceProviderId, title: notificationContent, notificationType: "Service Cancelled" });
-=======
->>>>>>> simran
     }
     const updatedService = yield service_model_1.default.findByIdAndUpdate(serviceId, { $set: updateData }, { new: true });
     if (!updatedService) {

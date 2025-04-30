@@ -47,9 +47,6 @@ function createCustomerIfNotExists(userId) {
 // createCustomerIfNotExists('67ac773812c4396eb2f5d588')
 const createCheckoutsession = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    console.log("checkout controller======>", req.body);
-    const attmpt = Buffer.from(req.body);
-    console.log("checkout controller buffer parse======>", attmpt.toJSON());
     const { amount, serviceId } = req.body;
     const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
     const currency = 'usd';

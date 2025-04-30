@@ -20,6 +20,7 @@ import chatRouter from "./routes/chat.routes";
 import imageRouter from "./routes/upload.routes";
 import { removeStaleFcmTokens } from "../src/utils/sendPushNotification";
 import walletRouter from "./routes/wallet.routes";
+import webhookRouter from "./routes/webhook.routes";
 
 const app = express();
 
@@ -38,8 +39,8 @@ app.use(
     })
 );
 
-// // ✅ 2. Raw Body Middleware for Stripe Webhook
-// app.use("/stripe", express.raw({ type: "application/json" }), stripeRouter);
+// ✅ 2. Raw Body Middleware for Stripe Webhook
+app.use("/stripe", express.raw({ type: "application/json" }), webhookRouter);
 
 // ✅ 3. General Middleware 
 app.use(morgan("dev"));

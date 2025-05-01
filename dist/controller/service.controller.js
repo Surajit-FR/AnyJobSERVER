@@ -923,6 +923,14 @@ exports.fetchSingleServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) 
         {
             $project: {
                 categoryName: "$categoryId.name",
+                LeadGenerationFee: {
+                    $floor: {
+                        $multiply: [
+                            { $toDouble: "$categoryId.serviceCost" },
+                            0.25
+                        ]
+                    }
+                },
                 bookedServiceShift: "$serviceShifftId.shiftName",
                 bookedTimeSlot: 1,
                 serviceStartDate: 1,

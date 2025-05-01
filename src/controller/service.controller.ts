@@ -838,6 +838,14 @@ export const fetchServiceRequest = asyncHandler(async (req: CustomRequest, res: 
         {
             $project: {
                 categoryName: "$categoryDetails.name",
+                LeadGenerationFee: {
+                    $floor: {
+                        $multiply: [
+                            { $toDouble: "$categoryDetails.serviceCost" },
+                            0.25
+                        ]
+                    }
+                },
                 customerName: {
                     $concat: ["$userId.firstName", " ", "$userId.lastName"]
                 },

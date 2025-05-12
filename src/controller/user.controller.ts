@@ -1380,8 +1380,8 @@ export const getCustomersTransaction = async (req: CustomRequest, res: Response)
                 $project: {
                     _id: 1,
                     userId: 1,
-                    userName:1,
-                    userImage:1,
+                    userName: 1,
+                    userImage: 1,
                     serviceId: 1,
                     paymentMethodDetails: 1,
                     paymentIntentId: 1,
@@ -1401,6 +1401,109 @@ export const getCustomersTransaction = async (req: CustomRequest, res: Response)
         return sendSuccessResponse(res, 200,
             transactionsDetails,
             "Transaction history fetched successfully");
+
+    } catch (error) {
+        console.error('Error fetching payment methods:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+export const fetchAdminReceivedFund = async (req: CustomRequest, res: Response) => {
+    try {
+
+        const incentiveDetails = await PurchaseModel.aggregate([
+            {
+                $match: {
+                    status: "succeeded"
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    foreignField: "_id",
+                    localField: "userId",
+                    as: "userDetails"
+                }
+            },
+            {
+                $unwind: {
+                    preserveNullAndEmptyArrays: true,
+                    path: "$userDetails"
+                }
+            },
+            {
+                $addFields: {
+                    userName: { $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"] },
+                    userImage: "$userDetails.avatar"
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    userId: 1,
+                    userName: 1,
+                    userImage: 1,
+                    serviceId: 1,
+                    paymentMethodDetails: 1,
+                    paymentIntentId: 1,
+                    currency: 1,
+                    amount: 1,
+                    status: 1,
+                    createdAt: 1,
+                    updatedAt: 1,
+                }
+            }
+        ]);
+        const cancellationFeeDetails = await PurchaseModel.aggregate([
+            {
+                $match: {
+                    status: "succeeded"
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    foreignField: "_id",
+                    localField: "userId",
+                    as: "userDetails"
+                }
+            },
+            {
+                $unwind: {
+                    preserveNullAndEmptyArrays: true,
+                    path: "$userDetails"
+                }
+            },
+            {
+                $addFields: {
+                    userName: { $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"] },
+                    userImage: "$userDetails.avatar"
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    userId: 1,
+                    userName: 1,
+                    userImage: 1,
+                    serviceId: 1,
+                    paymentMethodDetails: 1,
+                    paymentIntentId: 1,
+                    currency: 1,
+                    amount: 1,
+                    status: 1,
+                    createdAt: 1,
+                    updatedAt: 1,
+                }
+            }
+        ]);
+
+        return sendSuccessResponse(res, 200,
+            {
+                incentiveDetails,
+                cancellationFeeDetails,
+            },
+            "Transactions to admin fetched successfully");
 
     } catch (error) {
         console.error('Error fetching payment methods:', error);

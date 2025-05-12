@@ -21,7 +21,8 @@ import {
     addBankDetails,
     updateUserPreference,
     getPaymentMethods,
-    getCustomersTransaction
+    getCustomersTransaction,
+    fetchAdminReceivedFund
 } from "../controller/user.controller";
 import { givePermission, getUserPermissions } from "../controller/permission.controller";
 import { fetchIncentiveDetails, getJobByStatus, getJobByStatusByAgent } from "../controller/service.controller";
@@ -134,6 +135,7 @@ router.route('/fetch-incentive-details').get(verifyUserType(["SuperAdmin", "Serv
 
 router.route('/fetch-payment-method').get(verifyUserType(["SuperAdmin", "Customer"]), getPaymentMethods);
 router.route('/fetch-transactions').get(verifyUserType(["SuperAdmin", "Customer"]), getCustomersTransaction);
+router.route('/fetch-admin-received-fund').get(verifyUserType(["SuperAdmin", ]), fetchAdminReceivedFund);
 
 
 

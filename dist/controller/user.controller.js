@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCustomersTransaction = exports.getPaymentMethods = exports.updateUserPreference = exports.addBankDetails = exports.getIpLogs = exports.updateUser = exports.fetchIPlogs = exports.getAgentEngagementStatus = exports.assignTeamLead = exports.fetchAssociates = exports.banUser = exports.verifyServiceProvider = exports.getSingleUser = exports.getUsers = exports.getAdminUsersList = exports.getRegisteredCustomerList = exports.getServiceProviderList = exports.addAdditionalInfo = exports.addAddress = exports.getUser = void 0;
+exports.fetchAdminReceivedFund = exports.getCustomersTransaction = exports.getPaymentMethods = exports.updateUserPreference = exports.addBankDetails = exports.getIpLogs = exports.updateUser = exports.fetchIPlogs = exports.getAgentEngagementStatus = exports.assignTeamLead = exports.fetchAssociates = exports.banUser = exports.verifyServiceProvider = exports.getSingleUser = exports.getUsers = exports.getAdminUsersList = exports.getRegisteredCustomerList = exports.getServiceProviderList = exports.addAdditionalInfo = exports.addAddress = exports.getUser = void 0;
 const user_model_1 = __importDefault(require("../models/user.model"));
 const address_model_1 = __importDefault(require("../models/address.model"));
 const userAdditionalInfo_model_1 = __importDefault(require("../models/userAdditionalInfo.model"));
@@ -1226,3 +1226,102 @@ const getCustomersTransaction = (req, res) => __awaiter(void 0, void 0, void 0, 
     }
 });
 exports.getCustomersTransaction = getCustomersTransaction;
+const fetchAdminReceivedFund = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const incentiveDetails = yield purchase_model_1.default.aggregate([
+            {
+                $match: {
+                    status: "succeeded"
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    foreignField: "_id",
+                    localField: "userId",
+                    as: "userDetails"
+                }
+            },
+            {
+                $unwind: {
+                    preserveNullAndEmptyArrays: true,
+                    path: "$userDetails"
+                }
+            },
+            {
+                $addFields: {
+                    userName: { $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"] },
+                    userImage: "$userDetails.avatar"
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    userId: 1,
+                    userName: 1,
+                    userImage: 1,
+                    serviceId: 1,
+                    paymentMethodDetails: 1,
+                    paymentIntentId: 1,
+                    currency: 1,
+                    amount: 1,
+                    status: 1,
+                    createdAt: 1,
+                    updatedAt: 1,
+                }
+            }
+        ]);
+        const cancellationFeeDetails = yield purchase_model_1.default.aggregate([
+            {
+                $match: {
+                    status: "succeeded"
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    foreignField: "_id",
+                    localField: "userId",
+                    as: "userDetails"
+                }
+            },
+            {
+                $unwind: {
+                    preserveNullAndEmptyArrays: true,
+                    path: "$userDetails"
+                }
+            },
+            {
+                $addFields: {
+                    userName: { $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"] },
+                    userImage: "$userDetails.avatar"
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    userId: 1,
+                    userName: 1,
+                    userImage: 1,
+                    serviceId: 1,
+                    paymentMethodDetails: 1,
+                    paymentIntentId: 1,
+                    currency: 1,
+                    amount: 1,
+                    status: 1,
+                    createdAt: 1,
+                    updatedAt: 1,
+                }
+            }
+        ]);
+        return (0, response_1.sendSuccessResponse)(res, 200, {
+            incentiveDetails,
+            cancellationFeeDetails,
+        }, "Transactions to admin fetched successfully");
+    }
+    catch (error) {
+        console.error('Error fetching payment methods:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+exports.fetchAdminReceivedFund = fetchAdminReceivedFund;

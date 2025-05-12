@@ -26,12 +26,10 @@ export async function isCancellationFeeApplicable(serviceId: String) {
 
     if (requestProgress === "Pending" || requestProgress === "CancelledBySP") {
         const givenTimestamp = serviceStartDate && new Date(serviceStartDate);
-        console.log({givenTimestamp});
         
         const currentTimestamp = new Date();
         const diffInMilliseconds = givenTimestamp && (currentTimestamp.getTime() - givenTimestamp.getTime());
         const diffInHours = diffInMilliseconds && diffInMilliseconds / (1000 * 60 * 60);
-        console.log(diffInHours, "diffInHours");
 
         if (diffInHours && diffInHours < 24) {
             isCancellationFeeApplicable = true

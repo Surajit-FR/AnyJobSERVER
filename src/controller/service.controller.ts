@@ -22,16 +22,18 @@ export async function isCancellationFeeApplicable(serviceId: String) {
     let serviceDeatils = await ServiceModel.findById(serviceId)
     let requestProgress: String = '', isCancellationFeeApplicable = false;
     requestProgress = serviceDeatils?.requestProgress || '';
-    var serviceAcceptedAt = serviceDeatils?.acceptedAt;
+    var serviceStartDate = serviceDeatils?.serviceStartDate;
 
     if (requestProgress === "Pending" || requestProgress === "CancelledBySP") {
-        const givenTimestamp = serviceAcceptedAt && new Date(serviceAcceptedAt);
+        const givenTimestamp = serviceStartDate && new Date(serviceStartDate);
+        console.log({givenTimestamp});
+        
         const currentTimestamp = new Date();
         const diffInMilliseconds = givenTimestamp && (currentTimestamp.getTime() - givenTimestamp.getTime());
         const diffInHours = diffInMilliseconds && diffInMilliseconds / (1000 * 60 * 60);
-        // console.log(diffInHours, " ");
+        console.log(diffInHours, "diffInHours");
 
-        if (diffInHours && diffInHours > 24) {
+        if (diffInHours && diffInHours < 24) {
             isCancellationFeeApplicable = true
         }
     }
@@ -422,7 +424,7 @@ export const cancelServiceRequest = asyncHandler(async (req: CustomRequest, res:
     let isChragesAppicable = await isCancellationFeeApplicable(serviceId);
 
     if (isChragesAppicable) {
-        return sendErrorResponse(res, new ApiError(400, "Service cancelled after 24 hours. A cancellation fee of 25% will be charged."));
+        return sendErrorResponse(res, new ApiError(400, "Service starts within 24 hours. A cancellation fee of 25% will be charged."));
     }
 
     const updatedService = await ServiceModel.findOneAndUpdate(
@@ -1146,6 +1148,7 @@ export const fetchSingleServiceRequest = asyncHandler(async (req: Request, res: 
                 serviceLongitude: 1,
                 startedAt: 1,
                 completedAt: 1,
+                acceptedAt: 1,
             }
         },
     ]);

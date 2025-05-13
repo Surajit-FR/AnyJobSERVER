@@ -35,10 +35,13 @@ function isCancellationFeeApplicable(serviceId) {
         var serviceStartDate = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceStartDate;
         if (requestProgress === "Pending" || requestProgress === "CancelledBySP") {
             const givenTimestamp = serviceStartDate && new Date(serviceStartDate);
+            console.log({ givenTimestamp });
             const currentTimestamp = new Date();
-            const diffInMilliseconds = givenTimestamp && (currentTimestamp.getTime() - givenTimestamp.getTime());
-            const diffInHours = diffInMilliseconds && diffInMilliseconds / (1000 * 60 * 60);
-            if (diffInHours && diffInHours < 24) {
+            const diffInMilliseconds = givenTimestamp && (givenTimestamp.getTime() - currentTimestamp.getTime());
+            const diffInHours = diffInMilliseconds ? diffInMilliseconds / (1000 * 60 * 60) : 0;
+            console.log(diffInHours, "diffInHours");
+            if (diffInHours < 24) {
+                console.log("triggered");
                 isCancellationFeeApplicable = true;
             }
         }
@@ -365,7 +368,7 @@ exports.cancelServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __
     }
     let isChragesAppicable = yield isCancellationFeeApplicable(serviceId);
     if (isChragesAppicable) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service starts within 24 hours. A cancellation fee of 25% will be charged."));
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(403, "Service starts within 24 hours. A cancellation fee of 25% will be charged."));
     }
     const updatedService = yield service_model_1.default.findOneAndUpdate({ _id: new mongoose_1.default.Types.ObjectId(serviceId), userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id }, {
         $set: {

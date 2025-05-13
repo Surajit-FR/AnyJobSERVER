@@ -658,3 +658,67 @@ export const createServiceCancellationCheckoutSession = async (req: CustomReques
         res.status(500).json({ error: err.message });
     }
 };
+
+export const withdrawFunds = async (req: CustomRequest, res: Response) => {
+    try {
+        let { amount, currency = 'usd' } = req.body;
+        const walletDetails = await WalletModel.findOne({ userId: req.user?._id })
+        const connectedAccountId = walletDetails?.stripeConnectedAccountId;
+
+        if (!connectedAccountId) {
+            return res.status(400).json({ error: 'Missing connected account ID.' });
+        }
+
+        if (!amount || !currency) {
+            return res.status(400).json({ error: 'Amount and currency are required.' });
+        }
+
+        // Optional: Check available balance
+        const balance = await stripe.balance.retrieve({
+            stripeAccount: connectedAccountId,
+        });
+
+        const available = balance.available.find(b => b.currency === currency.toLowerCase());
+
+        if (!available || (available.amount - amount) < 200) {
+            return res.status(400).json({ error: 'Insufficient balance for payout.' });
+        }
+
+        // Create the payout
+        const payout = await stripe.payouts.create(
+            {
+                amount: amount * 100,
+                currency,
+            },
+            {
+                stripeAccount: connectedAccountId,
+            }
+        );
+
+        const transaction = {
+            type: 'debit',
+            amount,
+            description: 'WithdrawFund',
+            stripeTransactionId: payout.id,
+        };
+
+        await WalletModel.findOneAndUpdate(
+            { userId: req.user?._id },
+            {
+                $push: { transactions: transaction },
+                $inc: { balance: -amount },
+                updatedAt: Date.now(),
+            }
+        );
+
+        return res.status(200).json({
+            message: 'Payout initiated successfully.',
+            success: true,
+            payout,
+        });
+
+    } catch (error: any) {
+        console.error('Payout Error:', error);
+        return res.status(500).json({ error: error.message });
+    }
+};

@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createServiceCancellationCheckoutSession = exports.isTheFirstPurchase = exports.payForService = exports.createLeadGenerationCheckoutSession = exports.createAddFundsSession = exports.createConnectedAccountAndRedirect = exports.createPaymentIntent = exports.attatchPaymentMethod = exports.chargeSavedCard = exports.createCheckoutsession = void 0;
+exports.withdrawFunds = exports.createServiceCancellationCheckoutSession = exports.isTheFirstPurchase = exports.payForService = exports.createLeadGenerationCheckoutSession = exports.createAddFundsSession = exports.createConnectedAccountAndRedirect = exports.createPaymentIntent = exports.attatchPaymentMethod = exports.chargeSavedCard = exports.createCheckoutsession = void 0;
 exports.createCustomerIfNotExists = createCustomerIfNotExists;
 exports.createCustomConnectedAccount = createCustomConnectedAccount;
 const stripe_1 = __importDefault(require("stripe"));
@@ -619,3 +619,53 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
     }
 });
 exports.createServiceCancellationCheckoutSession = createServiceCancellationCheckoutSession;
+const withdrawFunds = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
+    try {
+        let { amount, currency = 'usd' } = req.body;
+        const walletDetails = yield wallet_model_1.default.findOne({ userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id });
+        const connectedAccountId = walletDetails === null || walletDetails === void 0 ? void 0 : walletDetails.stripeConnectedAccountId;
+        if (!connectedAccountId) {
+            return res.status(400).json({ error: 'Missing connected account ID.' });
+        }
+        if (!amount || !currency) {
+            return res.status(400).json({ error: 'Amount and currency are required.' });
+        }
+        // Optional: Check available balance
+        const balance = yield stripe.balance.retrieve({
+            stripeAccount: connectedAccountId,
+        });
+        const available = balance.available.find(b => b.currency === currency.toLowerCase());
+        if (!available || (available.amount - amount) < 200) {
+            return res.status(400).json({ error: 'Insufficient balance for payout.' });
+        }
+        // Create the payout
+        const payout = yield stripe.payouts.create({
+            amount: amount * 100,
+            currency,
+        }, {
+            stripeAccount: connectedAccountId,
+        });
+        const transaction = {
+            type: 'debit',
+            amount,
+            description: 'WithdrawFund',
+            stripeTransactionId: payout.id,
+        };
+        yield wallet_model_1.default.findOneAndUpdate({ userId: (_b = req.user) === null || _b === void 0 ? void 0 : _b._id }, {
+            $push: { transactions: transaction },
+            $inc: { balance: -amount },
+            updatedAt: Date.now(),
+        });
+        return res.status(200).json({
+            message: 'Payout initiated successfully.',
+            success: true,
+            payout,
+        });
+    }
+    catch (error) {
+        console.error('Payout Error:', error);
+        return res.status(500).json({ error: error.message });
+    }
+});
+exports.withdrawFunds = withdrawFunds;

@@ -736,7 +736,16 @@ exports.verifyServiceProvider = (0, asyncHandler_1.asyncHandler)((req, res) => _
                 url: 'https://your-test-business.com',
                 mcc: '5818',
             },
-            external_account: 'btok_us_verified',
+            // external_account: 'btok_us_verified',
+            external_account: {
+                object: 'bank_account',
+                country: 'US',
+                currency: 'usd',
+                routing_number: '110000000',
+                account_number: '000123456789',
+                account_holder_name: 'Jane Doe',
+                account_holder_type: 'individual',
+            },
             tos_acceptance: {
                 date: Math.floor(Date.now() / 1000),
                 ip: req.ip || '127.0.0.1',

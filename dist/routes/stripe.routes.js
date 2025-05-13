@@ -20,6 +20,7 @@ router.post("/create-cancellation-session", stripe_controller_1.createServiceCan
 router.post("/charge-saved-card", stripe_controller_1.chargeSavedCard);
 router.post("/add-funds", stripe_controller_1.createAddFundsSession);
 router.post("/pay-fee", stripe_controller_1.payForService);
+router.post("/withdraw-fund", stripe_controller_1.withdrawFunds);
 router.get("/check-first-purchase", stripe_controller_1.isTheFirstPurchase);
 router.post("/create-stripe-account", stripe_controller_1.createConnectedAccountAndRedirect);
 exports.default = router;

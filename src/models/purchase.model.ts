@@ -24,7 +24,7 @@ const PurchaseSchema: Schema<IPurchaseSchema> = new mongoose.Schema(
         currency: { type: String, required: true },
         amount: { type: Number, required: true },
         status: { type: String, enum: ["pending", "succeeded", "failed"], default: "pending" },
-        receipt_url: { type: String, default: null },
+        // receipt_url: { type: String, default: null },
     },
     { timestamps: true }
 );

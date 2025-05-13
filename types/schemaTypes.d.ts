@@ -15,7 +15,7 @@ export interface IPurchaseSchema {
     currency: string;
     amount: number;
     status: string;
-    receipt_url: string;
+    // receipt_url: string;
     createdAt?: Date;
     updatedAt?: Date;
 };

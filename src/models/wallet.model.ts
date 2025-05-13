@@ -28,7 +28,7 @@ const walletSchema = new mongoose.Schema(
                     enum: ['credit', 'debit'],
                 },
                 amount: Number,
-                description: { type: String, enum: ['AddMoney', 'LeadGenerationFee'] },
+                description: { type: String, enum: ['AddMoney', 'LeadGenerationFee','WithdrawFund'] },
                 serviceId: mongoose.Schema.Types.ObjectId,
                 date: {
                     type: Date,

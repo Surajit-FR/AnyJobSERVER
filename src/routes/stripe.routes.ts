@@ -1,5 +1,5 @@
 import express, { Router } from "express";
-import { createPaymentIntent, createCustomerIfNotExists, attatchPaymentMethod, createCheckoutsession, createAddFundsSession , chargeSavedCard, isTheFirstPurchase, createLeadGenerationCheckoutSession, payForService,createConnectedAccountAndRedirect, createServiceCancellationCheckoutSession } from '../controller/stripe.controller';
+import { createPaymentIntent, createCustomerIfNotExists, attatchPaymentMethod, createCheckoutsession, createAddFundsSession , chargeSavedCard, isTheFirstPurchase, createLeadGenerationCheckoutSession, payForService,createConnectedAccountAndRedirect, createServiceCancellationCheckoutSession, withdrawFunds } from '../controller/stripe.controller';
 import { stripeWebhook } from "../controller/webhook.controller";
 import { VerifyJWTToken } from "../middlewares/auth/userAuth";
 
@@ -23,6 +23,8 @@ router.post("/charge-saved-card", chargeSavedCard);
 
 router.post("/add-funds", createAddFundsSession );
 router.post("/pay-fee", payForService);
+router.post("/withdraw-fund", withdrawFunds);
+
 
 
 router.get("/check-first-purchase", isTheFirstPurchase);

@@ -14,6 +14,7 @@ import { PipelineStage } from 'mongoose';
 import axios from "axios";
 import { sendPushNotification } from "../utils/sendPushNotification";
 import { isNotificationPreferenceOn } from "../utils/auth";
+import WalletModel from "../models/wallet.model";
 
 const testFcm = "fVSB8tntRb2ufrLcySfGxs:APA91bH3CCLoxCPSmRuTo4q7j0aAxWLCdu6WtAdBWogzo79j69u8M_qFwcNygw7LIGrLYBXFqz2SUZI-4js8iyHxe12BMe-azVy2v7d22o4bvxy2pzTZ4kE";
 
@@ -35,7 +36,7 @@ export async function isCancellationFeeApplicable(serviceId: String) {
 
         if (diffInHours < 24) {
             console.log("triggered");
-            
+
             isCancellationFeeApplicable = true
         }
     }
@@ -105,7 +106,7 @@ export const addService = asyncHandler(async (req: CustomRequest, res: Response)
         }
     ]);
 
-    if (existingAddresses.length >= 600) {
+    if (existingAddresses.length >= 6) {
         return sendErrorResponse(res, new ApiError(400, "You cannot have more than six pre-saved addresses."));
     }
 
@@ -499,6 +500,14 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
     const serviceRequest = await ServiceModel.findById(serviceId);
     if (!serviceRequest) {
         return sendErrorResponse(res, new ApiError(400, "Service not found."));
+    }
+
+    const spWalletDetails = await WalletModel.findOne({ userId })
+    if (!spWalletDetails) {
+        return res.status(400).json({ error: 'User does not have a connected Wallet account' });
+    };
+    if ((spWalletDetails?.balance) <= 200) {
+        return res.status(400).json({ error: 'Insufficient balance' });
     }
     const customerDetails = await UserModel.findById(serviceRequest?.userId);
     const serviceProviderDetails = await UserModel.findById(serviceRequest?.serviceProviderId).select('serviceProviderId');

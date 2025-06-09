@@ -25,6 +25,7 @@ const teams_model_1 = __importDefault(require("../models/teams.model"));
 const user_model_1 = __importDefault(require("../models/user.model"));
 const axios_1 = __importDefault(require("axios"));
 const sendPushNotification_1 = require("../utils/sendPushNotification");
+const wallet_model_1 = __importDefault(require("../models/wallet.model"));
 const testFcm = "fVSB8tntRb2ufrLcySfGxs:APA91bH3CCLoxCPSmRuTo4q7j0aAxWLCdu6WtAdBWogzo79j69u8M_qFwcNygw7LIGrLYBXFqz2SUZI-4js8iyHxe12BMe-azVy2v7d22o4bvxy2pzTZ4kE";
 //is cancellation fee is applicable or not
 function isCancellationFeeApplicable(serviceId) {
@@ -91,7 +92,7 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
             }
         }
     ]);
-    if (existingAddresses.length >= 600) {
+    if (existingAddresses.length >= 6) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "You cannot have more than six pre-saved addresses."));
     }
     // Conditional checks for incentive and tip amounts
@@ -429,6 +430,14 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
     const serviceRequest = yield service_model_1.default.findById(serviceId);
     if (!serviceRequest) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service not found."));
+    }
+    const spWalletDetails = yield wallet_model_1.default.findOne({ userId });
+    if (!spWalletDetails) {
+        return res.status(400).json({ error: 'User does not have a connected Wallet account' });
+    }
+    ;
+    if ((spWalletDetails === null || spWalletDetails === void 0 ? void 0 : spWalletDetails.balance) <= 200) {
+        return res.status(400).json({ error: 'Insufficient balance' });
     }
     const customerDetails = yield user_model_1.default.findById(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.userId);
     const serviceProviderDetails = yield user_model_1.default.findById(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.serviceProviderId).select('serviceProviderId');

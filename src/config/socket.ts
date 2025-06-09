@@ -1,11 +1,10 @@
 import { Server as HttpServer } from "http";
 import { Server, Socket } from "socket.io";
 import { socketAuthMiddleware } from "../middlewares/auth/socketAuth";
-import { handleServiceRequestState, fetchAssociatedCustomer } from "../controller/service.controller";
+import {  fetchAssociatedCustomer } from "../controller/service.controller";
 import { saveChatMessage, updateChatList } from "../controller/chat.controller";
-import { emit } from "process";
-import axios from "axios";
-import { receiveMessageOnPort } from "worker_threads";
+
+
 import ChatModel from "../models/chat.model";
 
 

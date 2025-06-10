@@ -31,6 +31,7 @@ const userPreference_model_1 = __importDefault(require("../models/userPreference
 const purchase_model_1 = __importDefault(require("../models/purchase.model"));
 const wallet_model_1 = __importDefault(require("../models/wallet.model"));
 const config_1 = require("../config/config");
+const libphonenumber_js_1 = require("libphonenumber-js");
 const stripe_1 = __importDefault(require("stripe"));
 const stripe = new stripe_1.default(config_1.STRIPE_SECRET_KEY, {
     apiVersion: '2024-09-30.acacia',
@@ -712,6 +713,9 @@ exports.verifyServiceProvider = (0, asyncHandler_1.asyncHandler)((req, res) => _
         if (!dob || !(dob instanceof Date)) {
             return res.status(400).json({ error: 'Invalid date of birth' });
         }
+        const phoneNumber = (0, libphonenumber_js_1.parsePhoneNumberFromString)((results === null || results === void 0 ? void 0 : results.phone) || '');
+        const localPhone = phoneNumber ? phoneNumber.nationalNumber : '';
+        console.log({ localPhone });
         const accountParams = {
             type: 'custom',
             country: 'US',
@@ -724,7 +728,7 @@ exports.verifyServiceProvider = (0, asyncHandler_1.asyncHandler)((req, res) => _
                 first_name: results === null || results === void 0 ? void 0 : results.firstName,
                 last_name: results === null || results === void 0 ? void 0 : results.lastName,
                 email: results === null || results === void 0 ? void 0 : results.email,
-                phone: results === null || results === void 0 ? void 0 : results.phone.slice(3),
+                phone: localPhone,
                 ssn_last_4: additionalInfo === null || additionalInfo === void 0 ? void 0 : additionalInfo.socialSecurity,
                 dob: {
                     day: dob.getDate(),

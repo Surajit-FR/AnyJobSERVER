@@ -18,6 +18,7 @@ import UserPreferenceModel from '../models/userPreference.model';
 import PurchaseModel from '../models/purchase.model';
 import WalletModel from "../models/wallet.model";
 import { STRIPE_SECRET_KEY } from "../config/config";
+import { parsePhoneNumberFromString } from 'libphonenumber-js';
 import Stripe from "stripe";
 const stripe = new Stripe(STRIPE_SECRET_KEY, {
     apiVersion: '2024-09-30.acacia' as any,
@@ -812,6 +813,12 @@ export const verifyServiceProvider = asyncHandler(async (req: Request, res: Resp
             return res.status(400).json({ error: 'Invalid date of birth' });
         }
 
+        const phoneNumber = parsePhoneNumberFromString(results?.phone || '');
+
+        const localPhone = phoneNumber ? phoneNumber.nationalNumber : '';
+        console.log({localPhone});
+        
+
         const accountParams: Stripe.AccountCreateParams = {
             type: 'custom',
             country: 'US',
@@ -824,7 +831,7 @@ export const verifyServiceProvider = asyncHandler(async (req: Request, res: Resp
                 first_name: results?.firstName,
                 last_name: results?.lastName,
                 email: results?.email,
-                phone: results?.phone.slice(3),
+                phone: localPhone,
                 ssn_last_4: additionalInfo?.socialSecurity,
                 dob: {
                     day: dob.getDate(),

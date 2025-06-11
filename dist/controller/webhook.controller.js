@@ -366,13 +366,13 @@ const handleServiceCancellationFee = (session) => __awaiter(void 0, void 0, void
         const saveCancellationFee = yield new cancellationFee_model_1.default(CancellationFeeData).save();
         const transaction = {
             type: 'credit',
-            amount,
+            amount: session.transfer_data.amount,
             description: 'ServiceCancellationAmount',
             stripeTransactionId: paymentIntent === null || paymentIntent === void 0 ? void 0 : paymentIntent.id,
         };
         yield wallet_model_1.default.findOneAndUpdate({ userId: SPId }, {
             $push: { transactions: transaction },
-            $inc: { balance: amount },
+            $inc: { balance: (session.transfer_data.amount / 100) },
             updatedAt: Date.now(),
         });
         //cancel the service

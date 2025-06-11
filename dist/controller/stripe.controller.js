@@ -44,7 +44,6 @@ function createCustomerIfNotExists(userId) {
     });
 }
 ;
-// createCustomerIfNotExists('67ac773812c4396eb2f5d588')
 const createCheckoutsession = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const { amount, serviceId } = req.body;
@@ -563,11 +562,16 @@ const isTheFirstPurchase = (req, res) => __awaiter(void 0, void 0, void 0, funct
 exports.isTheFirstPurchase = isTheFirstPurchase;
 //checkout session for service cancellation by customer
 const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _a, _b;
     try {
         const { serviceId, cancellationReason } = req.body;
         const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+        const serviceDeatils = yield service_model_1.default.findOne({ _id: serviceId }).select('serviceProviderId');
+        const SPStripeAccount = yield wallet_model_1.default.findOne({ userId: serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId });
+        const SPStripeAccountId = SPStripeAccount === null || SPStripeAccount === void 0 ? void 0 : SPStripeAccount.stripeConnectedAccountId;
         const amount = 10;
+        const AnyJobAmount = Math.ceil(amount * 80) / 100;
+        const SPAmount = Math.ceil(amount * 20) / 100;
         const user = yield user_model_1.default.findById(userId);
         if (!user)
             return res.status(404).json({ error: "User not found" });
@@ -588,7 +592,7 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
                 {
                     price_data: {
                         currency: 'usd',
-                        unit_amount: amount * 100,
+                        unit_amount: (AnyJobAmount + SPAmount) * 100,
                         product_data: {
                             name: 'Cancellation Fee',
                         },
@@ -598,6 +602,11 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
             ],
             payment_intent_data: {
                 setup_future_usage: 'on_session',
+                transfer_data: {
+                    // This amount will be transferred to the connected account
+                    destination: SPStripeAccountId,
+                    amount: SPAmount * 100,
+                },
             },
             payment_method_data: {
                 allow_redisplay: 'always'
@@ -606,7 +615,8 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
                 purpose: 'CancellationFee',
                 serviceId,
                 cancellationReason,
-                userId: userId === null || userId === void 0 ? void 0 : userId.toString()
+                userId: userId === null || userId === void 0 ? void 0 : userId.toString(),
+                SPId: (_b = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId) === null || _b === void 0 ? void 0 : _b.toString()
             },
             success_url: 'https://frontend.theassure.co.uk/payment-success',
             cancel_url: 'https://frontend.theassure.co.uk/payment-error',

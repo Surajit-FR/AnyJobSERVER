@@ -310,15 +310,16 @@ const handleLeadGenerationFee = (session) => __awaiter(void 0, void 0, void 0, f
     }
 });
 const handleServiceCancellationFee = (session) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d;
+    var _a, _b, _c, _d, _e;
     try {
         console.log("WEBHOOK RUNS: SERVICE CANCELLATION FEE CHECKOUT SESSION ");
         const purpose = (_a = session.metadata) === null || _a === void 0 ? void 0 : _a.purpose;
         if (purpose !== 'CancellationFee')
             return;
         const userId = (_b = session.metadata) === null || _b === void 0 ? void 0 : _b.userId;
-        const serviceId = (_c = session.metadata) === null || _c === void 0 ? void 0 : _c.serviceId;
-        const cancellationReason = (_d = session.metadata) === null || _d === void 0 ? void 0 : _d.cancellationReason;
+        const SPId = (_c = session.metadata) === null || _c === void 0 ? void 0 : _c.SPId;
+        const serviceId = (_d = session.metadata) === null || _d === void 0 ? void 0 : _d.serviceId;
+        const cancellationReason = (_e = session.metadata) === null || _e === void 0 ? void 0 : _e.cancellationReason;
         const user = yield user_model_1.default.findById(userId);
         if (!user) {
             console.warn("User not found in leadgenerationfee webhook");
@@ -363,6 +364,17 @@ const handleServiceCancellationFee = (session) => __awaiter(void 0, void 0, void
             amount: Math.ceil(session.amount_total / 100),
         };
         const saveCancellationFee = yield new cancellationFee_model_1.default(CancellationFeeData).save();
+        const transaction = {
+            type: 'credit',
+            amount,
+            description: 'ServiceCancellationAmount',
+            stripeTransactionId: paymentIntent === null || paymentIntent === void 0 ? void 0 : paymentIntent.id,
+        };
+        yield wallet_model_1.default.findOneAndUpdate({ userId: SPId }, {
+            $push: { transactions: transaction },
+            $inc: { balance: amount },
+            updatedAt: Date.now(),
+        });
         //cancel the service
         const updatedService = yield service_model_1.default.findOneAndUpdate({ _id: new mongoose_1.default.Types.ObjectId(serviceId), userId: user._id }, {
             $set: {

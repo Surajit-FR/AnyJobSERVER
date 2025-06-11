@@ -31,7 +31,6 @@ export async function createCustomerIfNotExists(userId: string) {
         await UserModel.findByIdAndUpdate({ _id: userId }, { stripeCustomerId: customer.id });
     }
 };
-// createCustomerIfNotExists('67ac773812c4396eb2f5d588')
 
 export const createCheckoutsession = async (req: CustomRequest, res: Response) => {
     const { amount, serviceId } = req.body;
@@ -604,8 +603,12 @@ export const createServiceCancellationCheckoutSession = async (req: CustomReques
     try {
         const { serviceId, cancellationReason } = req.body;
         const userId = req.user?._id;
+        const serviceDeatils = await ServiceModel.findOne({ _id: serviceId }).select('serviceProviderId')
+        const SPStripeAccount = await WalletModel.findOne({ userId: serviceDeatils?.serviceProviderId })
+        const SPStripeAccountId = SPStripeAccount?.stripeConnectedAccountId
         const amount = 10;
-
+        const AnyJobAmount = Math.ceil(amount * 80) / 100
+        const SPAmount = Math.ceil(amount * 20) / 100
         const user = await UserModel.findById(userId);
         if (!user) return res.status(404).json({ error: "User not found" });
 
@@ -627,7 +630,7 @@ export const createServiceCancellationCheckoutSession = async (req: CustomReques
                 {
                     price_data: {
                         currency: 'usd',
-                        unit_amount: amount * 100,
+                        unit_amount: (AnyJobAmount + SPAmount) * 100,
                         product_data: {
                             name: 'Cancellation Fee',
                         },
@@ -637,6 +640,11 @@ export const createServiceCancellationCheckoutSession = async (req: CustomReques
             ],
             payment_intent_data: {
                 setup_future_usage: 'on_session',
+                transfer_data: {
+                    // This amount will be transferred to the connected account
+                    destination: SPStripeAccountId,
+                    amount: SPAmount * 100,
+                },
             },
 
             payment_method_data: {
@@ -646,7 +654,8 @@ export const createServiceCancellationCheckoutSession = async (req: CustomReques
                 purpose: 'CancellationFee',
                 serviceId,
                 cancellationReason,
-                userId: userId?.toString()
+                userId: userId?.toString(),
+                SPId: serviceDeatils?.serviceProviderId?.toString()
             },
             success_url: 'https://frontend.theassure.co.uk/payment-success',
             cancel_url: 'https://frontend.theassure.co.uk/payment-error',

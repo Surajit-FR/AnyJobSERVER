@@ -408,6 +408,7 @@ const handleServiceCancellationFee = async (session: any) => {
         if (purpose !== 'CancellationFee') return;
 
         const userId = session.metadata?.userId;
+        const SPId = session.metadata?.SPId;
         const serviceId = session.metadata?.serviceId;
         const cancellationReason = session.metadata?.cancellationReason;
 
@@ -463,6 +464,22 @@ const handleServiceCancellationFee = async (session: any) => {
             amount: Math.ceil(session.amount_total / 100),
         }
         const saveCancellationFee = await new CancellationFeeModel(CancellationFeeData).save();
+
+        const transaction = {
+            type: 'credit',
+            amount,
+            description: 'ServiceCancellationAmount',
+            stripeTransactionId: paymentIntent?.id,
+        };
+
+        await WalletModel.findOneAndUpdate(
+            { userId: SPId },
+            {
+                $push: { transactions: transaction },
+                $inc: { balance: amount },
+                updatedAt: Date.now(),
+            }
+        );
 
         //cancel the service
         const updatedService = await ServiceModel.findOneAndUpdate(

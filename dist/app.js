@@ -26,6 +26,7 @@ const chat_routes_1 = __importDefault(require("./routes/chat.routes"));
 const upload_routes_1 = __importDefault(require("./routes/upload.routes"));
 const sendPushNotification_1 = require("../src/utils/sendPushNotification");
 const wallet_routes_1 = __importDefault(require("./routes/wallet.routes"));
+const webhook_routes_1 = __importDefault(require("./routes/webhook.routes"));
 const app = (0, express_1.default)();
 exports.app = app;
 // ✅ 1. CORS Middleware
@@ -41,7 +42,7 @@ app.use((0, cors_1.default)({
     credentials: true,
 }));
 // ✅ 2. Raw Body Middleware for Stripe Webhook
-app.use("/stripe", express_1.default.raw({ type: "application/json" }), stripe_routes_1.default);
+app.use("/stripe", express_1.default.raw({ type: "application/json" }), webhook_routes_1.default);
 // ✅ 3. General Middleware 
 app.use((0, morgan_1.default)("dev"));
 app.use(express_1.default.json({ limit: constants_1.EXPRESS_CONFIG_LIMIT })); // JSON Parsing for Other Routes

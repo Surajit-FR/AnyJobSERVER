@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCustomersTransaction = exports.getPaymentMethods = exports.updateUserPreference = exports.addBankDetails = exports.getIpLogs = exports.updateUser = exports.fetchIPlogs = exports.getAgentEngagementStatus = exports.assignTeamLead = exports.fetchAssociates = exports.banUser = exports.verifyServiceProvider = exports.getSingleUser = exports.getUsers = exports.getAdminUsersList = exports.getRegisteredCustomerList = exports.getServiceProviderList = exports.addAdditionalInfo = exports.addAddress = exports.getUser = void 0;
+exports.fetchAdminReceivedFund = exports.getCustomersTransaction = exports.getPaymentMethods = exports.updateUserPreference = exports.addBankDetails = exports.getIpLogs = exports.updateUser = exports.fetchIPlogs = exports.getAgentEngagementStatus = exports.assignTeamLead = exports.fetchAssociates = exports.banUser = exports.verifyServiceProvider = exports.getSingleUser = exports.getUsers = exports.getAdminUsersList = exports.getRegisteredCustomerList = exports.getServiceProviderList = exports.addAdditionalInfo = exports.addAddress = exports.getUser = void 0;
 const user_model_1 = __importDefault(require("../models/user.model"));
 const address_model_1 = __importDefault(require("../models/address.model"));
 const userAdditionalInfo_model_1 = __importDefault(require("../models/userAdditionalInfo.model"));
@@ -31,6 +31,7 @@ const userPreference_model_1 = __importDefault(require("../models/userPreference
 const purchase_model_1 = __importDefault(require("../models/purchase.model"));
 const wallet_model_1 = __importDefault(require("../models/wallet.model"));
 const config_1 = require("../config/config");
+const libphonenumber_js_1 = require("libphonenumber-js");
 const stripe_1 = __importDefault(require("stripe"));
 const stripe = new stripe_1.default(config_1.STRIPE_SECRET_KEY, {
     apiVersion: '2024-09-30.acacia',
@@ -712,6 +713,9 @@ exports.verifyServiceProvider = (0, asyncHandler_1.asyncHandler)((req, res) => _
         if (!dob || !(dob instanceof Date)) {
             return res.status(400).json({ error: 'Invalid date of birth' });
         }
+        const phoneNumber = (0, libphonenumber_js_1.parsePhoneNumberFromString)((results === null || results === void 0 ? void 0 : results.phone) || '');
+        const localPhone = phoneNumber ? phoneNumber.nationalNumber : '';
+        console.log({ localPhone });
         const accountParams = {
             type: 'custom',
             country: 'US',
@@ -724,7 +728,7 @@ exports.verifyServiceProvider = (0, asyncHandler_1.asyncHandler)((req, res) => _
                 first_name: results === null || results === void 0 ? void 0 : results.firstName,
                 last_name: results === null || results === void 0 ? void 0 : results.lastName,
                 email: results === null || results === void 0 ? void 0 : results.email,
-                phone: results === null || results === void 0 ? void 0 : results.phone.slice(3),
+                phone: localPhone,
                 ssn_last_4: additionalInfo === null || additionalInfo === void 0 ? void 0 : additionalInfo.socialSecurity,
                 dob: {
                     day: dob.getDate(),
@@ -736,7 +740,16 @@ exports.verifyServiceProvider = (0, asyncHandler_1.asyncHandler)((req, res) => _
                 url: 'https://your-test-business.com',
                 mcc: '5818',
             },
-            external_account: 'btok_us_verified',
+            // external_account: 'btok_us_verified',
+            external_account: {
+                object: 'bank_account',
+                country: 'US',
+                currency: 'usd',
+                routing_number: '110000000',
+                account_number: '000123456789',
+                account_holder_name: 'Jane Doe',
+                account_holder_type: 'individual',
+            },
             tos_acceptance: {
                 date: Math.floor(Date.now() / 1000),
                 ip: req.ip || '127.0.0.1',
@@ -1226,3 +1239,102 @@ const getCustomersTransaction = (req, res) => __awaiter(void 0, void 0, void 0, 
     }
 });
 exports.getCustomersTransaction = getCustomersTransaction;
+const fetchAdminReceivedFund = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const incentiveDetails = yield purchase_model_1.default.aggregate([
+            {
+                $match: {
+                    status: "succeeded"
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    foreignField: "_id",
+                    localField: "userId",
+                    as: "userDetails"
+                }
+            },
+            {
+                $unwind: {
+                    preserveNullAndEmptyArrays: true,
+                    path: "$userDetails"
+                }
+            },
+            {
+                $addFields: {
+                    userName: { $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"] },
+                    userImage: "$userDetails.avatar"
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    userId: 1,
+                    userName: 1,
+                    userImage: 1,
+                    serviceId: 1,
+                    paymentMethodDetails: 1,
+                    paymentIntentId: 1,
+                    currency: 1,
+                    amount: 1,
+                    status: 1,
+                    createdAt: 1,
+                    updatedAt: 1,
+                }
+            }
+        ]);
+        const cancellationFeeDetails = yield purchase_model_1.default.aggregate([
+            {
+                $match: {
+                    status: "succeeded"
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    foreignField: "_id",
+                    localField: "userId",
+                    as: "userDetails"
+                }
+            },
+            {
+                $unwind: {
+                    preserveNullAndEmptyArrays: true,
+                    path: "$userDetails"
+                }
+            },
+            {
+                $addFields: {
+                    userName: { $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"] },
+                    userImage: "$userDetails.avatar"
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    userId: 1,
+                    userName: 1,
+                    userImage: 1,
+                    serviceId: 1,
+                    paymentMethodDetails: 1,
+                    paymentIntentId: 1,
+                    currency: 1,
+                    amount: 1,
+                    status: 1,
+                    createdAt: 1,
+                    updatedAt: 1,
+                }
+            }
+        ]);
+        return (0, response_1.sendSuccessResponse)(res, 200, {
+            incentiveDetails,
+            cancellationFeeDetails,
+        }, "Transactions to admin fetched successfully");
+    }
+    catch (error) {
+        console.error('Error fetching payment methods:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+exports.fetchAdminReceivedFund = fetchAdminReceivedFund;

@@ -45,7 +45,7 @@ const PurchaseSchema = new mongoose_1.default.Schema({
     currency: { type: String, required: true },
     amount: { type: Number, required: true },
     status: { type: String, enum: ["pending", "succeeded", "failed"], default: "pending" },
-    receipt_url: { type: String, default: null },
+    // receipt_url: { type: String, default: null },
 }, { timestamps: true });
 const PurchaseModel = mongoose_1.default.model("Purchase", PurchaseSchema);
 exports.default = PurchaseModel;

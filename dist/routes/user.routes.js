@@ -64,4 +64,5 @@ router.route('/fetch-notifications').get((0, userAuth_1.verifyUserType)(["SuperA
 router.route('/fetch-incentive-details').get((0, userAuth_1.verifyUserType)(["SuperAdmin", "ServiceProvider"]), service_controller_1.fetchIncentiveDetails);
 router.route('/fetch-payment-method').get((0, userAuth_1.verifyUserType)(["SuperAdmin", "Customer"]), user_controller_1.getPaymentMethods);
 router.route('/fetch-transactions').get((0, userAuth_1.verifyUserType)(["SuperAdmin", "Customer"]), user_controller_1.getCustomersTransaction);
+router.route('/fetch-admin-received-fund').get((0, userAuth_1.verifyUserType)(["SuperAdmin",]), user_controller_1.fetchAdminReceivedFund);
 exports.default = router;

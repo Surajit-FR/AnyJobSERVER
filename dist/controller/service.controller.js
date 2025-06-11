@@ -25,6 +25,7 @@ const teams_model_1 = __importDefault(require("../models/teams.model"));
 const user_model_1 = __importDefault(require("../models/user.model"));
 const axios_1 = __importDefault(require("axios"));
 const sendPushNotification_1 = require("../utils/sendPushNotification");
+const wallet_model_1 = __importDefault(require("../models/wallet.model"));
 const testFcm = "fVSB8tntRb2ufrLcySfGxs:APA91bH3CCLoxCPSmRuTo4q7j0aAxWLCdu6WtAdBWogzo79j69u8M_qFwcNygw7LIGrLYBXFqz2SUZI-4js8iyHxe12BMe-azVy2v7d22o4bvxy2pzTZ4kE";
 //is cancellation fee is applicable or not
 function isCancellationFeeApplicable(serviceId) {
@@ -32,14 +33,16 @@ function isCancellationFeeApplicable(serviceId) {
         let serviceDeatils = yield service_model_1.default.findById(serviceId);
         let requestProgress = '', isCancellationFeeApplicable = false;
         requestProgress = (serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.requestProgress) || '';
-        var serviceAcceptedAt = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.acceptedAt;
+        var serviceStartDate = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceStartDate;
         if (requestProgress === "Pending" || requestProgress === "CancelledBySP") {
-            const givenTimestamp = serviceAcceptedAt && new Date(serviceAcceptedAt);
+            const givenTimestamp = serviceStartDate && new Date(serviceStartDate);
+            console.log({ givenTimestamp });
             const currentTimestamp = new Date();
-            const diffInMilliseconds = givenTimestamp && (currentTimestamp.getTime() - givenTimestamp.getTime());
-            const diffInHours = diffInMilliseconds && diffInMilliseconds / (1000 * 60 * 60);
-            // console.log(diffInHours, " ");
-            if (diffInHours && diffInHours > 24) {
+            const diffInMilliseconds = givenTimestamp && (givenTimestamp.getTime() - currentTimestamp.getTime());
+            const diffInHours = diffInMilliseconds ? diffInMilliseconds / (1000 * 60 * 60) : 0;
+            console.log(diffInHours, "diffInHours");
+            if (diffInHours < 24) {
+                console.log("triggered");
                 isCancellationFeeApplicable = true;
             }
         }
@@ -89,7 +92,7 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
             }
         }
     ]);
-    if (existingAddresses.length >= 600) {
+    if (existingAddresses.length >= 6) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "You cannot have more than six pre-saved addresses."));
     }
     // Conditional checks for incentive and tip amounts
@@ -366,7 +369,7 @@ exports.cancelServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __
     }
     let isChragesAppicable = yield isCancellationFeeApplicable(serviceId);
     if (isChragesAppicable) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service cancelled after 24 hours. A cancellation fee of 25% will be charged."));
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(403, "Service starts within 24 hours. A cancellation fee of 25% will be charged."));
     }
     const updatedService = yield service_model_1.default.findOneAndUpdate({ _id: new mongoose_1.default.Types.ObjectId(serviceId), userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id }, {
         $set: {
@@ -427,6 +430,14 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
     const serviceRequest = yield service_model_1.default.findById(serviceId);
     if (!serviceRequest) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service not found."));
+    }
+    const spWalletDetails = yield wallet_model_1.default.findOne({ userId });
+    if (!spWalletDetails) {
+        return res.status(400).json({ error: 'User does not have a connected Wallet account' });
+    }
+    ;
+    if ((spWalletDetails === null || spWalletDetails === void 0 ? void 0 : spWalletDetails.balance) <= 200) {
+        return res.status(400).json({ error: 'Insufficient balance' });
     }
     const customerDetails = yield user_model_1.default.findById(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.userId);
     const serviceProviderDetails = yield user_model_1.default.findById(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.serviceProviderId).select('serviceProviderId');
@@ -684,6 +695,14 @@ exports.fetchServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __a
         {
             $project: {
                 categoryName: "$categoryDetails.name",
+                LeadGenerationFee: {
+                    $floor: {
+                        $multiply: [
+                            { $toDouble: "$categoryDetails.serviceCost" },
+                            0.25
+                        ]
+                    }
+                },
                 customerName: {
                     $concat: ["$userId.firstName", " ", "$userId.lastName"]
                 },
@@ -915,6 +934,14 @@ exports.fetchSingleServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) 
         {
             $project: {
                 categoryName: "$categoryId.name",
+                LeadGenerationFee: {
+                    $floor: {
+                        $multiply: [
+                            { $toDouble: "$categoryId.serviceCost" },
+                            0.25
+                        ]
+                    }
+                },
                 bookedServiceShift: "$serviceShifftId.shiftName",
                 bookedTimeSlot: 1,
                 serviceStartDate: 1,
@@ -959,6 +986,7 @@ exports.fetchSingleServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) 
                 serviceLongitude: 1,
                 startedAt: 1,
                 completedAt: 1,
+                acceptedAt: 1,
             }
         },
     ]);

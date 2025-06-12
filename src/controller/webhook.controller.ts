@@ -483,14 +483,13 @@ const handleTransferCreated = async (transfer: any) => {
     try {
         console.log("🔥 Transfer Created Event:", transfer);
 
-        const amount = transfer.amount;
-        const stripeTransferId = transfer.id;
-        const transferGroup = transfer.transfer_group;
-        if (transferGroup && transferGroup.startsWith('cancellation_fee_sp_')) {
+        const purpose = transfer.metadata?.purpose;
+        const SPId = transfer.metadata?.SPId;
+        if (purpose === 'CancellationFee') {
 
-            const parts = transferGroup.split('_');
-
-            const SPId = parts[3];
+            const stripeTransferId = transfer.id;
+            const amount = transfer.amount / 100; // Convert to dollars
+            // Save transfer details to database
             const transaction = {
                 type: 'credit',
                 amount,

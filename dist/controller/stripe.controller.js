@@ -603,8 +603,8 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
             ],
             payment_intent_data: {
                 setup_future_usage: 'on_session',
+                transfer_group: transferGroup,
                 transfer_data: {
-                    transfer_group: transferGroup,
                     destination: SPStripeAccountId,
                     amount: SPAmount * 100,
                 },

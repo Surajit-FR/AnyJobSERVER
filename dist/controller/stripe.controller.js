@@ -562,7 +562,7 @@ const isTheFirstPurchase = (req, res) => __awaiter(void 0, void 0, void 0, funct
 exports.isTheFirstPurchase = isTheFirstPurchase;
 //checkout session for service cancellation by customer
 const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b;
+    var _a, _b, _c;
     try {
         const { serviceId, cancellationReason } = req.body;
         const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
@@ -607,6 +607,11 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
                     destination: SPStripeAccountId,
                     amount: SPAmount * 100,
                 },
+                metadata: {
+                    purpose: 'CancellationFee',
+                    serviceId,
+                    SPId: (_b = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId) === null || _b === void 0 ? void 0 : _b.toString()
+                },
             },
             payment_method_data: {
                 allow_redisplay: 'always'
@@ -616,7 +621,7 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
                 serviceId,
                 cancellationReason,
                 userId: userId === null || userId === void 0 ? void 0 : userId.toString(),
-                SPId: (_b = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId) === null || _b === void 0 ? void 0 : _b.toString()
+                SPId: (_c = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId) === null || _c === void 0 ? void 0 : _c.toString()
             },
             success_url: 'https://frontend.theassure.co.uk/payment-success',
             cancel_url: 'https://frontend.theassure.co.uk/payment-error',

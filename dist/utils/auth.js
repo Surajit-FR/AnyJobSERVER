@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CheckJWTTokenExpiration = exports.addUser = exports.generateRandomPassword = void 0;
+exports.CheckJWTTokenExpiration = exports.addUser = exports.generatePasswordFromFirstName = void 0;
 exports.getCardType = getCardType;
 exports.isNotificationPreferenceOn = isNotificationPreferenceOn;
 const user_model_1 = __importDefault(require("../models/user.model"));
@@ -25,11 +25,13 @@ const response_1 = require("./response");
 const card_validator_1 = __importDefault(require("card-validator"));
 const userPreference_model_1 = __importDefault(require("../models/userPreference.model"));
 const mongoose_1 = __importDefault(require("mongoose"));
-const generateRandomPassword = (length = 10) => {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$!";
-    return Array.from({ length }, () => chars.charAt(Math.floor(Math.random() * chars.length))).join("");
+const stripe_controller_1 = require("../controller/stripe.controller");
+const generatePasswordFromFirstName = (firstName) => {
+    if (!firstName)
+        return "User@123"; // Default fallback password
+    return `${firstName.charAt(0).toUpperCase()}${firstName.slice(1).toLowerCase()}@123`;
 };
-exports.generateRandomPassword = generateRandomPassword;
+exports.generatePasswordFromFirstName = generatePasswordFromFirstName;
 const addUser = (userData) => __awaiter(void 0, void 0, void 0, function* () {
     const { firstName, lastName, email, userType, phone, avatar } = userData;
     let password = userData.password; // Default to provided password
@@ -48,7 +50,7 @@ const addUser = (userData) => __awaiter(void 0, void 0, void 0, function* () {
         }
     }
     if (!password || (email && phone)) {
-        password = (0, exports.generateRandomPassword)();
+        password = (0, exports.generatePasswordFromFirstName)(firstName);
     }
     generatedPass = password;
     // Generate a random password
@@ -60,7 +62,6 @@ const addUser = (userData) => __awaiter(void 0, void 0, void 0, function* () {
         lastName,
         email,
         password,
-        rawPassword: password,
         userType,
         phone,
         avatar
@@ -101,6 +102,10 @@ const addUser = (userData) => __awaiter(void 0, void 0, void 0, function* () {
         const html = `Dear ${savedUser.firstName} ${savedUser.lastName}, your login credentials for AnyJob are: <b>Password: ${generatedPass}</b> or you can directly log in using your registered <b>Phone Number: ${savedUser.phone}</b>.`;
         yield (0, sendMail_1.sendMail)(to, subject, html);
     }
+    //add as stripe customer
+    if (userType === 'ServiceProvider' || userType === 'Customer') {
+        yield (0, stripe_controller_1.createCustomerIfNotExists)((newUser._id).toString());
+    }
     return savedUser;
 });
 exports.addUser = addUser;
@@ -108,6 +113,7 @@ const CheckJWTTokenExpiration = (req, res) => __awaiter(void 0, void 0, void 0, 
     var _a, _b;
     try {
         let token = ((_a = req.cookies) === null || _a === void 0 ? void 0 : _a.accessToken) || ((_b = req.header("Authorization")) === null || _b === void 0 ? void 0 : _b.replace("Bearer ", ""));
+        console.log(token, "given token");
         if (!token) {
             console.log("Token is missing or empty");
             return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(401, "Unauthorized Request"));

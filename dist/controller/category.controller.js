@@ -13,7 +13,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.searchCategories = exports.getCategorieById = exports.deleteCategory = exports.updateCategory = exports.getCategories = exports.addCategory = void 0;
-;
 const mongoose_1 = __importDefault(require("mongoose"));
 const asyncHandler_1 = require("../utils/asyncHandler");
 const ApisErrors_1 = require("../utils/ApisErrors");
@@ -26,7 +25,7 @@ const multer_middleware_1 = require("../middlewares/multer.middleware");
 // addCategory controller
 exports.addCategory = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    const { name } = req.body;
+    const { name, serviceCost } = req.body;
     const trimmedName = name.trim();
     const existingCategory = yield category_model_1.default.findOne({ name: { $regex: new RegExp(`^${trimmedName}$`, 'i') } });
     if (existingCategory) {
@@ -48,6 +47,7 @@ exports.addCategory = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(v
     const newCategory = yield category_model_1.default.create({
         name: trimmedName,
         categoryImage: catImg === null || catImg === void 0 ? void 0 : catImg.secure_url,
+        serviceCost,
         owner: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id,
     });
     if (!newCategory) {
@@ -68,7 +68,8 @@ exports.getCategories = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
 // updateCategory controller
 exports.updateCategory = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { CategoryId } = req.params;
-    const { name } = req.body;
+    const { name, serviceCost } = req.body;
+    console.log(req.body);
     if (!CategoryId) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Category ID is required."));
     }
@@ -94,7 +95,7 @@ exports.updateCategory = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
         catImgUrl = catImg === null || catImg === void 0 ? void 0 : catImg.secure_url;
     }
     const updatedCategory = yield category_model_1.default.findByIdAndUpdate(new mongoose_1.default.Types.ObjectId(CategoryId), {
-        $set: Object.assign({ name: trimmedName }, (catImgUrl && { categoryImage: catImgUrl }) // Only update image if uploaded
+        $set: Object.assign({ name: trimmedName, serviceCost }, (catImgUrl && { categoryImage: catImgUrl }) // Only update image if uploaded
         ),
     }, { new: true });
     if (!updatedCategory) {
@@ -149,8 +150,15 @@ exports.getCategorieById = (0, asyncHandler_1.asyncHandler)((req, res) => __awai
     ;
     return (0, response_1.sendSuccessResponse)(res, 200, categoryToFetch, "Category retrieved successfully.");
 }));
+//search category controller
 exports.searchCategories = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { serachKey } = req.body;
+    if (!serachKey || serachKey.trim().length < 3) {
+        return res.status(400).json({
+            success: false,
+            message: "Search key must be at least 3 characters long."
+        });
+    }
     const categoryData = yield category_model_1.default.aggregate([
         {
             $match: {

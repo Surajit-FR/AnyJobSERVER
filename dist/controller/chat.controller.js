@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fetchChatList = exports.updateChatList = exports.fetchChatHistory = exports.saveChatMessage = void 0;
+exports.getUnreadMessageCount = exports.fetchChatList = exports.updateChatList = exports.fetchChatHistory = exports.saveChatMessage = void 0;
 const chat_model_1 = __importDefault(require("../models/chat.model"));
 const response_1 = require("../utils/response");
 const asyncHandler_1 = require("../utils/asyncHandler");
@@ -161,3 +161,25 @@ exports.fetchChatList = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
     ]);
     return (0, response_1.sendSuccessResponse)(res, 200, chatList, "Chat list fetched successfully");
 }));
+const getUnreadMessageCount = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+    try {
+        const unreadCount = yield chat_model_1.default.countDocuments({
+            toUserId: userId,
+            isRead: false,
+        });
+        return res.status(200).json({
+            success: true,
+            unreadCount,
+        });
+    }
+    catch (error) {
+        console.error("Error fetching unread message count:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch unread messages count.",
+        });
+    }
+});
+exports.getUnreadMessageCount = getUnreadMessageCount;

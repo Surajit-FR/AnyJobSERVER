@@ -379,8 +379,8 @@ const handleServiceCancellationFee = (session) => __awaiter(void 0, void 0, void
 });
 const handleTransferCreated = (transfer) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        console.log("🔥 Transfer Created Event:", transfer);
-        const amount = transfer.amount;
+        console.log("Transfer Created Event:", transfer);
+        const amount = transfer.amount / 100;
         const stripeTransferId = transfer.id;
         const transferGroup = transfer.transfer_group;
         if (transferGroup && transferGroup.startsWith('cancellation_fee_sp_')) {
@@ -397,10 +397,10 @@ const handleTransferCreated = (transfer) => __awaiter(void 0, void 0, void 0, fu
                 $inc: { balance: amount },
                 updatedAt: Date.now(),
             });
-            console.log("✅ Cancellation amount for SP transferd to his account successfully");
+            console.log("Cancellation amount for SP transferd to his account successfully");
         }
     }
     catch (error) {
-        console.error("❌ Error in handleTransferCreated:", error.message);
+        console.error("Error in handleTransferCreated:", error.message);
     }
 });

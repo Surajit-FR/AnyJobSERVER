@@ -403,7 +403,7 @@ const handleLeadGenerationFee = async (session: any) => {
 const handleServiceCancellationFee = async (session: any) => {
     try {
 
-        console.log("WEBHOOK RUNS: SERVICE CANCELLATION FEE CHECKOUT SESSION ");
+        console.log("WEBHOOK RUNS: SERVICE CANCELLATION FEE CHECKOUT SESSION ", session);
 
         const purpose = session.metadata?.purpose;
         if (purpose !== 'CancellationFee') return;
@@ -419,7 +419,9 @@ const handleServiceCancellationFee = async (session: any) => {
             return;
         }
 
-        const amount = session.amount_total / 100;
+        const amount = session.transfer_data.amount / 100;
+        console.log({ amount });
+
 
         const paymentIntentId = session.payment_intent;
         const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId as string);
@@ -468,7 +470,7 @@ const handleServiceCancellationFee = async (session: any) => {
 
         const transaction = {
             type: 'credit',
-            amount: session.transfer_data.amount,
+            amount,
             description: 'ServiceCancellationAmount',
             stripeTransactionId: paymentIntent?.id,
         };
@@ -477,7 +479,7 @@ const handleServiceCancellationFee = async (session: any) => {
             { userId: SPId },
             {
                 $push: { transactions: transaction },
-                $inc: { balance: (session.transfer_data.amount / 100) },
+                $inc: { balance: amount },
                 updatedAt: Date.now(),
             }
         );

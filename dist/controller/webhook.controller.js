@@ -378,15 +378,14 @@ const handleServiceCancellationFee = (session) => __awaiter(void 0, void 0, void
     }
 });
 const handleTransferCreated = (transfer) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b;
     try {
         console.log("🔥 Transfer Created Event:", transfer);
-        const purpose = (_a = transfer.metadata) === null || _a === void 0 ? void 0 : _a.purpose;
-        const SPId = (_b = transfer.metadata) === null || _b === void 0 ? void 0 : _b.SPId;
-        if (purpose === 'CancellationFee') {
-            const stripeTransferId = transfer.id;
-            const amount = transfer.amount / 100; // Convert to dollars
-            // Save transfer details to database
+        const amount = transfer.amount;
+        const stripeTransferId = transfer.id;
+        const transferGroup = transfer.transfer_group;
+        if (transferGroup && transferGroup.startsWith('cancellation_fee_sp_')) {
+            const parts = transferGroup.split('_');
+            const SPId = parts[3];
             const transaction = {
                 type: 'credit',
                 amount,

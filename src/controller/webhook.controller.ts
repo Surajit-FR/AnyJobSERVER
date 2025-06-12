@@ -123,7 +123,8 @@ const handlePaymentSuccess = async (paymentIntent: any) => {
     // Get receipt URL
     const charges = await stripe.charges.list({ payment_intent: paymentIntent.id });
     const receiptUrl = charges.data[0]?.receipt_url;
-    console.log(paymentIntent, "customerid");
+    // console.log(paymentIntent, "customerid");
+    const amount = Math.ceil(paymentIntent.transfer_data.amount / 100)
 
 
     const updatedPurchaseData = await PurchaseModel.findOne(
@@ -419,8 +420,8 @@ const handleServiceCancellationFee = async (session: any) => {
             return;
         }
 
-        const amount = session.transfer_data.amount / 100;
-        console.log({ amount });
+        // const amount = session.transfer_data.amount / 100;
+        // console.log({ amount });
 
 
         const paymentIntentId = session.payment_intent;
@@ -467,23 +468,6 @@ const handleServiceCancellationFee = async (session: any) => {
             amount: Math.ceil(session.amount_total / 100),
         }
         const saveCancellationFee = await new CancellationFeeModel(CancellationFeeData).save();
-
-        const transaction = {
-            type: 'credit',
-            amount,
-            description: 'ServiceCancellationAmount',
-            stripeTransactionId: paymentIntent?.id,
-        };
-
-        await WalletModel.findOneAndUpdate(
-            { userId: SPId },
-            {
-                $push: { transactions: transaction },
-                $inc: { balance: amount },
-                updatedAt: Date.now(),
-            }
-        );
-
         //cancel the service
         const updatedService = await ServiceModel.findOneAndUpdate(
             { _id: new mongoose.Types.ObjectId(serviceId), userId: user._id },

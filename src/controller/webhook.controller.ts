@@ -481,9 +481,9 @@ const handleServiceCancellationFee = async (session: any) => {
 
 const handleTransferCreated = async (transfer: any) => {
     try {
-        console.log("🔥 Transfer Created Event:", transfer);
+        console.log("Transfer Created Event:", transfer);
 
-        const amount = transfer.amount;
+        const amount = transfer.amount / 100;
         const stripeTransferId = transfer.id;
         const transferGroup = transfer.transfer_group;
         if (transferGroup && transferGroup.startsWith('cancellation_fee_sp_')) {
@@ -507,10 +507,10 @@ const handleTransferCreated = async (transfer: any) => {
                 }
             );
 
-            console.log("✅ Cancellation amount for SP transferd to his account successfully");
+            console.log("Cancellation amount for SP transferd to his account successfully");
         }
 
     } catch (error: any) {
-        console.error("❌ Error in handleTransferCreated:", error.message);
+        console.error("Error in handleTransferCreated:", error.message);
     }
 }

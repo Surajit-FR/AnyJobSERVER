@@ -645,6 +645,11 @@ export const createServiceCancellationCheckoutSession = async (req: CustomReques
                     destination: SPStripeAccountId,
                     amount: SPAmount * 100,
                 },
+                metadata: {
+                    purpose: 'CancellationFee',
+                    serviceId,
+                    SPId: serviceDeatils?.serviceProviderId?.toString()
+                },
             },
 
             payment_method_data: {

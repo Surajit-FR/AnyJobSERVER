@@ -56,6 +56,10 @@ export const stripeWebhook = async (req: Request, res: Response) => {
                 await handlePaymentCanceled(event.data.object);
                 break;
 
+            case "transfer.created":
+                await handleTransferCreated(event.data.object);
+                break;
+
             default:
                 console.log(`Unhandled event type: ${event.type}`);
         }
@@ -120,13 +124,8 @@ const handlePaymentSuccess = async (paymentIntent: any) => {
     console.log("WEBHOOK RUNS: CHECKING PAYMENT SUCCESS");
 
 
-    // Get receipt URL
     const charges = await stripe.charges.list({ payment_intent: paymentIntent.id });
     const receiptUrl = charges.data[0]?.receipt_url;
-    // console.log(paymentIntent, "customerid");
-    const amount = Math.ceil(paymentIntent.transfer_data.amount / 100)
-
-
     const updatedPurchaseData = await PurchaseModel.findOne(
         { paymentIntentId: paymentIntent.id },
         // { status: 'succeeded', receipt_url: receiptUrl, lastPendingPaymentIntentId: "" },
@@ -135,7 +134,6 @@ const handlePaymentSuccess = async (paymentIntent: any) => {
     console.log({ updatedPurchaseData });
 
     console.log("Webhook runs: paymnet status updated :)");
-    // console.log("Receipt URL:", receiptUrl);
 };
 
 const handlePaymentDelayed = async (paymentIntent: any) => {
@@ -410,7 +408,6 @@ const handleServiceCancellationFee = async (session: any) => {
         if (purpose !== 'CancellationFee') return;
 
         const userId = session.metadata?.userId;
-        const SPId = session.metadata?.SPId;
         const serviceId = session.metadata?.serviceId;
         const cancellationReason = session.metadata?.cancellationReason;
 
@@ -419,10 +416,6 @@ const handleServiceCancellationFee = async (session: any) => {
             console.warn("User not found in leadgenerationfee webhook");
             return;
         }
-
-        // const amount = session.transfer_data.amount / 100;
-        // console.log({ amount });
-
 
         const paymentIntentId = session.payment_intent;
         const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId as string);
@@ -485,3 +478,38 @@ const handleServiceCancellationFee = async (session: any) => {
         console.error("❌ Error in handleCheckoutSessionCompleted (Lead Generation Fee):", error);
     }
 };
+
+const handleTransferCreated = async (transfer: any) => {
+    try {
+        console.log("🔥 Transfer Created Event:", transfer);
+
+        const purpose = transfer.metadata?.purpose;
+        const SPId = transfer.metadata?.SPId;
+        if (purpose === 'CancellationFee') {
+
+            const stripeTransferId = transfer.id;
+            const amount = transfer.amount / 100; // Convert to dollars
+            // Save transfer details to database
+            const transaction = {
+                type: 'credit',
+                amount,
+                description: 'ServiceCancellationAmount',
+                stripeTransferId
+            };
+
+            await WalletModel.findOneAndUpdate(
+                { userId: SPId },
+                {
+                    $push: { transactions: transaction },
+                    $inc: { balance: amount },
+                    updatedAt: Date.now(),
+                }
+            );
+
+            console.log("✅ Cancellation amount for SP transferd to his account successfully");
+        }
+
+    } catch (error: any) {
+        console.error("❌ Error in handleTransferCreated:", error.message);
+    }
+}

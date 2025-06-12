@@ -621,7 +621,7 @@ export const createServiceCancellationCheckoutSession = async (req: CustomReques
             stripeCustomerId = customer.id;
             await UserModel.findByIdAndUpdate(userId, { stripeCustomerId });
         }
-
+        const transferGroup = `cancellation_fee_sp_${serviceDeatils?.serviceProviderId?.toString()}_service_${serviceId}`;
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
             mode: 'payment',
@@ -641,7 +641,7 @@ export const createServiceCancellationCheckoutSession = async (req: CustomReques
             payment_intent_data: {
                 setup_future_usage: 'on_session',
                 transfer_data: {
-                    // This amount will be transferred to the connected account
+                    transfer_group: transferGroup,
                     destination: SPStripeAccountId,
                     amount: SPAmount * 100,
                 },

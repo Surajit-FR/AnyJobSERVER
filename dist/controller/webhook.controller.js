@@ -396,9 +396,11 @@ const handleTransferCreated = (transfer) => __awaiter(void 0, void 0, void 0, fu
         }
         let description = '';
         let SPId = '';
+        console.log({ transferGroup });
         if (transferGroup.startsWith('cancellation_fee_sp_')) {
             description = 'ServiceCancellationAmount';
             const parts = transferGroup.split('_');
+            console.log("parts", parts);
             SPId = parts[3]; // Extract SPId
         }
         else if (transferGroup.startsWith('incentive_fee_')) {
@@ -414,6 +416,7 @@ const handleTransferCreated = (transfer) => __awaiter(void 0, void 0, void 0, fu
             console.error("Service Provider ID not found in transfer group.");
             return;
         }
+        console.log({ SPId });
         const transaction = {
             type: 'credit',
             amount,

@@ -401,12 +401,13 @@ const handleTransferCreated = (transfer) => __awaiter(void 0, void 0, void 0, fu
             description = 'ServiceCancellationAmount';
             const parts = transferGroup.split('_');
             console.log("parts", parts);
-            SPId = parts[3]; // Extract SPId
+            SPId = parts[2]; // Extract SPId
         }
         else if (transferGroup.startsWith('incentive_fee_')) {
             description = 'ServiceIncentiveAmount';
             const parts = transferGroup.split('_');
-            SPId = parts[3]; // Extract SPId
+            console.log("parts", parts);
+            SPId = parts[2]; // Extract SPId
         }
         else {
             console.warn("Unhandled transfer group:", transferGroup);

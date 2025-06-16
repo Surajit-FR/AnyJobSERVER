@@ -44,6 +44,7 @@ app.use("/stripe", express.raw({ type: "application/json" }), webhookRouter);
 
 // ✅ 3. General Middleware 
 app.use(morgan("dev"));
+
 app.use(express.json({ limit: EXPRESS_CONFIG_LIMIT })); // JSON Parsing for Other Routes
 app.use(express.urlencoded({ extended: true, limit: EXPRESS_CONFIG_LIMIT }));
 app.use(express.static("public"));
@@ -51,7 +52,6 @@ app.use(cookieParser());
 
 // ✅ 4. Regular API Routes (Stripe API but NOT webhook)
 app.use("/api/v1/stripe", stripeRouter);
-
 // ✅ 5. Other API Routes
 app.use("/api/v1/healthcheck", healthcheckRouter);
 app.use("/api/v1/auth", authRouter);
@@ -65,6 +65,9 @@ app.use("/api/v1/chat", chatRouter);
 app.use("/api/v1/", imageRouter);
 app.use("/api/v1/wallet", walletRouter);
 
+// Schedule cleanup every day at midnight
+// cron.schedule("0 0 * * *", () => {
+//     console.log("Midnight cron job starts...");
 // ✅ 6. Customer Routes
 app.use("/api/v1/customer", customerRouter);
 app.use("/api/v1/otp", otpRouter);
@@ -94,13 +97,13 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 // ✅ 10. Scheduled Cleanup Jobs
-cron.schedule("0 0 * * *", () => {
-    console.log("Midnight cron job starts...");
+// cron.schedule("0 0 * * *", () => {
+//     console.log("Midnight cron job starts...");
 
-    // Schedule a task every minute after midnight
-    cron.schedule("*/1 * * * *", removeStaleFcmTokens);
+//     // Schedule a task every minute after midnight
+//     cron.schedule("*/1 * * * *", removeStaleFcmTokens);
 
-    console.log("Scheduled the job to run every minute after midnight.");
-});
+//     console.log("Scheduled the job to run every minute after midnight.");
+// });
 
 export { app };

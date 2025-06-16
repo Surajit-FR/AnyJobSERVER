@@ -8,7 +8,6 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const morgan_1 = __importDefault(require("morgan"));
-const node_cron_1 = __importDefault(require("node-cron"));
 const constants_1 = require("./constants");
 const stripe_routes_1 = __importDefault(require("./routes/stripe.routes"));
 const healthcheck_routes_1 = __importDefault(require("./routes/healthcheck.routes"));
@@ -24,7 +23,6 @@ const rating_routes_1 = __importDefault(require("./routes/rating.routes"));
 const googleCloud_routes_1 = __importDefault(require("./routes/googleCloud.routes"));
 const chat_routes_1 = __importDefault(require("./routes/chat.routes"));
 const upload_routes_1 = __importDefault(require("./routes/upload.routes"));
-const sendPushNotification_1 = require("../src/utils/sendPushNotification");
 const wallet_routes_1 = __importDefault(require("./routes/wallet.routes"));
 const webhook_routes_1 = __importDefault(require("./routes/webhook.routes"));
 const app = (0, express_1.default)();
@@ -63,6 +61,9 @@ app.use("/api/v1/google-cloud", googleCloud_routes_1.default);
 app.use("/api/v1/chat", chat_routes_1.default);
 app.use("/api/v1/", upload_routes_1.default);
 app.use("/api/v1/wallet", wallet_routes_1.default);
+// Schedule cleanup every day at midnight
+// cron.schedule("0 0 * * *", () => {
+//     console.log("Midnight cron job starts...");
 // ✅ 6. Customer Routes
 app.use("/api/v1/customer", user_routes_2.default);
 app.use("/api/v1/otp", otp_routes_1.default);
@@ -86,11 +87,4 @@ app.use((req, res, next) => {
         status: 404,
         message: "Endpoint Not Found",
     });
-});
-// ✅ 10. Scheduled Cleanup Jobs
-node_cron_1.default.schedule("0 0 * * *", () => {
-    console.log("Midnight cron job starts...");
-    // Schedule a task every minute after midnight
-    node_cron_1.default.schedule("*/1 * * * *", sendPushNotification_1.removeStaleFcmTokens);
-    console.log("Scheduled the job to run every minute after midnight.");
 });

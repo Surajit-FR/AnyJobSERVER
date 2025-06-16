@@ -38,6 +38,7 @@ const walletSchema = new mongoose_1.default.Schema({
                 default: Date.now,
             },
             stripeTransactionId: String,
+            stripeTransferId: String,
         },
     ],
 }, { timestamps: true });

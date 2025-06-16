@@ -85,7 +85,7 @@ router.route("/forget-password").post(forgetPassword);
 router.route("/reset-password").post(resetPassword);
 
 //check-token-expiration
-router.route("/check-token-expiration").get( CheckJWTTokenExpiration);
+router.route("/check-token-expiration").get(CheckJWTTokenExpiration);
 
 //emial verification 
 router.route("/send-code-email").post(sendOTPEmail);

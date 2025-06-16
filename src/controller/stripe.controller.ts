@@ -17,7 +17,6 @@ const stripe = new Stripe(STRIPE_SECRET_KEY, {
 
 
 export async function createCustomerIfNotExists(userId: string) {
-    console.log("func runs");
 
     const user = await UserModel.findById({ _id: userId });
 
@@ -31,6 +30,31 @@ export async function createCustomerIfNotExists(userId: string) {
         await UserModel.findByIdAndUpdate({ _id: userId }, { stripeCustomerId: customer.id });
     }
 };
+
+export async function transferIncentiveToSP(serviceId: string) {
+    const serviceData = await ServiceModel.findById({ _id: serviceId });
+    if (!serviceData) throw new Error("Service not found");
+
+    if (serviceData.isIncentiveGiven) {
+        const givenIncentiveByCustomer = serviceData.incentiveAmount;
+        const spIncentiveAmt = Math.ceil(givenIncentiveByCustomer * 0.6)
+        const spId = serviceData.serviceProviderId
+
+        const spAccount = await WalletModel.findOne({ userId: spId });
+        if (!spAccount) throw new Error("SP account not found");
+        const spStripeAccountId = spAccount.stripeConnectedAccountId
+
+        const transferGroup = `incentive_fee_${serviceData?.serviceProviderId?.toString()}_service_${serviceId}`;
+
+
+        const transfer = await stripe.transfers.create({
+            amount: spIncentiveAmt * 100,
+            currency: 'usd',
+            destination: spStripeAccountId,
+            transfer_group: transferGroup,
+        });
+    }
+}
 
 export const createCheckoutsession = async (req: CustomRequest, res: Response) => {
     const { amount, serviceId } = req.body;
@@ -81,7 +105,7 @@ export const createCheckoutsession = async (req: CustomRequest, res: Response) =
         },
 
         metadata: {
-            serviceId
+            serviceId,
         },
 
         success_url: 'https://frontend.theassure.co.uk/payment-success',
@@ -644,11 +668,6 @@ export const createServiceCancellationCheckoutSession = async (req: CustomReques
                 transfer_data: {
                     destination: SPStripeAccountId,
                     amount: SPAmount * 100,
-                },
-                metadata: {
-                    purpose: 'CancellationFee',
-                    serviceId,
-                    SPId: serviceDeatils?.serviceProviderId?.toString()
                 },
             },
 

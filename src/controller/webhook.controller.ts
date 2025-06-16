@@ -302,6 +302,18 @@ const handleServiceIncentivePayment = async (session: any) => {
         }
         const savePurchaseData = await new PurchaseModel(purchaseData).save();
 
+        const updatedService = await ServiceModel.findOneAndUpdate(
+            {
+                _id: session.metadata.serviceId,
+                userId: user?._id
+            },
+            {
+                isIncentiveGiven: true,
+                incentiveAmount: Math.ceil(session.amount_total / 100),
+            },
+            { new: true }
+        )
+
     } catch (error: any) {
         console.error("❌ Error in handleCheckoutSessionCompleted:", error);
     }
@@ -486,31 +498,57 @@ const handleTransferCreated = async (transfer: any) => {
         const amount = transfer.amount / 100;
         const stripeTransferId = transfer.id;
         const transferGroup = transfer.transfer_group;
-        if (transferGroup && transferGroup.startsWith('cancellation_fee_sp_')) {
 
+        if (!transferGroup) {
+            console.warn("Transfer group missing in transfer event.");
+            return;
+        }
+
+        let description = '';
+        let SPId = '';
+
+        if (transferGroup.startsWith('cancellation_fee_sp_')) {
+            description = 'ServiceCancellationAmount';
             const parts = transferGroup.split('_');
+            SPId = parts[3]; // Extract SPId
+        } else if (transferGroup.startsWith('incentive_fee_')) {
+            description = 'ServiceIncentiveAmount';
+            const parts = transferGroup.split('_');
+            SPId = parts[3]; // Extract SPId
+        } else {
+            console.warn("Unhandled transfer group:", transferGroup);
+            return;
+        }
 
-            const SPId = parts[3];
-            const transaction = {
-                type: 'credit',
-                amount,
-                description: 'ServiceCancellationAmount',
-                stripeTransferId
-            };
+        if (!SPId) {
+            console.error("Service Provider ID not found in transfer group.");
+            return;
+        }
 
-            await WalletModel.findOneAndUpdate(
-                { userId: SPId },
-                {
-                    $push: { transactions: transaction },
-                    $inc: { balance: amount },
-                    updatedAt: Date.now(),
-                }
-            );
+        const transaction = {
+            type: 'credit',
+            amount,
+            description,
+            stripeTransferId
+        };
 
-            console.log("Cancellation amount for SP transferd to his account successfully");
+        const updateResult = await WalletModel.findOneAndUpdate(
+            { userId: SPId },
+            {
+                $push: { transactions: transaction },
+                $inc: { balance: amount },
+                updatedAt: Date.now(),
+            },
+            { new: true }
+        );
+
+        if (updateResult) {
+            console.log(`${description} transferred to SP's account successfully.`);
+        } else {
+            console.warn(`Wallet not found for SP ID: ${SPId}`);
         }
 
     } catch (error: any) {
         console.error("Error in handleTransferCreated:", error.message);
     }
-}
+};

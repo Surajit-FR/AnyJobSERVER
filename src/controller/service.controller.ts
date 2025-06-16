@@ -15,6 +15,7 @@ import axios from "axios";
 import { sendPushNotification } from "../utils/sendPushNotification";
 import { isNotificationPreferenceOn } from "../utils/auth";
 import WalletModel from "../models/wallet.model";
+import { transferIncentiveToSP } from "./stripe.controller";
 
 const testFcm = "fVSB8tntRb2ufrLcySfGxs:APA91bH3CCLoxCPSmRuTo4q7j0aAxWLCdu6WtAdBWogzo79j69u8M_qFwcNygw7LIGrLYBXFqz2SUZI-4js8iyHxe12BMe-azVy2v7d22o4bvxy2pzTZ4kE";
 
@@ -675,6 +676,7 @@ export const handleServiceRequestState = asyncHandler(async (req: CustomRequest,
     }
 
     if (requestProgress === "Pending") {
+        await transferIncentiveToSP(serviceId)
         return sendSuccessResponse(res, 200, { updatedService }, "Service request accepted successfully.");
     }
     if (requestProgress === "Started") {

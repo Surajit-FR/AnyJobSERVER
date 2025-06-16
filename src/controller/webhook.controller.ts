@@ -533,7 +533,7 @@ const handleTransferCreated = async (transfer: any) => {
         };
 
         const updateResult = await WalletModel.findOneAndUpdate(
-            { userId: SPId },
+            { userId: new mongoose.Types.ObjectId(SPId) },
             {
                 $push: { transactions: transaction },
                 $inc: { balance: amount },

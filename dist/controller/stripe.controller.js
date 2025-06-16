@@ -14,6 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.withdrawFunds = exports.createServiceCancellationCheckoutSession = exports.isTheFirstPurchase = exports.payForService = exports.createLeadGenerationCheckoutSession = exports.createAddFundsSession = exports.createConnectedAccountAndRedirect = exports.createPaymentIntent = exports.attatchPaymentMethod = exports.chargeSavedCard = exports.createCheckoutsession = void 0;
 exports.createCustomerIfNotExists = createCustomerIfNotExists;
+exports.transferIncentiveToSP = transferIncentiveToSP;
 exports.createCustomConnectedAccount = createCustomConnectedAccount;
 const stripe_1 = __importDefault(require("stripe"));
 const config_1 = require("../config/config");
@@ -30,7 +31,6 @@ const stripe = new stripe_1.default(config_1.STRIPE_SECRET_KEY, {
 });
 function createCustomerIfNotExists(userId) {
     return __awaiter(this, void 0, void 0, function* () {
-        console.log("func runs");
         const user = yield user_model_1.default.findById({ _id: userId });
         if (!user)
             throw new Error("User not found");
@@ -44,6 +44,30 @@ function createCustomerIfNotExists(userId) {
     });
 }
 ;
+function transferIncentiveToSP(serviceId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a;
+        const serviceData = yield service_model_1.default.findById({ _id: serviceId });
+        if (!serviceData)
+            throw new Error("Service not found");
+        if (serviceData.isIncentiveGiven) {
+            const givenIncentiveByCustomer = serviceData.incentiveAmount;
+            const spIncentiveAmt = Math.ceil(givenIncentiveByCustomer * 0.6);
+            const spId = serviceData.serviceProviderId;
+            const spAccount = yield wallet_model_1.default.findOne({ userId: spId });
+            if (!spAccount)
+                throw new Error("SP account not found");
+            const spStripeAccountId = spAccount.stripeConnectedAccountId;
+            const transferGroup = `incentive_fee_${(_a = serviceData === null || serviceData === void 0 ? void 0 : serviceData.serviceProviderId) === null || _a === void 0 ? void 0 : _a.toString()}_service_${serviceId}`;
+            const transfer = yield stripe.transfers.create({
+                amount: spIncentiveAmt * 100,
+                currency: 'usd',
+                destination: spStripeAccountId,
+                transfer_group: transferGroup,
+            });
+        }
+    });
+}
 const createCheckoutsession = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const { amount, serviceId } = req.body;
@@ -89,7 +113,7 @@ const createCheckoutsession = (req, res) => __awaiter(void 0, void 0, void 0, fu
             }
         },
         metadata: {
-            serviceId
+            serviceId,
         },
         success_url: 'https://frontend.theassure.co.uk/payment-success',
         cancel_url: 'https://frontend.theassure.co.uk/payment-error',
@@ -562,7 +586,7 @@ const isTheFirstPurchase = (req, res) => __awaiter(void 0, void 0, void 0, funct
 exports.isTheFirstPurchase = isTheFirstPurchase;
 //checkout session for service cancellation by customer
 const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d;
+    var _a, _b, _c;
     try {
         const { serviceId, cancellationReason } = req.body;
         const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
@@ -608,11 +632,6 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
                     destination: SPStripeAccountId,
                     amount: SPAmount * 100,
                 },
-                metadata: {
-                    purpose: 'CancellationFee',
-                    serviceId,
-                    SPId: (_c = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId) === null || _c === void 0 ? void 0 : _c.toString()
-                },
             },
             payment_method_data: {
                 allow_redisplay: 'always'
@@ -622,7 +641,7 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
                 serviceId,
                 cancellationReason,
                 userId: userId === null || userId === void 0 ? void 0 : userId.toString(),
-                SPId: (_d = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId) === null || _d === void 0 ? void 0 : _d.toString()
+                SPId: (_c = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId) === null || _c === void 0 ? void 0 : _c.toString()
             },
             success_url: 'https://frontend.theassure.co.uk/payment-success',
             cancel_url: 'https://frontend.theassure.co.uk/payment-error',

@@ -26,6 +26,7 @@ const user_model_1 = __importDefault(require("../models/user.model"));
 const axios_1 = __importDefault(require("axios"));
 const sendPushNotification_1 = require("../utils/sendPushNotification");
 const wallet_model_1 = __importDefault(require("../models/wallet.model"));
+const stripe_controller_1 = require("./stripe.controller");
 const testFcm = "fVSB8tntRb2ufrLcySfGxs:APA91bH3CCLoxCPSmRuTo4q7j0aAxWLCdu6WtAdBWogzo79j69u8M_qFwcNygw7LIGrLYBXFqz2SUZI-4js8iyHxe12BMe-azVy2v7d22o4bvxy2pzTZ4kE";
 //is cancellation fee is applicable or not
 function isCancellationFeeApplicable(serviceId) {
@@ -542,6 +543,7 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service not found for updating."));
     }
     if (requestProgress === "Pending") {
+        yield (0, stripe_controller_1.transferIncentiveToSP)(serviceId);
         return (0, response_1.sendSuccessResponse)(res, 200, { updatedService }, "Service request accepted successfully.");
     }
     if (requestProgress === "Started") {

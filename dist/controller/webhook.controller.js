@@ -420,7 +420,7 @@ const handleTransferCreated = (transfer) => __awaiter(void 0, void 0, void 0, fu
             description,
             stripeTransferId
         };
-        const updateResult = yield wallet_model_1.default.findOneAndUpdate({ userId: SPId }, {
+        const updateResult = yield wallet_model_1.default.findOneAndUpdate({ userId: new mongoose_1.default.Types.ObjectId(SPId) }, {
             $push: { transactions: transaction },
             $inc: { balance: amount },
             updatedAt: Date.now(),

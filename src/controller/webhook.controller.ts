@@ -514,7 +514,7 @@ const handleTransferCreated = async (transfer: any) => {
             console.log("parts", parts);
             SPId = parts[2]; // Extract SPId
         } else if (transferGroup.startsWith('incentive_fee_')) {
-            description = 'ServiceIncentiveAmount';            
+            description = 'ServiceIncentiveAmount';
             const parts = transferGroup.split('_');
             console.log("parts", parts);
             SPId = parts[2]; // Extract SPId

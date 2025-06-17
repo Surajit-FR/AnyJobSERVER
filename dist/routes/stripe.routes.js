@@ -14,6 +14,7 @@ router.post("/attatch-payment-method", stripe_controller_1.attatchPaymentMethod)
 router.post("/create-payment-intent", stripe_controller_1.createPaymentIntent);
 //STRIPE WEBHOOK ROUTE
 router.post("/webhook", express_1.default.raw({ type: "application/json" }), webhook_controller_1.stripeWebhook);
+router.get("/fetch-admin-transactions", stripe_controller_1.fetchAllAdminTransactions);
 router.use(userAuth_1.VerifyJWTToken);
 router.post("/create-checkout-session", stripe_controller_1.createCheckoutsession);
 router.post("/create-cancellation-session", stripe_controller_1.createServiceCancellationCheckoutSession);

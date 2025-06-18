@@ -741,7 +741,7 @@ const withdrawFunds = (req, res) => __awaiter(void 0, void 0, void 0, function* 
 });
 exports.withdrawFunds = withdrawFunds;
 exports.fetchAllAdminTransactions = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { page = "1", limit = "10", startingAfter = "", query = "", sortBy = "created", sortType = "desc", } = req.query;
+    const { page = "1", limit = "100", startingAfter = "", query = "", sortBy = "created", sortType = "desc", } = req.query;
     const limitNumber = Math.min(parseInt(limit, 10) || 10, 100);
     const stripeParams = {
         limit: limitNumber,
@@ -755,7 +755,7 @@ exports.fetchAllAdminTransactions = (0, asyncHandler_1.asyncHandler)((req, res) 
         message: "Admin transactions fetched successfully.",
         success: true,
         data: transactions.data,
-        hasMore: transactions.has_more,
-        nextStartingAfter: transactions.data.length > 0 ? transactions.data[transactions.data.length - 1].id : null,
+        //   hasMore: transactions.has_more,
+        //   nextStartingAfter: transactions.data.length > 0 ? transactions.data[transactions.data.length - 1].id : null,
     });
 }));

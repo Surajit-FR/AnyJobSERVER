@@ -821,14 +821,14 @@ export const fetchAllAdminTransactions = asyncHandler(
   async (req: Request, res: Response) => {
     const {
       page = "1",
-      limit = "10",
-      startingAfter = "", 
+      limit = "100",
+      startingAfter = "",
       query = "",
       sortBy = "created",
       sortType = "desc",
     } = req.query;
 
-    const limitNumber = Math.min(parseInt(limit as string, 10) || 10, 100); 
+    const limitNumber = Math.min(parseInt(limit as string, 10) || 10, 100);
 
     const stripeParams: any = {
       limit: limitNumber,
@@ -840,14 +840,13 @@ export const fetchAllAdminTransactions = asyncHandler(
 
     // Fetch transactions from Stripe
     const transactions = await stripe.balanceTransactions.list(stripeParams);
-    
+
     return res.status(200).json({
       message: "Admin transactions fetched successfully.",
       success: true,
       data: transactions.data,
-      hasMore: transactions.has_more,
-      nextStartingAfter: transactions.data.length > 0 ? transactions.data[transactions.data.length - 1].id : null,
+      //   hasMore: transactions.has_more,
+      //   nextStartingAfter: transactions.data.length > 0 ? transactions.data[transactions.data.length - 1].id : null,
     });
   }
 );
-

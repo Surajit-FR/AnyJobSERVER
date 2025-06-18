@@ -651,7 +651,6 @@ export const handleServiceRequestState = asyncHandler(
       requestProgress,
     }: { isReqAcceptedByServiceProvider: boolean; requestProgress: string } =
       req.body;
-
     if (!serviceId) {
       return sendErrorResponse(
         res,
@@ -662,21 +661,10 @@ export const handleServiceRequestState = asyncHandler(
     if (!serviceRequest) {
       return sendErrorResponse(res, new ApiError(400, "Service not found."));
     }
-
-    const spWalletDetails = await WalletModel.findOne({ userId });
-    if (!spWalletDetails) {
-      return res
-        .status(400)
-        .json({ message: "User does not have a connected Wallet account" });
-    }
-    if (spWalletDetails?.balance <= 200) {
-      return res.status(400).json({ message: "Insufficient balance" });
-    }
     const customerDetails = await UserModel.findById(serviceRequest?.userId);
     const serviceProviderDetails = await UserModel.findById(
       serviceRequest?.serviceProviderId
     ).select("serviceProviderId");
-
     let serviceProviderId = userId;
     if (userType === "TeamLead") {
       const permissions = await PermissionModel.findOne({ userId }).select(
@@ -700,6 +688,269 @@ export const handleServiceRequestState = asyncHandler(
       }
       serviceProviderId = team.serviceProviderId;
     }
+    if (userType === "FieldAgent") {
+      if (!serviceRequest.assignedAgentId) {
+        return sendErrorResponse(
+          res,
+          new ApiError(403, "Job is not assigned yet. Permission denied.")
+        );
+      }
+      if (serviceRequest.assignedAgentId.toString() !== userId?.toString()) {
+        return sendErrorResponse(
+          res,
+          new ApiError(
+            403,
+            "Permission denied: You are not assigned to this service."
+          )
+        );
+      }
+      const team = await TeamModel.findOne({
+        isDeleted: false,
+        fieldAgentIds: userId,
+      }).select("serviceProviderId");
+      if (!team || !team.serviceProviderId) {
+        return sendErrorResponse(
+          res,
+          new ApiError(400, "Service Provider ID not found for team.")
+        );
+      }
+      serviceProviderId = team.serviceProviderId;
+    }
+    const updateData: any = {
+      isReqAcceptedByServiceProvider,
+      updatedAt: Date.now(),
+    };
+    if (isReqAcceptedByServiceProvider) {
+      updateData.serviceProviderId = serviceProviderId;
+      //a newly created service request or a service cancelled by sp can be accepted again by SPs
+      if (
+        serviceRequest.requestProgress === "NotStarted" ||
+        serviceRequest.requestProgress === "CancelledBySP"
+      ) {
+        if (requestProgress === "Pending") {
+          const spWalletDetails = await WalletModel.findOne({ userId });
+          if (!spWalletDetails) {
+            return res
+              .status(400)
+              .json({ message: "User does not have a connected Wallet account" });
+          }
+          if (spWalletDetails?.balance <= 200) {
+            return res.status(400).json({ message: "Insufficient balance" });
+          }
+
+          updateData.requestProgress = "Pending";
+          updateData.acceptedAt = Date.now();
+        }
+        const notificationContent = `Your Service Request is accepted by ${
+          req.user?.firstName ?? "User"
+        } ${req.user?.lastName ?? ""}`;
+        await sendPushNotification(
+          serviceRequest?.userId.toString() as string,
+          // userId?.toString() as string,
+          "Service Request Accepted",
+          notificationContent,
+          {
+            senderId: req.user?._id,
+            receiverId: serviceRequest.userId,
+            title: notificationContent,
+            notificationType: "Service Accepted",
+          }
+        );
+      }
+      //if a service is in accepted mode or CancelledByFA mode then one can start that service by assigning FA...
+      if (
+        (serviceRequest.requestProgress === "Pending" ||
+          serviceRequest.requestProgress === "CancelledByFA") &&
+        requestProgress === "Started"
+      ) {
+        updateData.requestProgress = "Started";
+        updateData.startedAt = new Date();
+        const notificationContent = `${req.user?.firstName ?? "User"} ${
+          req.user?.lastName ?? ""
+        } has marked the job as started`;
+        if (req.user?.userType === "ServiceProvider") {
+          await sendPushNotification(
+            serviceRequest?.userId.toString() as string,
+            // userId?.toString() as string,
+            "Mark job as started",
+            notificationContent,
+            {
+              senderId: req.user?._id,
+              receiverId: serviceRequest.userId,
+              title: notificationContent,
+              notificationType: "Service Started",
+            }
+          );
+        } else if (req.user?.userType === "FieldAgent") {
+          await sendPushNotification(
+            serviceRequest?.serviceProviderId.toString() as string,
+            // userId?.toString() as string,
+            "Mark job as started",
+            notificationContent,
+            {
+              senderId: req.user?._id,
+              receiverId: serviceRequest.serviceProviderId,
+              title: notificationContent,
+              notificationType: "Service Started",
+            }
+          );
+          await sendPushNotification(
+            serviceRequest?.userId.toString() as string,
+            // userId?.toString() as string,
+            "Mark job as started",
+            notificationContent,
+            {
+              senderId: req.user?._id,
+              receiverId: serviceRequest.userId,
+              title: notificationContent,
+              notificationType: "Service Started",
+            }
+          );
+        }
+      }
+      if (
+        serviceRequest.requestProgress === "Started" &&
+        requestProgress === "Completed"
+      ) {
+        updateData.requestProgress = "Completed";
+        updateData.completedAt = new Date();
+        const notificationContent = `${req.user?.firstName ?? "User"} ${
+          req.user?.lastName ?? ""
+        } has marked the job as completed`;
+        if (req.user?.userType === "ServiceProvider") {
+          await sendPushNotification(
+            serviceRequest?.userId.toString() as string,
+            // userId?.toString() as string,
+            "Mark job as completed",
+            notificationContent,
+            {
+              senderId: req.user?._id,
+              receiverId: serviceRequest.userId,
+              title: notificationContent,
+              notificationType: "Service Started",
+            }
+          );
+        } else if (req.user?.userType === "FieldAgent") {
+          await sendPushNotification(
+            serviceRequest?.serviceProviderId.toString() as string,
+            // userId?.toString() as string,
+            "Mark job as completed",
+            notificationContent,
+            {
+              senderId: req.user?._id,
+              receiverId: serviceRequest.serviceProviderId,
+              title: notificationContent,
+              notificationType: "Service Started",
+            }
+          );
+          await sendPushNotification(
+            serviceRequest?.userId.toString() as string,
+            // userId?.toString() as string,
+            "Mark job as completed",
+            notificationContent,
+            {
+              senderId: req.user?._id,
+              receiverId: serviceRequest.userId,
+              title: notificationContent,
+              notificationType: "Service Started",
+            }
+          );
+        }
+      }
+    }
+    if (
+      serviceRequest.requestProgress !== "NotStarted" &&
+      requestProgress === "Cancelled"
+    ) {
+      if (userType === "ServiceProvider") {
+        (updateData.requestProgress = "CancelledBySP"),
+          (updateData.isReqAcceptedByServiceProvider = false);
+        updateData.cancelledBy = req.user?._id;
+        updateData.serviceProviderId = null;
+        const notificationContent = `${req.user?.firstName ?? "User"} ${
+          req.user?.lastName ?? ""
+        } has marked the job as cancelled`;
+        await sendPushNotification(
+          serviceRequest?.userId.toString() as string,
+          // userId?.toString() as string,
+          "Mark job as cancelled",
+          notificationContent,
+          {
+            senderId: req.user?._id,
+            receiverId: serviceRequest.userId,
+            title: notificationContent,
+            notificationType: "Service Started",
+          }
+        );
+      }
+      if (userType === "FieldAgent") {
+        (updateData.requestProgress = "CancelledByFA"),
+          (updateData.cancelledBy = req.user?._id);
+        updateData.assignedAgentId = null;
+        const notificationContent = `${req.user?.firstName ?? "User"} ${
+          req.user?.lastName ?? ""
+        } has marked the job as cancelled`;
+        await sendPushNotification(
+          serviceRequest?.serviceProviderId.toString() as string,
+          "Mark job as cancelled",
+          notificationContent,
+          {
+            senderId: req.user?._id,
+            receiverId: serviceRequest.serviceProviderId,
+            title: notificationContent,
+            notificationType: "Service Cancelled",
+          }
+        );
+      }
+    }
+    const updatedService = await ServiceModel.findByIdAndUpdate(
+      serviceId,
+      { $set: updateData },
+      { new: true }
+    );
+    if (!updatedService) {
+      return sendErrorResponse(
+        res,
+        new ApiError(400, "Service not found for updating.")
+      );
+    }
+    if (requestProgress === "Pending") {
+      return sendSuccessResponse(
+        res,
+        200,
+        { updatedService },
+        "Service request accepted successfully."
+      );
+    }
+    if (requestProgress === "Started") {
+      return sendSuccessResponse(
+        res,
+        200,
+        { updatedService },
+        "Service request started successfully."
+      );
+    }
+    if (requestProgress === "Completed") {
+      let totalExecutionTimeInMinutes = 0;
+      if (updatedService.completedAt && updatedService.startedAt) {
+        totalExecutionTimeInMinutes =
+          (new Date(updatedService.completedAt).getTime() -
+            new Date(updatedService.startedAt).getTime()) /
+          (1000 * 60);
+      }
+      return sendSuccessResponse(
+        res,
+        200,
+        { updatedService, totalExecutionTimeInMinutes },
+        "Service request completed successfully."
+      );
+    }
+    return sendSuccessResponse(
+      res,
+      200,
+      { updatedService },
+      "Service request cancelled successfully."
+    );
   }
 );
 

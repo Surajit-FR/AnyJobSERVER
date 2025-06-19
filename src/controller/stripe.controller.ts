@@ -11,6 +11,7 @@ import ServiceModel from "../models/service.model";
 import CategoryModel from "../models/category.model";
 import AdditionalInfoModel from "../models/userAdditionalInfo.model";
 import { asyncHandler } from "../utils/asyncHandler";
+import AdminRevenueModel from "../models/adminRevenue.model";
 
 const stripe = new Stripe(STRIPE_SECRET_KEY, {
   apiVersion: "2024-09-30.acacia" as any,
@@ -39,7 +40,8 @@ export async function transferIncentiveToSP(serviceId: string) {
 
   if (serviceData.isIncentiveGiven) {
     const givenIncentiveByCustomer = serviceData.incentiveAmount;
-    const spIncentiveAmt = Math.ceil(givenIncentiveByCustomer * 0.6);
+    const spIncentiveAmt = Math.ceil(givenIncentiveByCustomer * 0.9);
+    const adminIncentiveAmt = Math.ceil(givenIncentiveByCustomer * 0.1);
     const spId = serviceData.serviceProviderId;
 
     const spAccount = await WalletModel.findOne({ userId: spId });
@@ -54,6 +56,18 @@ export async function transferIncentiveToSP(serviceId: string) {
       destination: spStripeAccountId,
       transfer_group: transferGroup,
     });
+
+    if (transfer) {
+      const transaction = {
+        userId: serviceData.userId,
+        type: "credit",
+        amount: adminIncentiveAmt,
+        description: "ServiceIncentiveAmount",
+        serviceId: serviceData._id,
+        stripeTransactionId: transfer.id,
+      };
+      await new AdminRevenueModel(transaction).save();
+    }
   }
 }
 
@@ -583,6 +597,8 @@ export const createLeadGenerationCheckoutSession = async (
       cancel_url: "https://frontend.theassure.co.uk/service-payment-cancel",
     } as Stripe.Checkout.SessionCreateParams);
 
+
+
     res.json({ url: session.url });
   } catch (err: any) {
     console.error("Error creating Checkout Session for service fee:", err);
@@ -687,8 +703,8 @@ export const createServiceCancellationCheckoutSession = async (
     });
     const SPStripeAccountId = SPStripeAccount?.stripeConnectedAccountId;
     const amount = 10;
-    const AnyJobAmount = Math.ceil(amount * 80) / 100;
-    const SPAmount = Math.ceil(amount * 20) / 100;
+    const AnyJobAmount = Math.ceil(amount * 25) / 100;
+    const SPAmount = Math.ceil(amount * 75) / 100;
     const user = await UserModel.findById(userId);
     if (!user) return res.status(404).json({ error: "User not found" });
 

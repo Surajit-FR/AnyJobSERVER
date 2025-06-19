@@ -9,7 +9,6 @@ const adminRevenueSchema = new mongoose_1.default.Schema({
         type: mongoose_1.default.Schema.Types.ObjectId,
         ref: "User",
         required: true,
-        unique: true,
     },
     type: {
         type: String, // 'credit' | 'debit'

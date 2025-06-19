@@ -735,7 +735,12 @@ export const handleServiceRequestState = asyncHandler(
             });
           }
           if (spWalletDetails?.balance <= 200) {
-            return res.status(400).json({ message: "Insufficient balance" });
+            return res
+              .status(400)
+              .json({
+                message:
+                  "Insufficient balance (minimum $200 wallet balance required)",
+              });
           }
 
           updateData.requestProgress = "Pending";
@@ -915,6 +920,7 @@ export const handleServiceRequestState = asyncHandler(
       );
     }
     if (requestProgress === "Pending") {
+      await transferIncentiveToSP(serviceId);
       return sendSuccessResponse(
         res,
         200,

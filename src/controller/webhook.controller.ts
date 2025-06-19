@@ -435,6 +435,7 @@ const handleLeadGenerationFee = async (session: any) => {
       serviceId: session.metadata.serviceId,
     };
     await new AdminRevenueModel(Admintransaction).save();
+    console.log({ Admintransaction });
   } catch (error: any) {
     console.error(
       "❌ Error in handleCheckoutSessionCompleted (Lead Generation Fee):",

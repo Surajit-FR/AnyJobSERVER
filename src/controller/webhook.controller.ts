@@ -175,6 +175,8 @@ const handleCheckoutSessionCompleted = async (session: any) => {
     const paymentIntentId = session.payment_intent;
 
     const purpose = session.metadata?.purpose;
+    console.log("handleCheckoutSessionCompleted", purpose);
+
     if (purpose === "wallet_topup") {
       await handleWalletTopUp(session); //for sp
     } else if (purpose === "leadGenerationFee") {
@@ -337,7 +339,7 @@ const handleServiceIncentivePayment = async (session: any) => {
 };
 
 const handleWalletTopUp = async (session: any) => {
-  console.log("WEBHOOK RUNS: WALLET ADD FUND CHECKOUT SESSION ");
+  console.log("WEBHOOK RUNS: WALLET ADD FUND CHECKOUT SESSION ", session);
 
   const customerId = session.customer;
   const amount = session.amount_total / 100;
@@ -374,7 +376,7 @@ const handleWalletTopUp = async (session: any) => {
 
 const handleLeadGenerationFee = async (session: any) => {
   try {
-    console.log("WEBHOOK RUNS: LEAD GENERATION FEE CHECKOUT SESSION ");
+    console.log("WEBHOOK RUNS: LEAD GENERATION FEE CHECKOUT SESSION ", session);
 
     const purpose = session.metadata?.purpose;
     if (purpose !== "leadGenerationFee") return;

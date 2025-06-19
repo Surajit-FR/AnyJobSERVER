@@ -135,6 +135,7 @@ const handleCheckoutSessionCompleted = (session) => __awaiter(void 0, void 0, vo
         const customerId = session.customer;
         const paymentIntentId = session.payment_intent;
         const purpose = (_a = session.metadata) === null || _a === void 0 ? void 0 : _a.purpose;
+        console.log("handleCheckoutSessionCompleted", purpose);
         if (purpose === "wallet_topup") {
             yield handleWalletTopUp(session); //for sp
         }
@@ -264,7 +265,7 @@ const handleServiceIncentivePayment = (session) => __awaiter(void 0, void 0, voi
     }
 });
 const handleWalletTopUp = (session) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("WEBHOOK RUNS: WALLET ADD FUND CHECKOUT SESSION ");
+    console.log("WEBHOOK RUNS: WALLET ADD FUND CHECKOUT SESSION ", session);
     const customerId = session.customer;
     const amount = session.amount_total / 100;
     const user = yield user_model_1.default.findOne({ stripeCustomerId: customerId });
@@ -293,7 +294,7 @@ const handleWalletTopUp = (session) => __awaiter(void 0, void 0, void 0, functio
 const handleLeadGenerationFee = (session) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c;
     try {
-        console.log("WEBHOOK RUNS: LEAD GENERATION FEE CHECKOUT SESSION ");
+        console.log("WEBHOOK RUNS: LEAD GENERATION FEE CHECKOUT SESSION ", session);
         const purpose = (_a = session.metadata) === null || _a === void 0 ? void 0 : _a.purpose;
         if (purpose !== "leadGenerationFee")
             return;

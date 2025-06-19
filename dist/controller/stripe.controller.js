@@ -602,6 +602,16 @@ const payForService = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             },
             updatedAt: Date.now(),
         }, { new: true });
+        const Admintransaction = {
+            userId: userId,
+            type: "credit",
+            amount: amount,
+            description: "LeadGenerationFee",
+            stripeTransactionId: transfer.id,
+            serviceId,
+        };
+        yield new adminRevenue_model_1.default(Admintransaction).save();
+        console.log({ Admintransaction });
         res.status(200).json({
             message: "Payment for the Service made successfully",
             success: true,

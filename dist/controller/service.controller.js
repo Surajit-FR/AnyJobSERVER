@@ -97,7 +97,7 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
             },
         },
     ]);
-    if (existingAddresses.length >= 6) {
+    if (existingAddresses.length >= 600) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "You cannot have more than six pre-saved addresses."));
     }
     // Conditional checks for incentive and tip amounts

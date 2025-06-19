@@ -554,7 +554,7 @@ const handleTransferCreated = async (transfer: any) => {
       description = "ServiceCancellationAmount";
       const parts = transferGroup.split("_");
       console.log("parts", parts);
-      SPId = parts[2]; // Extract SPId
+      SPId = parts[3]; // Extract SPId
     } else if (transferGroup.startsWith("incentive_fee_")) {
       description = "ServiceIncentiveAmount";
       const parts = transferGroup.split("_");

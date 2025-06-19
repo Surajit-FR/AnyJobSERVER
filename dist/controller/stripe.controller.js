@@ -27,6 +27,7 @@ const service_model_1 = __importDefault(require("../models/service.model"));
 const category_model_1 = __importDefault(require("../models/category.model"));
 const userAdditionalInfo_model_1 = __importDefault(require("../models/userAdditionalInfo.model"));
 const asyncHandler_1 = require("../utils/asyncHandler");
+const adminRevenue_model_1 = __importDefault(require("../models/adminRevenue.model"));
 const stripe = new stripe_1.default(config_1.STRIPE_SECRET_KEY, {
     apiVersion: "2024-09-30.acacia",
 });
@@ -52,7 +53,8 @@ function transferIncentiveToSP(serviceId) {
             throw new Error("Service not found");
         if (serviceData.isIncentiveGiven) {
             const givenIncentiveByCustomer = serviceData.incentiveAmount;
-            const spIncentiveAmt = Math.ceil(givenIncentiveByCustomer * 0.6);
+            const spIncentiveAmt = Math.ceil(givenIncentiveByCustomer * 0.9);
+            const adminIncentiveAmt = Math.ceil(givenIncentiveByCustomer * 0.1);
             const spId = serviceData.serviceProviderId;
             const spAccount = yield wallet_model_1.default.findOne({ userId: spId });
             if (!spAccount)
@@ -65,6 +67,17 @@ function transferIncentiveToSP(serviceId) {
                 destination: spStripeAccountId,
                 transfer_group: transferGroup,
             });
+            if (transfer) {
+                const transaction = {
+                    userId: serviceData.userId,
+                    type: "credit",
+                    amount: adminIncentiveAmt,
+                    description: "ServiceIncentiveAmount",
+                    serviceId: serviceData._id,
+                    stripeTransactionId: transfer.id,
+                };
+                yield new adminRevenue_model_1.default(transaction).save();
+            }
         }
     });
 }
@@ -626,8 +639,8 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
         });
         const SPStripeAccountId = SPStripeAccount === null || SPStripeAccount === void 0 ? void 0 : SPStripeAccount.stripeConnectedAccountId;
         const amount = 10;
-        const AnyJobAmount = Math.ceil(amount * 80) / 100;
-        const SPAmount = Math.ceil(amount * 20) / 100;
+        const AnyJobAmount = Math.ceil(amount * 25) / 100;
+        const SPAmount = Math.ceil(amount * 75) / 100;
         const user = yield user_model_1.default.findById(userId);
         if (!user)
             return res.status(404).json({ error: "User not found" });

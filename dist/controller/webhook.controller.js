@@ -22,8 +22,9 @@ const wallet_model_1 = __importDefault(require("../models/wallet.model"));
 const cancellationFee_model_1 = __importDefault(require("../models/cancellationFee.model"));
 const service_model_1 = __importDefault(require("../models/service.model"));
 const mongoose_1 = __importDefault(require("mongoose"));
+const adminRevenue_model_1 = __importDefault(require("../models/adminRevenue.model"));
 const stripe = new stripe_1.default(config_1.STRIPE_SECRET_KEY, {
-    apiVersion: '2024-09-30.acacia',
+    apiVersion: "2024-09-30.acacia",
 });
 const stripeWebhook = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("webhook runs");
@@ -79,7 +80,9 @@ const handleCustomerCreated = (customer) => __awaiter(void 0, void 0, void 0, fu
 const handlePaymentMethodAttached = (paymentMethod) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("WEBHOOK RUNS: ATTATCH PAYMENT METHOD");
     // Attach the new payment method to the Stripe customer
-    const attach = yield stripe.paymentMethods.attach(paymentMethod.id, { customer: paymentMethod.customer });
+    const attach = yield stripe.paymentMethods.attach(paymentMethod.id, {
+        customer: paymentMethod.customer,
+    });
     console.log("ATTATCH PAYMENT METHOD: ", attach);
     // Set the payment method as the default for future payments
     yield stripe.customers.update(paymentMethod.customer, {
@@ -100,19 +103,30 @@ const handlePaymentMethodDeleted = (paymentMethod) => __awaiter(void 0, void 0, 
 const handlePaymentSuccess = (paymentIntent) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     console.log("WEBHOOK RUNS: CHECKING PAYMENT SUCCESS");
-    const charges = yield stripe.charges.list({ payment_intent: paymentIntent.id });
+    const charges = yield stripe.charges.list({
+        payment_intent: paymentIntent.id,
+    });
     const receiptUrl = (_a = charges.data[0]) === null || _a === void 0 ? void 0 : _a.receipt_url;
-    const updatedPurchaseData = yield purchase_model_1.default.findOne({ paymentIntentId: paymentIntent.id });
+    const updatedPurchaseData = yield purchase_model_1.default.findOne({ paymentIntentId: paymentIntent.id }
+    // { status: 'succeeded', receipt_url: receiptUrl, lastPendingPaymentIntentId: "" },
+    // { new: true }
+    );
     console.log({ updatedPurchaseData });
     console.log("Webhook runs: paymnet status updated :)");
 });
 const handlePaymentDelayed = (paymentIntent) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("WEBHOOK RUNS: CHECKING PAYMENT DELAY");
-    yield purchase_model_1.default.findOneAndUpdate({ stripeCustomerId: paymentIntent.customer, paymentIntentId: paymentIntent.id }, { lastPendingPaymentIntentId: paymentIntent.id }, { new: true });
+    yield purchase_model_1.default.findOneAndUpdate({
+        stripeCustomerId: paymentIntent.customer,
+        paymentIntentId: paymentIntent.id,
+    }, { lastPendingPaymentIntentId: paymentIntent.id }, { new: true });
 });
 const handlePaymentCanceled = (paymentIntent) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("WEBHOOK RUNS: CHECKING PAYMENT FALIURE");
-    yield purchase_model_1.default.findOneAndUpdate({ stripeCustomerId: paymentIntent.customer, paymentIntentId: paymentIntent.id }, { status: 'failed', lastPendingPaymentIntentId: "" }, { new: true });
+    yield purchase_model_1.default.findOneAndUpdate({
+        stripeCustomerId: paymentIntent.customer,
+        paymentIntentId: paymentIntent.id,
+    }, { status: "failed", lastPendingPaymentIntentId: "" }, { new: true });
 });
 const handleCheckoutSessionCompleted = (session) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
@@ -121,13 +135,13 @@ const handleCheckoutSessionCompleted = (session) => __awaiter(void 0, void 0, vo
         const customerId = session.customer;
         const paymentIntentId = session.payment_intent;
         const purpose = (_a = session.metadata) === null || _a === void 0 ? void 0 : _a.purpose;
-        if (purpose === 'wallet_topup') {
+        if (purpose === "wallet_topup") {
             yield handleWalletTopUp(session); //for sp
         }
-        else if (purpose === 'leadGenerationFee') {
+        else if (purpose === "leadGenerationFee") {
             yield handleLeadGenerationFee(session); //for sp
         }
-        else if (purpose === 'CancellationFee') {
+        else if (purpose === "CancellationFee") {
             yield handleServiceCancellationFee(session); //for customer
         }
         else {
@@ -160,7 +174,10 @@ const handleCheckoutSessionCompleted = (session) => __awaiter(void 0, void 0, vo
             exp_month,
             exp_year,
         };
-        const existingData = yield paymentMethod_model_1.default.findOne({ userId: user === null || user === void 0 ? void 0 : user._id, paymentMethodId: paymentMethodId });
+        const existingData = yield paymentMethod_model_1.default.findOne({
+            userId: user === null || user === void 0 ? void 0 : user._id,
+            paymentMethodId: paymentMethodId,
+        });
         if (!existingData) {
             yield new paymentMethod_model_1.default(payment_method_details).save();
         }
@@ -214,7 +231,10 @@ const handleServiceIncentivePayment = (session) => __awaiter(void 0, void 0, voi
             exp_month,
             exp_year,
         };
-        const existingData = yield paymentMethod_model_1.default.findOne({ userId: user === null || user === void 0 ? void 0 : user._id, paymentMethodId: paymentMethodId });
+        const existingData = yield paymentMethod_model_1.default.findOne({
+            userId: user === null || user === void 0 ? void 0 : user._id,
+            paymentMethodId: paymentMethodId,
+        });
         if (!existingData) {
             yield new paymentMethod_model_1.default(payment_method_details).save();
         }
@@ -233,7 +253,7 @@ const handleServiceIncentivePayment = (session) => __awaiter(void 0, void 0, voi
         const savePurchaseData = yield new purchase_model_1.default(purchaseData).save();
         const updatedService = yield service_model_1.default.findOneAndUpdate({
             _id: session.metadata.serviceId,
-            userId: user === null || user === void 0 ? void 0 : user._id
+            userId: user === null || user === void 0 ? void 0 : user._id,
         }, {
             isIncentiveGiven: true,
             incentiveAmount: Math.ceil(session.amount_total / 100),
@@ -255,13 +275,13 @@ const handleWalletTopUp = (session) => __awaiter(void 0, void 0, void 0, functio
     }
     const transfer = yield stripe.transfers.create({
         amount: session.amount_total,
-        currency: 'usd',
+        currency: "usd",
         destination: wallet.stripeConnectedAccountId,
     });
     const transaction = {
-        type: 'credit',
+        type: "credit",
         amount,
-        description: 'AddMoney',
+        description: "AddMoney",
         stripeTransactionId: transfer.id,
     };
     yield wallet_model_1.default.findOneAndUpdate({ userId: user._id }, {
@@ -275,7 +295,7 @@ const handleLeadGenerationFee = (session) => __awaiter(void 0, void 0, void 0, f
     try {
         console.log("WEBHOOK RUNS: LEAD GENERATION FEE CHECKOUT SESSION ");
         const purpose = (_a = session.metadata) === null || _a === void 0 ? void 0 : _a.purpose;
-        if (purpose !== 'leadGenerationFee')
+        if (purpose !== "leadGenerationFee")
             return;
         const userId = (_b = session.metadata) === null || _b === void 0 ? void 0 : _b.userId;
         const serviceId = (_c = session.metadata) === null || _c === void 0 ? void 0 : _c.serviceId;
@@ -294,15 +314,15 @@ const handleLeadGenerationFee = (session) => __awaiter(void 0, void 0, void 0, f
         const platformAccount = yield stripe.accounts.retrieve();
         const transfer = yield stripe.transfers.create({
             amount: session.amount_total,
-            currency: 'usd',
+            currency: "usd",
             destination: platformAccount.id,
         }, {
             stripeAccount: wallet.stripeConnectedAccountId,
         });
         const transaction = {
-            type: 'debit',
+            type: "debit",
             amount,
-            description: 'LeadGenerationFee',
+            description: "LeadGenerationFee",
             serviceId,
             stripeTransactionId: transfer.id,
         };
@@ -311,6 +331,15 @@ const handleLeadGenerationFee = (session) => __awaiter(void 0, void 0, void 0, f
             $inc: { balance: -amount },
             updatedAt: Date.now(),
         });
+        const Admintransaction = {
+            userId: user._id,
+            type: "credit",
+            amount: amount,
+            description: "LeadGenerationFee",
+            stripeTransactionId: transfer.id,
+            serviceId: session.metadata.serviceId,
+        };
+        yield new adminRevenue_model_1.default(Admintransaction).save();
     }
     catch (error) {
         console.error("❌ Error in handleCheckoutSessionCompleted (Lead Generation Fee):", error);
@@ -321,7 +350,7 @@ const handleServiceCancellationFee = (session) => __awaiter(void 0, void 0, void
     try {
         console.log("WEBHOOK RUNS: SERVICE CANCELLATION FEE CHECKOUT SESSION ", session);
         const purpose = (_a = session.metadata) === null || _a === void 0 ? void 0 : _a.purpose;
-        if (purpose !== 'CancellationFee')
+        if (purpose !== "CancellationFee")
             return;
         const userId = (_b = session.metadata) === null || _b === void 0 ? void 0 : _b.userId;
         const serviceId = (_c = session.metadata) === null || _c === void 0 ? void 0 : _c.serviceId;
@@ -345,7 +374,6 @@ const handleServiceCancellationFee = (session) => __awaiter(void 0, void 0, void
             console.warn("Missing card details in payment method");
             return;
         }
-        ;
         // Update the user's payment method record in the DB
         const payment_method_details = {
             userId: user === null || user === void 0 ? void 0 : user._id,
@@ -376,9 +404,17 @@ const handleServiceCancellationFee = (session) => __awaiter(void 0, void 0, void
                 cancelledBy: user._id,
                 cancellationReason: cancellationReason,
                 serviceProviderId: null,
-                assignedAgentId: null
-            }
+                assignedAgentId: null,
+            },
         }, { new: true });
+        const transaction = {
+            userId: user._id,
+            type: "credit",
+            amount: Math.ceil((session.amount_total / 100) * 0.1),
+            description: "ServiceCancellationAmount",
+            serviceId: session.metadata.serviceId,
+        };
+        yield new adminRevenue_model_1.default(transaction).save();
     }
     catch (error) {
         console.error("❌ Error in handleCheckoutSessionCompleted (Lead Generation Fee):", error);
@@ -394,18 +430,18 @@ const handleTransferCreated = (transfer) => __awaiter(void 0, void 0, void 0, fu
             console.warn("Transfer group missing in transfer event.");
             return;
         }
-        let description = '';
-        let SPId = '';
+        let description = "";
+        let SPId = "";
         console.log({ transferGroup });
-        if (transferGroup.startsWith('cancellation_fee_sp_')) {
-            description = 'ServiceCancellationAmount';
-            const parts = transferGroup.split('_');
+        if (transferGroup.startsWith("cancellation_fee_sp_")) {
+            description = "ServiceCancellationAmount";
+            const parts = transferGroup.split("_");
             console.log("parts", parts);
             SPId = parts[2]; // Extract SPId
         }
-        else if (transferGroup.startsWith('incentive_fee_')) {
-            description = 'ServiceIncentiveAmount';
-            const parts = transferGroup.split('_');
+        else if (transferGroup.startsWith("incentive_fee_")) {
+            description = "ServiceIncentiveAmount";
+            const parts = transferGroup.split("_");
             console.log("parts", parts);
             SPId = parts[2]; // Extract SPId
         }
@@ -419,10 +455,10 @@ const handleTransferCreated = (transfer) => __awaiter(void 0, void 0, void 0, fu
         }
         console.log({ SPId });
         const transaction = {
-            type: 'credit',
+            type: "credit",
             amount,
             description,
-            stripeTransferId
+            stripeTransferId,
         };
         const updateResult = yield wallet_model_1.default.findOneAndUpdate({ userId: new mongoose_1.default.Types.ObjectId(SPId) }, {
             $push: { transactions: transaction },

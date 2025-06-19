@@ -340,6 +340,7 @@ const handleLeadGenerationFee = (session) => __awaiter(void 0, void 0, void 0, f
             serviceId: session.metadata.serviceId,
         };
         yield new adminRevenue_model_1.default(Admintransaction).save();
+        console.log({ Admintransaction });
     }
     catch (error) {
         console.error("❌ Error in handleCheckoutSessionCompleted (Lead Generation Fee):", error);

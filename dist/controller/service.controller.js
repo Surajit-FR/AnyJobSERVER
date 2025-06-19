@@ -485,9 +485,9 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
             if (requestProgress === "Pending") {
                 const spWalletDetails = yield wallet_model_1.default.findOne({ userId });
                 if (!spWalletDetails) {
-                    return res
-                        .status(400)
-                        .json({ message: "User does not have a connected Wallet account" });
+                    return res.status(400).json({
+                        message: "User does not have a connected Wallet account",
+                    });
                 }
                 if ((spWalletDetails === null || spWalletDetails === void 0 ? void 0 : spWalletDetails.balance) <= 200) {
                     return res.status(400).json({ message: "Insufficient balance" });

@@ -34,7 +34,7 @@ const config_1 = require("../config/config");
 const libphonenumber_js_1 = require("libphonenumber-js");
 const stripe_1 = __importDefault(require("stripe"));
 const stripe = new stripe_1.default(config_1.STRIPE_SECRET_KEY, {
-    apiVersion: '2024-09-30.acacia',
+    apiVersion: "2024-09-30.acacia",
 });
 // get loggedin user
 exports.getUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -44,24 +44,24 @@ exports.getUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 
         {
             $match: {
                 isDeleted: false,
-                _id: userId
-            }
+                _id: userId,
+            },
         },
         {
             $lookup: {
                 from: "additionalinfos",
                 foreignField: "userId",
                 localField: "_id",
-                as: "additionalInfo"
-            }
+                as: "additionalInfo",
+            },
         },
         {
             $lookup: {
                 from: "addresses",
                 foreignField: "userId",
                 localField: "_id",
-                as: "userAddress"
-            }
+                as: "userAddress",
+            },
         },
         {
             $lookup: {
@@ -69,7 +69,7 @@ exports.getUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 
                 foreignField: "assignedAgentId",
                 localField: "_id",
                 as: "ServicesRelatedToAgent",
-            }
+            },
         },
         {
             $lookup: {
@@ -84,22 +84,22 @@ exports.getUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 
                             foreignField: "userId",
                             localField: "serviceProviderId",
                             as: "companyDetails",
-                        }
+                        },
                     },
                     {
                         $unwind: {
                             preserveNullAndEmptyArrays: true,
-                            path: "$companyDetails"
-                        }
+                            path: "$companyDetails",
+                        },
                     },
-                ]
-            }
+                ],
+            },
         },
         {
             $unwind: {
                 preserveNullAndEmptyArrays: true,
-                path: "$teamDetails"
-            }
+                path: "$teamDetails",
+            },
         },
         {
             $addFields: {
@@ -109,11 +109,18 @@ exports.getUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 
                         as: "completedServicesByAgent",
                         cond: {
                             $and: [
-                                { $eq: ["$$completedServicesByAgent.requestProgress", "Completed"] },
-                                { $eq: ["$$completedServicesByAgent.assignedAgentId", "$_id"] },
-                            ]
+                                {
+                                    $eq: [
+                                        "$$completedServicesByAgent.requestProgress",
+                                        "Completed",
+                                    ],
+                                },
+                                {
+                                    $eq: ["$$completedServicesByAgent.assignedAgentId", "$_id"],
+                                },
+                            ],
                         },
-                    }
+                    },
                 },
                 totalAssignedToAgent: {
                     $filter: {
@@ -123,14 +130,26 @@ exports.getUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 
                             $and: [
                                 {
                                     $or: [
-                                        { $eq: ["$$assignedServicesToAgent.requestProgress", "Pending"] },
-                                        { $eq: ["$$assignedServicesToAgent.requestProgress", "CancelledByFA"] },
-                                    ]
+                                        {
+                                            $eq: [
+                                                "$$assignedServicesToAgent.requestProgress",
+                                                "Pending",
+                                            ],
+                                        },
+                                        {
+                                            $eq: [
+                                                "$$assignedServicesToAgent.requestProgress",
+                                                "CancelledByFA",
+                                            ],
+                                        },
+                                    ],
                                 },
-                                { $eq: ["$$assignedServicesToAgent.assignedAgentId", "$_id"] },
-                            ]
+                                {
+                                    $eq: ["$$assignedServicesToAgent.assignedAgentId", "$_id"],
+                                },
+                            ],
                         },
-                    }
+                    },
                 },
             },
         },
@@ -138,7 +157,7 @@ exports.getUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 
             $addFields: {
                 totalCompletedServicesByAgent: { $size: "$CompletedServicesByAgent" },
                 totalAssignedServicesByAgent: { $size: "$totalAssignedToAgent" },
-            }
+            },
         },
         {
             $addFields: {
@@ -148,15 +167,20 @@ exports.getUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 
                         then: 0,
                         else: {
                             $multiply: [
-                                { $divide: ["$totalCompletedServicesByAgent", "$totalAssignedServicesByAgent"] },
-                                100
-                            ]
-                        }
-                    }
+                                {
+                                    $divide: [
+                                        "$totalCompletedServicesByAgent",
+                                        "$totalAssignedServicesByAgent",
+                                    ],
+                                },
+                                100,
+                            ],
+                        },
+                    },
                 },
                 agentAccuracy: 50,
-                agentRelatedToCompany: "$teamDetails.companyDetails.companyName"
-            }
+                agentRelatedToCompany: "$teamDetails.companyDetails.companyName",
+            },
         },
         {
             $project: {
@@ -164,16 +188,16 @@ exports.getUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 
                 isDeleted: 0,
                 refreshToken: 0,
                 password: 0,
-                'additionalInfo.__v': 0,
-                'additionalInfo.isDeleted': 0,
-                'userAddress.__v': 0,
-                'userAddress.isDeleted': 0,
-                'ServicesRelatedToAgent': 0,
-                'CompletedServicesByAgent': 0,
-                'totalAssignedToAgent': 0,
-                teamDetails: 0
-            }
-        }
+                "additionalInfo.__v": 0,
+                "additionalInfo.isDeleted": 0,
+                "userAddress.__v": 0,
+                "userAddress.isDeleted": 0,
+                ServicesRelatedToAgent: 0,
+                CompletedServicesByAgent: 0,
+                totalAssignedToAgent: 0,
+                teamDetails: 0,
+            },
+        },
     ]);
     return (0, response_1.sendSuccessResponse)(res, 200, userDetails[0], "User retrieved successfully.");
 }));
@@ -184,13 +208,15 @@ exports.addAddress = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
     if (!zipCode || !latitude || !longitude) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "All address fields are required"));
     }
-    const existingAddress = yield address_model_1.default.findOne({ userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id });
+    const existingAddress = yield address_model_1.default.findOne({
+        userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id,
+    });
     if (existingAddress) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Address already exists for this user"));
     }
     const geoLocation = {
         type: "Point",
-        coordinates: [longitude, latitude] // [longitude, latitude]
+        coordinates: [longitude, latitude], // [longitude, latitude]
     };
     if (!geoLocation)
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Location is required."));
@@ -201,16 +227,18 @@ exports.addAddress = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
         latitude,
         longitude,
         addressType,
-        location
+        location,
     });
     const savedAddress = yield newAddress.save();
     return (0, response_1.sendSuccessResponse)(res, 201, savedAddress, "Address added successfully");
 }));
 exports.addAdditionalInfo = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c, _d, _e, _f, _g;
-    const { companyName, companyIntroduction, DOB, driverLicense, EIN, socialSecurity, companyLicense, insurancePolicy, businessName, phone, totalYearExperience } = req.body;
+    const { companyName, companyIntroduction, DOB, driverLicense, EIN, socialSecurity, companyLicense, insurancePolicy, businessName, phone, totalYearExperience, } = req.body;
     // Check if additional info already exists for the user
-    const existingAdditionalInfo = yield userAdditionalInfo_model_1.default.findOne({ userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id });
+    const existingAdditionalInfo = yield userAdditionalInfo_model_1.default.findOne({
+        userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id,
+    });
     if (existingAdditionalInfo) {
         // Delete uploaded files if they exist
         const files = req.files;
@@ -256,7 +284,10 @@ exports.addAdditionalInfo = (0, asyncHandler_1.asyncHandler)((req, res) => __awa
     const businessLicenseImage = yield (0, cloudinary_1.uploadOnCloudinary)(businessLicenseImageFile.path);
     const businessImage = yield (0, cloudinary_1.uploadOnCloudinary)(businessImageFile.path);
     // Ensure all files were uploaded successfully
-    if (!companyLicenseImage || !licenseProofImage || !businessLicenseImage || !businessImage) {
+    if (!companyLicenseImage ||
+        !licenseProofImage ||
+        !businessLicenseImage ||
+        !businessImage) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Error uploading other files"));
     }
     // Update phone number and DOB in user data
@@ -286,7 +317,7 @@ exports.addAdditionalInfo = (0, asyncHandler_1.asyncHandler)((req, res) => __awa
 }));
 //get serviceProvider List
 exports.getServiceProviderList = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { page = 1, limit = 10, query = '', sortBy = 'createdAt', sortType = 'desc' } = req.query;
+    const { page = 1, limit = 10, query = "", sortBy = "createdAt", sortType = "desc", } = req.query;
     const pageNumber = parseInt(page, 10);
     const limitNumber = parseInt(limit, 10);
     const searchQuery = query
@@ -294,13 +325,13 @@ exports.getServiceProviderList = (0, asyncHandler_1.asyncHandler)((req, res) => 
             $or: [
                 { firstName: { $regex: query, $options: "i" } },
                 { lastName: { $regex: query, $options: "i" } },
-                { email: { $regex: query, $options: "i" } }
-            ]
+                { email: { $regex: query, $options: "i" } },
+            ],
         }
         : {};
     const matchCriteria = Object.assign({ isDeleted: false, userType: "ServiceProvider" }, searchQuery);
     const sortCriteria = {};
-    sortCriteria[sortBy] = sortType === 'desc' ? -1 : 1;
+    sortCriteria[sortBy] = sortType === "desc" ? -1 : 1;
     const results = yield user_model_1.default.aggregate([
         { $match: matchCriteria },
         {
@@ -308,43 +339,43 @@ exports.getServiceProviderList = (0, asyncHandler_1.asyncHandler)((req, res) => 
                 from: "additionalinfos",
                 foreignField: "userId",
                 localField: "_id",
-                as: "additionalInfo"
-            }
+                as: "additionalInfo",
+            },
         },
         {
             $lookup: {
                 from: "addresses",
                 foreignField: "userId",
                 localField: "_id",
-                as: "userAddress"
-            }
+                as: "userAddress",
+            },
         },
         {
             $lookup: {
                 from: "teams",
                 localField: "_id",
                 foreignField: "serviceProviderId",
-                as: "teams"
-            }
+                as: "teams",
+            },
         },
         {
             $unwind: {
                 path: "$teams",
-                preserveNullAndEmptyArrays: true
-            }
+                preserveNullAndEmptyArrays: true,
+            },
         },
         {
             $lookup: {
                 from: "users",
                 localField: "teams.fieldAgentIds",
                 foreignField: "_id",
-                as: "fieldAgents"
-            }
+                as: "fieldAgents",
+            },
         },
         {
             $addFields: {
-                fieldAgentCount: { $size: "$fieldAgents" }
-            }
+                fieldAgentCount: { $size: "$fieldAgents" },
+            },
         },
         {
             $project: {
@@ -353,20 +384,20 @@ exports.getServiceProviderList = (0, asyncHandler_1.asyncHandler)((req, res) => 
                 isDeleted: 0,
                 refreshToken: 0,
                 password: 0,
-                'additionalInfo.__v': 0,
-                'additionalInfo.isDeleted': 0,
-                'userAddress.__v': 0,
-                'userAddress.isDeleted': 0,
-                'fieldAgents.password': 0,
-                'fieldAgents.refreshToken': 0,
-                'fieldAgents.isDeleted': 0,
-                'fieldAgents.__v': 0,
-                rawPassword: 0
-            }
+                "additionalInfo.__v": 0,
+                "additionalInfo.isDeleted": 0,
+                "userAddress.__v": 0,
+                "userAddress.isDeleted": 0,
+                "fieldAgents.password": 0,
+                "fieldAgents.refreshToken": 0,
+                "fieldAgents.isDeleted": 0,
+                "fieldAgents.__v": 0,
+                rawPassword: 0,
+            },
         },
         { $sort: sortCriteria },
         { $skip: (pageNumber - 1) * limitNumber },
-        { $limit: limitNumber }
+        { $limit: limitNumber },
     ]);
     const totalRecords = yield user_model_1.default.countDocuments(matchCriteria);
     return (0, response_1.sendSuccessResponse)(res, 200, {
@@ -374,24 +405,24 @@ exports.getServiceProviderList = (0, asyncHandler_1.asyncHandler)((req, res) => 
         pagination: {
             total: totalRecords,
             page: pageNumber,
-            limit: limitNumber
-        }
+            limit: limitNumber,
+        },
     }, "ServiceProvider list retrieved successfully.");
 }));
 //get registered customer list
 exports.getRegisteredCustomerList = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { page = 1, limit = 10, query = "", sortBy = "createdAt", sortType = "asc" } = req.query;
+    const { page = 1, limit = 10, query = "", sortBy = "createdAt", sortType = "asc", } = req.query;
     const pageNumber = parseInt(page, 10);
     const pageSize = parseInt(limit, 10);
     const sortDirection = sortType === "asc" ? 1 : -1;
-    const sortField = typeof sortBy === 'string' ? sortBy : "createdAt";
+    const sortField = typeof sortBy === "string" ? sortBy : "createdAt";
     console.log("sortBy==");
     const searchFilter = {
         $or: [
             { firstName: { $regex: query, $options: "i" } },
             { lastName: { $regex: query, $options: "i" } },
             { email: { $regex: query, $options: "i" } },
-        ]
+        ],
     };
     const matchCriteria = Object.assign({ userType: "Customer" }, searchFilter);
     // Fetch the total number of customers before pagination
@@ -406,12 +437,12 @@ exports.getRegisteredCustomerList = (0, asyncHandler_1.asyncHandler)((req, res) 
                 __v: 0,
                 refreshToken: 0,
                 password: 0,
-                rawPassword: 0
-            }
+                rawPassword: 0,
+            },
         },
         { $sort: { [sortField]: sortDirection } },
         { $skip: (pageNumber - 1) * pageSize },
-        { $limit: pageSize }
+        { $limit: pageSize },
     ]);
     return (0, response_1.sendSuccessResponse)(res, 200, {
         customers,
@@ -419,23 +450,23 @@ exports.getRegisteredCustomerList = (0, asyncHandler_1.asyncHandler)((req, res) 
             total: totalCustomers,
             totalPages,
             currentPage: pageNumber,
-            limit: pageSize
-        }
+            limit: pageSize,
+        },
     }, "Registered Customers list retrieved successfully.");
 }));
 //get admin user list
 exports.getAdminUsersList = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { page = 1, limit = 10, query = "", sortBy = "createdAt", sortType = "asc" } = req.query;
+    const { page = 1, limit = 10, query = "", sortBy = "createdAt", sortType = "asc", } = req.query;
     const pageNumber = parseInt(page, 10);
     const pageSize = parseInt(limit, 10);
     const sortDirection = sortType === "asc" ? 1 : -1;
-    const sortField = typeof sortBy === 'string' ? sortBy : "createdAt";
+    const sortField = typeof sortBy === "string" ? sortBy : "createdAt";
     const searchFilter = {
         $or: [
             { firstName: { $regex: query, $options: "i" } },
             { lastName: { $regex: query, $options: "i" } },
             { email: { $regex: query, $options: "i" } },
-        ]
+        ],
     };
     const matchCriteria = Object.assign({ userType: { $in: ["Admin", "Finance"] } }, searchFilter);
     const totalAdminUsers = yield user_model_1.default.countDocuments(matchCriteria);
@@ -447,12 +478,12 @@ exports.getAdminUsersList = (0, asyncHandler_1.asyncHandler)((req, res) => __awa
                 __v: 0,
                 refreshToken: 0,
                 password: 0,
-                rawPassword: 0
-            }
+                rawPassword: 0,
+            },
         },
         { $sort: { [sortField]: sortDirection } },
         { $skip: (pageNumber - 1) * pageSize },
-        { $limit: pageSize }
+        { $limit: pageSize },
     ]);
     return (0, response_1.sendSuccessResponse)(res, 200, {
         adminUsers,
@@ -460,8 +491,8 @@ exports.getAdminUsersList = (0, asyncHandler_1.asyncHandler)((req, res) => __awa
             total: totalAdminUsers,
             totalPages,
             currentPage: pageNumber,
-            limit: pageSize
-        }
+            limit: pageSize,
+        },
     }, "Admin Users list retrieved successfully.");
 }));
 //get all users list
@@ -470,23 +501,23 @@ exports.getUsers = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void
         {
             $match: {
                 isDeleted: false,
-            }
+            },
         },
         {
             $lookup: {
                 from: "additionalinfos",
                 foreignField: "userId",
                 localField: "_id",
-                as: "additionalInfo"
-            }
+                as: "additionalInfo",
+            },
         },
         {
             $lookup: {
                 from: "addresses",
                 foreignField: "userId",
                 localField: "_id",
-                as: "userAddress"
-            }
+                as: "userAddress",
+            },
         },
         {
             $project: {
@@ -494,13 +525,13 @@ exports.getUsers = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void
                 isDeleted: 0,
                 refreshToken: 0,
                 password: 0,
-                'additionalInfo.__v': 0,
-                'additionalInfo.isDeleted': 0,
-                'userAddress.__v': 0,
-                'userAddress.isDeleted': 0,
-                rawPassword: 0
-            }
-        }
+                "additionalInfo.__v": 0,
+                "additionalInfo.isDeleted": 0,
+                "userAddress.__v": 0,
+                "userAddress.isDeleted": 0,
+                rawPassword: 0,
+            },
+        },
     ]);
     return (0, response_1.sendSuccessResponse)(res, 200, results, "Users retrieved successfully.");
 }));
@@ -510,41 +541,39 @@ exports.getSingleUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
     if (!userId) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "User ID is required."));
     }
-    ;
     if (!mongoose_1.default.Types.ObjectId.isValid(userId)) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Invalid User ID."));
     }
-    ;
     const userDetails = yield user_model_1.default.aggregate([
         {
             $match: {
                 isDeleted: false,
-                _id: new mongoose_1.default.Types.ObjectId(userId)
-            }
+                _id: new mongoose_1.default.Types.ObjectId(userId),
+            },
         },
         {
             $lookup: {
                 from: "additionalinfos",
                 foreignField: "userId",
                 localField: "_id",
-                as: "additionalInfo"
-            }
+                as: "additionalInfo",
+            },
         },
         {
             $lookup: {
                 from: "addresses",
                 foreignField: "userId",
                 localField: "_id",
-                as: "userAddress"
-            }
+                as: "userAddress",
+            },
         },
         {
             $lookup: {
                 from: "teams",
                 foreignField: "serviceProviderId",
                 localField: "_id",
-                as: "teamDetails"
-            }
+                as: "teamDetails",
+            },
         },
         {
             $lookup: {
@@ -558,12 +587,12 @@ exports.getSingleUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
                         $match: {
                             $or: [
                                 { requestProgress: "Completed" },
-                                { requestProgress: "Pending" }
-                            ]
-                        }
-                    }
-                ]
-            }
+                                { requestProgress: "Pending" },
+                            ],
+                        },
+                    },
+                ],
+            },
         },
         {
             $lookup: {
@@ -582,7 +611,7 @@ exports.getSingleUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
                 //         }
                 //     }
                 // ]
-            }
+            },
         },
         {
             $addFields: {
@@ -590,15 +619,17 @@ exports.getSingleUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
                     $reduce: {
                         input: "$teamDetails",
                         initialValue: 0,
-                        in: { $add: ["$$value", { $size: "$$this.fieldAgentIds" }] }
-                    }
+                        in: { $add: ["$$value", { $size: "$$this.fieldAgentIds" }] },
+                    },
                 },
                 CompletedServices: {
                     $filter: {
                         input: "$Services",
                         as: "completedServices",
-                        cond: { $eq: ["$$completedServices.requestProgress", "Completed"] },
-                    }
+                        cond: {
+                            $eq: ["$$completedServices.requestProgress", "Completed"],
+                        },
+                    },
                 },
                 CompletedServicesByAgent: {
                     $filter: {
@@ -606,11 +637,18 @@ exports.getSingleUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
                         as: "completedServicesByAgent",
                         cond: {
                             $and: [
-                                { $eq: ["$$completedServicesByAgent.requestProgress", "Completed"] },
-                                { $eq: ["$$completedServicesByAgent.assignedAgentId", "$_id"] },
-                            ]
+                                {
+                                    $eq: [
+                                        "$$completedServicesByAgent.requestProgress",
+                                        "Completed",
+                                    ],
+                                },
+                                {
+                                    $eq: ["$$completedServicesByAgent.assignedAgentId", "$_id"],
+                                },
+                            ],
                         },
-                    }
+                    },
                 },
                 totalAssignedToAgent: {
                     $filter: {
@@ -620,21 +658,33 @@ exports.getSingleUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
                             $and: [
                                 {
                                     $or: [
-                                        { $eq: ["$$assignedServicesToAgent.requestProgress", "Pending"] },
-                                        { $eq: ["$$assignedServicesToAgent.requestProgress", "CancelledByFA"] },
-                                    ]
+                                        {
+                                            $eq: [
+                                                "$$assignedServicesToAgent.requestProgress",
+                                                "Pending",
+                                            ],
+                                        },
+                                        {
+                                            $eq: [
+                                                "$$assignedServicesToAgent.requestProgress",
+                                                "CancelledByFA",
+                                            ],
+                                        },
+                                    ],
                                 },
-                                { $eq: ["$$assignedServicesToAgent.assignedAgentId", "$_id"] },
-                            ]
+                                {
+                                    $eq: ["$$assignedServicesToAgent.assignedAgentId", "$_id"],
+                                },
+                            ],
                         },
-                    }
+                    },
                 },
                 newServices: {
                     $filter: {
                         input: "$Services",
                         as: "completedServices",
                         cond: { $eq: ["$$completedServices.requestProgress", "Pending"] },
-                    }
+                    },
                 },
             },
         },
@@ -644,7 +694,7 @@ exports.getSingleUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
                 totalNewServices: { $size: "$newServices" },
                 totalCompletedServicesByAgent: { $size: "$CompletedServicesByAgent" },
                 totalAssignedServicesByAgent: { $size: "$totalAssignedToAgent" },
-            }
+            },
         },
         {
             $addFields: {
@@ -654,13 +704,18 @@ exports.getSingleUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
                         then: 0,
                         else: {
                             $multiply: [
-                                { $divide: ["$totalCompletedServicesByAgent", "$totalAssignedServicesByAgent"] },
-                                100
-                            ]
-                        }
-                    }
+                                {
+                                    $divide: [
+                                        "$totalCompletedServicesByAgent",
+                                        "$totalAssignedServicesByAgent",
+                                    ],
+                                },
+                                100,
+                            ],
+                        },
+                    },
                 },
-            }
+            },
         },
         {
             $project: {
@@ -668,10 +723,10 @@ exports.getSingleUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
                 isDeleted: 0,
                 refreshToken: 0,
                 password: 0,
-                'additionalInfo.__v': 0,
-                'additionalInfo.isDeleted': 0,
-                'userAddress.__v': 0,
-                'userAddress.isDeleted': 0,
+                "additionalInfo.__v": 0,
+                "additionalInfo.isDeleted": 0,
+                "userAddress.__v": 0,
+                "userAddress.isDeleted": 0,
                 teamDetails: 0,
                 CompletedServices: 0,
                 Services: 0,
@@ -680,8 +735,8 @@ exports.getSingleUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
                 ServicesRelatedToAgent: 0,
                 CompletedServicesByAgent: 0,
                 totalAssignedToAgent: 0,
-            }
-        }
+            },
+        },
     ]);
     return (0, response_1.sendSuccessResponse)(res, 200, userDetails[0], "User retrieved successfully.");
 }));
@@ -692,35 +747,35 @@ exports.verifyServiceProvider = (0, asyncHandler_1.asyncHandler)((req, res) => _
     if (!serviceProviderId) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service Provider ID is required."));
     }
-    ;
     if (!mongoose_1.default.Types.ObjectId.isValid(serviceProviderId)) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Invalid Service Provider ID."));
     }
-    ;
-    const results = yield user_model_1.default.findByIdAndUpdate(serviceProviderId, { $set: { isVerified } }, { new: true }).select('-password -refreshToken -__V');
+    const results = yield user_model_1.default.findByIdAndUpdate(serviceProviderId, { $set: { isVerified } }, { new: true }).select("-password -refreshToken -__V");
     if (!results) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service Provider not found."));
     }
-    const additionalInfo = yield userAdditionalInfo_model_1.default.findOne({ userId: serviceProviderId });
+    const additionalInfo = yield userAdditionalInfo_model_1.default.findOne({
+        userId: serviceProviderId,
+    });
     if (isVerified && results.userType === "ServiceProvider") {
         const userWallet = yield wallet_model_1.default.findOne({ userId: results === null || results === void 0 ? void 0 : results._id });
         if (userWallet === null || userWallet === void 0 ? void 0 : userWallet.stripeConnectedAccountId) {
             return res.status(200).json({
-                message: 'Account already exists',
+                message: "Account already exists",
             });
         }
         const dob = results === null || results === void 0 ? void 0 : results.dob;
         if (!dob || !(dob instanceof Date)) {
-            return res.status(400).json({ error: 'Invalid date of birth' });
+            return res.status(400).json({ error: "Invalid date of birth" });
         }
-        const phoneNumber = (0, libphonenumber_js_1.parsePhoneNumberFromString)((results === null || results === void 0 ? void 0 : results.phone) || '');
-        const localPhone = phoneNumber ? phoneNumber.nationalNumber : '';
+        const phoneNumber = (0, libphonenumber_js_1.parsePhoneNumberFromString)((results === null || results === void 0 ? void 0 : results.phone) || "");
+        const localPhone = phoneNumber ? phoneNumber.nationalNumber : "";
         console.log({ localPhone });
         const accountParams = {
-            type: 'custom',
-            country: 'US',
+            type: "custom",
+            country: "US",
             email: results === null || results === void 0 ? void 0 : results.email,
-            business_type: 'individual',
+            business_type: "individual",
             capabilities: {
                 transfers: { requested: true },
             },
@@ -737,22 +792,22 @@ exports.verifyServiceProvider = (0, asyncHandler_1.asyncHandler)((req, res) => _
                 },
             },
             business_profile: {
-                url: 'https://your-test-business.com',
-                mcc: '5818',
+                url: "https://your-test-business.com",
+                mcc: "5818",
             },
             // external_account: 'btok_us_verified',
             external_account: {
-                object: 'bank_account',
-                country: 'US',
-                currency: 'usd',
-                routing_number: '110000000',
-                account_number: '000123456789',
-                account_holder_name: 'Jane Doe',
-                account_holder_type: 'individual',
+                object: "bank_account",
+                country: "US",
+                currency: "usd",
+                routing_number: "110000000",
+                account_number: "000123456789",
+                account_holder_name: "Jane Doe",
+                account_holder_type: "individual",
             },
             tos_acceptance: {
                 date: Math.floor(Date.now() / 1000),
-                ip: req.ip || '127.0.0.1',
+                ip: req.ip || "127.0.0.1",
             },
         };
         const account = yield stripe.accounts.create(accountParams);
@@ -760,7 +815,7 @@ exports.verifyServiceProvider = (0, asyncHandler_1.asyncHandler)((req, res) => _
             settings: {
                 payouts: {
                     schedule: {
-                        interval: 'manual',
+                        interval: "manual",
                     },
                 },
             },
@@ -784,17 +839,16 @@ exports.banUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 
     if (!userId) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "User ID is required."));
     }
-    ;
     if (!mongoose_1.default.Types.ObjectId.isValid(userId)) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Invalid User ID."));
     }
-    ;
-    const results = yield user_model_1.default.findByIdAndUpdate(userId, { $set: { isDeleted } }, { new: true }).select('-password -refreshToken -__V');
+    const results = yield user_model_1.default.findByIdAndUpdate(userId, { $set: { isDeleted } }, { new: true }).select("-password -refreshToken -__V");
     if (!results) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "User not found."));
     }
-    ;
-    const message = isDeleted ? "User profile made banned." : "User profile made unbanned.";
+    const message = isDeleted
+        ? "User profile made banned."
+        : "User profile made unbanned.";
     return (0, response_1.sendSuccessResponse)(res, 200, {}, message);
 }));
 exports.fetchAssociates = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -807,22 +861,22 @@ exports.fetchAssociates = (0, asyncHandler_1.asyncHandler)((req, res) => __await
         {
             $match: {
                 isDeleted: false,
-                serviceProviderId: serviceProviderId
-            }
+                serviceProviderId: serviceProviderId,
+            },
         },
         {
             $lookup: {
                 from: "users",
                 localField: "serviceProviderId",
                 foreignField: "_id",
-                as: "serviceProviderId"
-            }
+                as: "serviceProviderId",
+            },
         },
         {
             $unwind: {
                 preserveNullAndEmptyArrays: true,
                 path: "$serviceProviderId",
-            }
+            },
         },
         {
             $lookup: {
@@ -836,17 +890,21 @@ exports.fetchAssociates = (0, asyncHandler_1.asyncHandler)((req, res) => __await
                             from: "permissions",
                             localField: "_id",
                             foreignField: "userId",
-                            as: "agentPermission"
-                        }
-                    }
-                ]
-            }
+                            as: "agentPermission",
+                        },
+                    },
+                ],
+            },
         },
         {
             $project: {
                 _id: 1,
                 serviceProviderName: {
-                    $concat: ["$serviceProviderId.firstName", " ", "$serviceProviderId.lastName"]
+                    $concat: [
+                        "$serviceProviderId.firstName",
+                        " ",
+                        "$serviceProviderId.lastName",
+                    ],
                 },
                 teamMembers: {
                     _id: 1,
@@ -861,9 +919,9 @@ exports.fetchAssociates = (0, asyncHandler_1.asyncHandler)((req, res) => __await
                         assignJob: 1,
                         fieldAgentManagement: 1,
                     },
-                }
-            }
-        }
+                },
+            },
+        },
     ]);
     if (!results || results.length === 0) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Field agents not found."));
@@ -877,26 +935,33 @@ exports.assignTeamLead = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
     try {
         const team = yield teams_model_1.default.findOne({
             serviceProviderId,
-            fieldAgentIds: { $in: fieldAgentId }
+            fieldAgentIds: { $in: fieldAgentId },
         });
         if (!team) {
-            return res.status(400).json({ message: "Field agent not found in the service provider's team." });
+            return res.status(400).json({
+                message: "Field agent not found in the service provider's team.",
+            });
         }
         const fieldAgent = yield user_model_1.default.findById(fieldAgentId);
         if ((fieldAgent === null || fieldAgent === void 0 ? void 0 : fieldAgent.userType) === "TeamLead") {
             return (0, response_1.sendSuccessResponse)(res, 200, "This agent is already a teamlead.");
-            return res.status(400).json({ message: "This agent is already a teamlead." });
+            return res
+                .status(400)
+                .json({ message: "This agent is already a teamlead." });
         }
-        ;
         const updatedFieldAgent = yield user_model_1.default.findByIdAndUpdate(fieldAgentId, { userType: "TeamLead" }, { new: true });
         if (!updatedFieldAgent) {
-            return res.status(500).json({ message: "Failed to update user role to teamlead." });
+            return res
+                .status(500)
+                .json({ message: "Failed to update user role to teamlead." });
         }
         return (0, response_1.sendSuccessResponse)(res, 200, updatedFieldAgent, "Field agent promoted to team lead successfully.");
     }
     catch (error) {
         console.error("Error promoting field agent to team lead:", error);
-        res.status(500).json({ message: "An error occurred while assigning team lead." });
+        res
+            .status(500)
+            .json({ message: "An error occurred while assigning team lead." });
     }
 }));
 exports.getAgentEngagementStatus = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -905,26 +970,11 @@ exports.getAgentEngagementStatus = (0, asyncHandler_1.asyncHandler)((req, res) =
     if (!serviceProviderId) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service provider ID is required."));
     }
-    ;
     const results = yield teams_model_1.default.aggregate([
         {
             $match: {
                 isDeleted: false,
-                serviceProviderId: serviceProviderId
-            }
-        },
-        {
-            $lookup: {
-                from: "users",
-                localField: "fieldAgentIds",
-                foreignField: "_id",
-                as: "teamMembers"
-            }
-        },
-        {
-            $unwind: {
-                path: "$teamMembers",
-                preserveNullAndEmptyArrays: true,
+                serviceProviderId: serviceProviderId,
             },
         },
         {
@@ -932,8 +982,8 @@ exports.getAgentEngagementStatus = (0, asyncHandler_1.asyncHandler)((req, res) =
                 from: "users",
                 localField: "serviceProviderId",
                 foreignField: "_id",
-                as: "serviceProviderId"
-            }
+                as: "serviceProviderId",
+            },
         },
         {
             $unwind: {
@@ -943,79 +993,64 @@ exports.getAgentEngagementStatus = (0, asyncHandler_1.asyncHandler)((req, res) =
         },
         {
             $lookup: {
-                from: "services",
-                let: { agentId: "$teamMembers._id" },
+                from: "users",
+                localField: "fieldAgentIds",
+                foreignField: "_id",
+                as: "teamMembers",
                 pipeline: [
                     {
                         $match: {
-                            $expr: {
-                                $eq: ["$assignedAgentId", "$$agentId"],
-                            },
-                            $and: [
-                                { requestProgress: { $ne: "Completed" } },
-                                { requestProgress: { $ne: "Cancelled" } }
-                            ]
+                            isDeleted: false,
                         },
                     },
                     {
-                        $project: {
-                            _id: 1,
-                            serviceZipCode: 1,
-                            requestProgress: 1,
-                            serviceStartDate: 1
+                        $lookup: {
+                            from: "services",
+                            localField: "_id",
+                            foreignField: "assignedAgentId",
+                            as: "engagement",
+                        },
+                    },
+                    {
+                        $addFields: {
+                            isEngaged: {
+                                $cond: {
+                                    if: {
+                                        $gt: [{ $size: "$engagement" }, 0],
+                                    },
+                                    then: true,
+                                    else: false,
+                                },
+                            },
                         },
                     },
                 ],
-                as: "teamMembers.engagement",
             },
         },
         {
             $addFields: {
                 serviceProviderName: {
-                    $concat: ["$serviceProviderId.firstName", " ", "$serviceProviderId.lastName"]
-                },
-                isEngaged: {
-                    $cond: {
-                        if: {
-                            $gt: [{ $size: "$teamMembers.engagement" }, 0]
-                        },
-                        then: true, else: false
-                    }
-                }
-            }
-        },
-        {
-            $group: {
-                _id: "$_id",
-                serviceProviderName: { $first: "$$ROOT.serviceProviderName" },
-                teamMembers: {
-                    $push: {
-                        _id: "$teamMembers._id",
-                        firstName: "$teamMembers.firstName",
-                        lastName: "$teamMembers.lastName",
-                        email: "$teamMembers.email",
-                        phone: "$teamMembers.phone",
-                        userType: "$teamMembers.userType",
-                        agentAvatar: "$teamMembers.avatar",
-                        // engagement: "$teamMembers.engagement",
-                        isEngaged: "$isEngaged"
-                    },
+                    $concat: [
+                        "$serviceProviderId.firstName",
+                        " ",
+                        "$serviceProviderId.lastName",
+                    ],
                 },
             },
         },
         {
             $project: {
-                __v: 0,
-                isDeleted: 0,
-                refreshToken: 0,
-                password: 0,
-                "additionalInfo.__v": 0,
-                "additionalInfo.isDeleted": 0,
-                "userAddress.__v": 0,
-                "userAddress.isDeleted": 0,
-                "teamMembers.__v": 0,
-                "teamMembers.isDeleted": 0,
-                rawPassword: 0
+                _id: 1,
+                serviceProviderName: 1,
+                "teamMembers._id": 1,
+                "teamMembers.firstName": 1,
+                "teamMembers.lastName": 1,
+                "teamMembers.email": 1,
+                "teamMembers.phone": 1,
+                "teamMembers.userType": 1,
+                "teamMembers.agentAvatar": 1,
+                "teamMembers.isEngaged": 1,
+                //   "teamMembers.engagement": 1,
             },
         },
     ]);
@@ -1031,10 +1066,9 @@ exports.fetchIPlogs = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(v
     if (!userId) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "User does not exist"));
     }
-    const iplogs = yield IP_model_1.default.find({ userId: userId })
-        .populate({
-        path: 'userId',
-        select: 'firstName lastName email phone'
+    const iplogs = yield IP_model_1.default.find({ userId: userId }).populate({
+        path: "userId",
+        select: "firstName lastName email phone",
     });
     return (0, response_1.sendSuccessResponse)(res, 200, iplogs, "IPlogs retrieved successfully.");
 }));
@@ -1044,28 +1078,27 @@ exports.updateUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
     if (!userId) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "User ID is required."));
     }
-    ;
     const { firstName, lastName } = req.body;
     const userAvtarFile = req.files;
-    const userImgFile = (userAvtarFile === null || userAvtarFile === void 0 ? void 0 : userAvtarFile.userImage) ? userAvtarFile.userImage[0] : undefined;
+    const userImgFile = (userAvtarFile === null || userAvtarFile === void 0 ? void 0 : userAvtarFile.userImage)
+        ? userAvtarFile.userImage[0]
+        : undefined;
     let userImgUrl;
     if (userImgFile) {
         const userImg = yield (0, cloudinary_1.uploadOnCloudinary)(userImgFile.path);
         userImgUrl = userImg === null || userImg === void 0 ? void 0 : userImg.secure_url;
     }
     const updatedUser = yield user_model_1.default.findByIdAndUpdate({ _id: userId }, {
-        $set: Object.assign({ firstName: firstName, lastName: lastName }, (userImgUrl && { avatar: userImgUrl }) // Only update image if uploaded
-        ),
-    }, { new: true }).select('-rawPassword');
+        $set: Object.assign({ firstName: firstName, lastName: lastName }, (userImgUrl && { avatar: userImgUrl })),
+    }, { new: true }).select("-rawPassword");
     if (!updatedUser) {
         return (0, response_1.sendSuccessResponse)(res, 200, updatedUser, "User not found for updating.");
     }
-    ;
     return (0, response_1.sendSuccessResponse)(res, 200, updatedUser, "User updated Successfully");
 }));
 exports.getIpLogs = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    const { page = 1, limit = 10, query = '', sortBy = 'timestamp', sortType = 'desc' } = req.query;
+    const { page = 1, limit = 10, query = "", sortBy = "timestamp", sortType = "desc", } = req.query;
     const pageNumber = parseInt(page, 10);
     const limitNumber = parseInt(limit, 10);
     const searchQuery = query
@@ -1074,13 +1107,13 @@ exports.getIpLogs = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
                 { method: { $regex: query, $options: "i" } },
                 { route: { $regex: query, $options: "i" } },
                 { hostname: { $regex: query, $options: "i" } },
-                { ipAddress: { $regex: query, $options: "i" } }
-            ]
+                { ipAddress: { $regex: query, $options: "i" } },
+            ],
         }
         : {};
     const matchCriteria = Object.assign({ userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id }, searchQuery);
     const sortCriteria = {};
-    sortCriteria[sortBy] = sortType === 'desc' ? -1 : 1;
+    sortCriteria[sortBy] = sortType === "desc" ? -1 : 1;
     const results = yield IP_model_1.default.aggregate([
         { $match: matchCriteria },
         {
@@ -1088,8 +1121,8 @@ exports.getIpLogs = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
                 from: "users",
                 localField: "userId",
                 foreignField: "_id",
-                as: "userId"
-            }
+                as: "userId",
+            },
         },
         {
             $project: {
@@ -1097,20 +1130,20 @@ exports.getIpLogs = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
                 isDeleted: 0,
                 refreshToken: 0,
                 password: 0,
-                'userId.__v': 0,
-                'userId.isDeleted': 0,
-                'userId.password': 0,
-                'userId.refreshToken': 0,
-                'userId.rawPassword': 0,
-                'userId.isVerified': 0,
-                'userId.createdAt': 0,
-                'userId.updatedAt': 0,
-                'userId.fcmToken': 0,
-            }
+                "userId.__v": 0,
+                "userId.isDeleted": 0,
+                "userId.password": 0,
+                "userId.refreshToken": 0,
+                "userId.rawPassword": 0,
+                "userId.isVerified": 0,
+                "userId.createdAt": 0,
+                "userId.updatedAt": 0,
+                "userId.fcmToken": 0,
+            },
         },
         { $sort: sortCriteria },
         { $skip: (pageNumber - 1) * limitNumber },
-        { $limit: limitNumber }
+        { $limit: limitNumber },
     ]);
     const totalRecords = yield IP_model_1.default.countDocuments(matchCriteria);
     return (0, response_1.sendSuccessResponse)(res, 200, {
@@ -1118,15 +1151,17 @@ exports.getIpLogs = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
         pagination: {
             total: totalRecords,
             page: pageNumber,
-            limit: limitNumber
-        }
+            limit: limitNumber,
+        },
     }, "IPLogs retrieved successfully.");
 }));
 // Add address for the user
 exports.addBankDetails = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
-    const { bankName, accountHolderName, branchCode, accountNumber, cardNumber, cardHolderName } = req.body;
-    const existingAddress = yield bankDetails_model_1.default.findOne({ userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id });
+    const { bankName, accountHolderName, branchCode, accountNumber, cardNumber, cardHolderName, } = req.body;
+    const existingAddress = yield bankDetails_model_1.default.findOne({
+        userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id,
+    });
     if (existingAddress) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Bank Details already exists for this user"));
     }
@@ -1139,7 +1174,7 @@ exports.addBankDetails = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
         accountNumber,
         cardNumber,
         cardHolderName,
-        cardType
+        cardType,
     });
     const savedBankDetails = yield userAddress.save();
     return (0, response_1.sendSuccessResponse)(res, 201, savedBankDetails, "Bank Details added successfully");
@@ -1150,18 +1185,16 @@ exports.updateUserPreference = (0, asyncHandler_1.asyncHandler)((req, res) => __
     if (!userId) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "User ID is required."));
     }
-    ;
     const { notificationPreference } = req.body;
     const updatedUserPreference = yield userPreference_model_1.default.findOneAndUpdate({ userId: userId }, {
         $set: {
             notificationPreference,
-            updatedAt: new Date()
+            updatedAt: new Date(),
         },
-    }, { new: true }).select('-__v -isDeleted');
+    }, { new: true }).select("-__v -isDeleted");
     if (!updatedUserPreference) {
         return (0, response_1.sendSuccessResponse)(res, 200, updatedUserPreference, "User not found for updating.");
     }
-    ;
     return (0, response_1.sendSuccessResponse)(res, 200, updatedUserPreference, "User preference updated successfully");
 }));
 // GET /api/payment-methods
@@ -1171,13 +1204,13 @@ const getPaymentMethods = (req, res) => __awaiter(void 0, void 0, void 0, functi
         const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         const paymentMethodDetails = yield paymentMethod_model_1.default.find({ userId });
         if (!paymentMethodDetails) {
-            return res.status(404).json({ message: 'Payment Method not found' });
+            return res.status(404).json({ message: "Payment Method not found" });
         }
         return (0, response_1.sendSuccessResponse)(res, 200, paymentMethodDetails, "Payment Method found successfully");
     }
     catch (error) {
-        console.error('Error fetching payment methods:', error);
-        res.status(500).json({ message: 'Server error' });
+        console.error("Error fetching payment methods:", error);
+        res.status(500).json({ message: "Server error" });
     }
 });
 exports.getPaymentMethods = getPaymentMethods;
@@ -1188,28 +1221,30 @@ const getCustomersTransaction = (req, res) => __awaiter(void 0, void 0, void 0, 
         const transactionsDetails = yield purchase_model_1.default.aggregate([
             {
                 $match: {
-                    userId: userId
-                }
+                    userId: userId,
+                },
             },
             {
                 $lookup: {
                     from: "users",
                     foreignField: "_id",
                     localField: "userId",
-                    as: "userDetails"
-                }
+                    as: "userDetails",
+                },
             },
             {
                 $unwind: {
                     preserveNullAndEmptyArrays: true,
-                    path: "$userDetails"
-                }
+                    path: "$userDetails",
+                },
             },
             {
                 $addFields: {
-                    userName: { $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"] },
-                    userImage: "$userDetails.avatar"
-                }
+                    userName: {
+                        $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"],
+                    },
+                    userImage: "$userDetails.avatar",
+                },
             },
             {
                 $project: {
@@ -1225,17 +1260,17 @@ const getCustomersTransaction = (req, res) => __awaiter(void 0, void 0, void 0, 
                     status: 1,
                     createdAt: 1,
                     updatedAt: 1,
-                }
-            }
+                },
+            },
         ]);
         if (!transactionsDetails) {
-            return res.status(404).json({ message: 'No transaction was found' });
+            return res.status(404).json({ message: "No transaction was found" });
         }
         return (0, response_1.sendSuccessResponse)(res, 200, transactionsDetails, "Transaction history fetched successfully");
     }
     catch (error) {
-        console.error('Error fetching payment methods:', error);
-        res.status(500).json({ message: 'Server error' });
+        console.error("Error fetching payment methods:", error);
+        res.status(500).json({ message: "Server error" });
     }
 });
 exports.getCustomersTransaction = getCustomersTransaction;
@@ -1244,28 +1279,30 @@ const fetchAdminReceivedFund = (req, res) => __awaiter(void 0, void 0, void 0, f
         const incentiveDetails = yield purchase_model_1.default.aggregate([
             {
                 $match: {
-                    status: "succeeded"
-                }
+                    status: "succeeded",
+                },
             },
             {
                 $lookup: {
                     from: "users",
                     foreignField: "_id",
                     localField: "userId",
-                    as: "userDetails"
-                }
+                    as: "userDetails",
+                },
             },
             {
                 $unwind: {
                     preserveNullAndEmptyArrays: true,
-                    path: "$userDetails"
-                }
+                    path: "$userDetails",
+                },
             },
             {
                 $addFields: {
-                    userName: { $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"] },
-                    userImage: "$userDetails.avatar"
-                }
+                    userName: {
+                        $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"],
+                    },
+                    userImage: "$userDetails.avatar",
+                },
             },
             {
                 $project: {
@@ -1281,34 +1318,36 @@ const fetchAdminReceivedFund = (req, res) => __awaiter(void 0, void 0, void 0, f
                     status: 1,
                     createdAt: 1,
                     updatedAt: 1,
-                }
-            }
+                },
+            },
         ]);
         const cancellationFeeDetails = yield purchase_model_1.default.aggregate([
             {
                 $match: {
-                    status: "succeeded"
-                }
+                    status: "succeeded",
+                },
             },
             {
                 $lookup: {
                     from: "users",
                     foreignField: "_id",
                     localField: "userId",
-                    as: "userDetails"
-                }
+                    as: "userDetails",
+                },
             },
             {
                 $unwind: {
                     preserveNullAndEmptyArrays: true,
-                    path: "$userDetails"
-                }
+                    path: "$userDetails",
+                },
             },
             {
                 $addFields: {
-                    userName: { $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"] },
-                    userImage: "$userDetails.avatar"
-                }
+                    userName: {
+                        $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"],
+                    },
+                    userImage: "$userDetails.avatar",
+                },
             },
             {
                 $project: {
@@ -1324,8 +1363,8 @@ const fetchAdminReceivedFund = (req, res) => __awaiter(void 0, void 0, void 0, f
                     status: 1,
                     createdAt: 1,
                     updatedAt: 1,
-                }
-            }
+                },
+            },
         ]);
         return (0, response_1.sendSuccessResponse)(res, 200, {
             incentiveDetails,
@@ -1333,8 +1372,8 @@ const fetchAdminReceivedFund = (req, res) => __awaiter(void 0, void 0, void 0, f
         }, "Transactions to admin fetched successfully");
     }
     catch (error) {
-        console.error('Error fetching payment methods:', error);
-        res.status(500).json({ message: 'Server error' });
+        console.error("Error fetching payment methods:", error);
+        res.status(500).json({ message: "Server error" });
     }
 });
 exports.fetchAdminReceivedFund = fetchAdminReceivedFund;

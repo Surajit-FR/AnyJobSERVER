@@ -428,16 +428,7 @@ const handleLeadGenerationFee = async (session: any) => {
         updatedAt: Date.now(),
       }
     );
-    const Admintransaction = {
-      userId: user._id,
-      type: "credit",
-      amount: amount,
-      description: "LeadGenerationFee",
-      stripeTransactionId: transfer.id,
-      serviceId: session.metadata.serviceId,
-    };
-    await new AdminRevenueModel(Admintransaction).save();
-    console.log({ Admintransaction });
+
   } catch (error: any) {
     console.error(
       "❌ Error in handleCheckoutSessionCompleted (Lead Generation Fee):",

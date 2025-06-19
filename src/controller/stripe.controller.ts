@@ -597,8 +597,6 @@ export const createLeadGenerationCheckoutSession = async (
       cancel_url: "https://frontend.theassure.co.uk/service-payment-cancel",
     } as Stripe.Checkout.SessionCreateParams);
 
-
-
     res.json({ url: session.url });
   } catch (err: any) {
     console.error("Error creating Checkout Session for service fee:", err);
@@ -666,6 +664,16 @@ export const payForService = async (req: CustomRequest, res: Response) => {
       },
       { new: true }
     );
+    const Admintransaction = {
+      userId: userId,
+      type: "credit",
+      amount: amount,
+      description: "LeadGenerationFee",
+      stripeTransactionId: transfer.id,
+      serviceId,
+    };
+    await new AdminRevenueModel(Admintransaction).save();
+    console.log({ Admintransaction });
     res.status(200).json({
       message: "Payment for the Service made successfully",
       success: true,

@@ -68,6 +68,7 @@ function transferIncentiveToSP(serviceId) {
                 transfer_group: transferGroup,
                 description: `IncentiveFee_transfer_to_sp_${(_b = serviceData === null || serviceData === void 0 ? void 0 : serviceData.serviceProviderId) === null || _b === void 0 ? void 0 : _b.toString()}_for_service_${serviceId}`,
             });
+            console.log({ transfer });
             if (transfer) {
                 const transaction = {
                     userId: serviceData.userId,
@@ -587,6 +588,7 @@ const payForService = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         }, {
             stripeAccount: spWalletDetails === null || spWalletDetails === void 0 ? void 0 : spWalletDetails.stripeConnectedAccountId,
         });
+        console.log({ transfer });
         const transactionData = {
             type: "debit",
             amount: amount,
@@ -706,6 +708,7 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
             success_url: "https://frontend.theassure.co.uk/payment-success",
             cancel_url: "https://frontend.theassure.co.uk/payment-error",
         });
+        console.log({ cancellationSession: session });
         res.json({ url: session.url });
     }
     catch (err) {

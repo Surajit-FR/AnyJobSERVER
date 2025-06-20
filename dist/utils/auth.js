@@ -143,8 +143,6 @@ function getCardType(cardNumber) {
     }
     return 'Unknown';
 }
-const cardNumber = "4111111111111111";
-// console.log(`Card Type: ${getCardType(cardNumber)}`);
 function isNotificationPreferenceOn(userId) {
     return __awaiter(this, void 0, void 0, function* () {
         let isOn;

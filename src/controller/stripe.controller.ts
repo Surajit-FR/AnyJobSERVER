@@ -99,7 +99,7 @@ export const createCheckoutsession = async (
     payment_method_types: ["card"],
     mode: "payment",
     customer: stripeCustomerId,
-    description: `IncentiveFee_paid_by_customer_${userId?.toString()}_for_service_${serviceId}`,
+    // description: `IncentiveFee_paid_by_customer_${userId?.toString()}_for_service_${serviceId}`,
     line_items: [
       {
         price_data: {
@@ -133,6 +133,7 @@ export const createCheckoutsession = async (
     success_url: "https://frontend.theassure.co.uk/payment-success",
     cancel_url: "https://frontend.theassure.co.uk/payment-error",
   } as Stripe.Checkout.SessionCreateParams);
+  console.log({ Incentivesession: session });
 
   res.json({ url: session.url });
 };
@@ -736,7 +737,7 @@ export const createServiceCancellationCheckoutSession = async (
       payment_method_types: ["card"],
       mode: "payment",
       customer: stripeCustomerId,
-      description: `cancellationfee_paid_by_customer_${serviceDeatils?.serviceProviderId?.toString()}_for_service_${serviceId}`,
+      // description: `cancellationfee_paid_by_customer_${serviceDeatils?.serviceProviderId?.toString()}_for_service_${serviceId}`,
 
       line_items: [
         {

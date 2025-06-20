@@ -640,7 +640,7 @@ export const payForService = async (req: CustomRequest, res: Response) => {
         currency: "usd",
         destination: account?.id,
         description: `LeadGenerationFee_for_service_${serviceId}`,
-        // transfer_group: `service-67ac74fb12c4396eb2f5d52b}-${Date.now()}`,
+        transfer_group: `service-67ac74fb12c4396eb2f5d52b}-${Date.now()}`,
       },
       {
         stripeAccount: spWalletDetails?.stripeConnectedAccountId,

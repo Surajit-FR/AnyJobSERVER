@@ -40,8 +40,8 @@ export async function transferIncentiveToSP(serviceId: string) {
 
   if (serviceData.isIncentiveGiven) {
     const givenIncentiveByCustomer = serviceData.incentiveAmount;
-    const spIncentiveAmt = Math.ceil(givenIncentiveByCustomer * 0.9);
-    const adminIncentiveAmt = Math.ceil(givenIncentiveByCustomer * 0.1);
+    const spIncentiveAmt = givenIncentiveByCustomer * 0.9;
+    const adminIncentiveAmt = givenIncentiveByCustomer * 0.1;
     const spId = serviceData.serviceProviderId;
 
     const spAccount = await WalletModel.findOne({ userId: spId });
@@ -72,6 +72,7 @@ export async function transferIncentiveToSP(serviceId: string) {
   }
 }
 
+//session for incentive payment
 export const createCheckoutsession = async (
   req: CustomRequest,
   res: Response
@@ -638,7 +639,7 @@ export const payForService = async (req: CustomRequest, res: Response) => {
         amount: 100 * amount,
         currency: "usd",
         destination: account?.id,
-        // description: `LeadGenerationFee_for_service_${serviceId}`,
+        description: `LeadGenerationFee_for_service_${serviceId}`,
         // transfer_group: `service-67ac74fb12c4396eb2f5d52b}-${Date.now()}`,
       },
       {
@@ -749,16 +750,15 @@ export const createServiceCancellationCheckoutSession = async (
           quantity: 1,
         },
       ],
-      payment_intent_data: {
-        setup_future_usage: "on_session",
-        description: `cancellationfee_paid_by_customer_${serviceDeatils?.serviceProviderId?.toString()}_for_service_${serviceId}`,
-        transfer_group: transferGroup,
-        // description: `cancellationfee_transfer_to_sp_${serviceDeatils?.serviceProviderId?.toString()}_for_service_${serviceId}`,
-        transfer_data: {
-          destination: SPStripeAccountId,
-          amount: SPAmount * 100,
-        },
-      },
+      // payment_intent_data: {
+      //   setup_future_usage: "on_session",
+      //   description: `cancellationfee_paid_by_customer_${serviceDeatils?.serviceProviderId?.toString()}_for_service_${serviceId}`,
+      //   transfer_group: transferGroup,
+      //   transfer_data: {
+      //     destination: SPStripeAccountId,
+      //     amount: SPAmount * 100,
+      //   },
+      // },
 
       payment_method_data: {
         allow_redisplay: "always",
@@ -769,6 +769,8 @@ export const createServiceCancellationCheckoutSession = async (
         cancellationReason,
         userId: userId?.toString(),
         SPId: serviceDeatils?.serviceProviderId?.toString(),
+        SPAmount,
+        SPStripeAccountId
       },
       success_url: "https://frontend.theassure.co.uk/payment-success",
       cancel_url: "https://frontend.theassure.co.uk/payment-error",

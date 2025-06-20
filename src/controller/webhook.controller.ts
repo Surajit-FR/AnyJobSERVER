@@ -130,14 +130,6 @@ const handlePaymentSuccess = async (paymentIntent: any) => {
   const charges = await stripe.charges.list({
     payment_intent: paymentIntent.id,
   });
-  const receiptUrl = charges.data[0]?.receipt_url;
-  const updatedPurchaseData = await PurchaseModel.findOne(
-    { paymentIntentId: paymentIntent.id }
-    // { status: 'succeeded', receipt_url: receiptUrl, lastPendingPaymentIntentId: "" },
-    // { new: true }
-  );
-  console.log({ updatedPurchaseData });
-
   console.log("Webhook runs: paymnet status updated :)");
 };
 
@@ -338,6 +330,7 @@ const handleServiceIncentivePayment = async (session: any) => {
   }
 };
 
+//when add fund is initiated
 const handleWalletTopUp = async (session: any) => {
   console.log("WEBHOOK RUNS: WALLET ADD FUND CHECKOUT SESSION ", session);
 
@@ -351,12 +344,15 @@ const handleWalletTopUp = async (session: any) => {
     return;
   }
 
+  // transfer added wallet amount in sp's wallet---------------------------------
   const transfer = await stripe.transfers.create({
     amount: session.amount_total,
     currency: "usd",
     destination: wallet.stripeConnectedAccountId,
   });
+  // -----------------------------------------------------------------------------
 
+  // Update the wallet after successful add money (wallet credited)----------------
   const transaction = {
     type: "credit",
     amount,
@@ -373,6 +369,7 @@ const handleWalletTopUp = async (session: any) => {
     }
   );
 };
+// wallet update complete-------------------------------------------------------------
 
 const handleLeadGenerationFee = async (session: any) => {
   try {
@@ -389,7 +386,7 @@ const handleLeadGenerationFee = async (session: any) => {
       console.warn("User not found in leadgenerationfee webhook");
       return;
     }
-
+    // Update wallet against successfull lead generaion fee payment---------------------------
     const wallet = await WalletModel.findOne({ userId });
     if (!wallet) {
       console.warn("Wallet not found for user in leadgenerationfee webhook");
@@ -428,7 +425,7 @@ const handleLeadGenerationFee = async (session: any) => {
         updatedAt: Date.now(),
       }
     );
-
+    // -----------------------------------------------------------------------------------------
   } catch (error: any) {
     console.error(
       "❌ Error in handleCheckoutSessionCompleted (Lead Generation Fee):",
@@ -450,6 +447,9 @@ const handleServiceCancellationFee = async (session: any) => {
     const userId = session.metadata?.userId;
     const serviceId = session.metadata?.serviceId;
     const cancellationReason = session.metadata?.cancellationReason;
+    const SPAmount = session.metadata?.SPAmount;
+    const SPStripeAccountId = session.metadata?.SPStripeAccountId;
+    const SPId = session.metadata?.SPId;
 
     const user = await UserModel.findById(userId);
     if (!user) {
@@ -457,6 +457,18 @@ const handleServiceCancellationFee = async (session: any) => {
       return;
     }
 
+    //transfer cancellation amount to sp ----------------------------------------------------------------
+    const transfer = await stripe.transfers.create({
+      amount: SPAmount * 100,
+      description: `cancellationfee_transfer_to_sp_${SPId?.toString()}_for_service_${serviceId}`,
+      currency: "usd",
+      destination: SPStripeAccountId,
+      transfer_group: `cancellation_fee_sp_${SPId?.toString()}_service_${serviceId}`,
+    });
+    console.log({ cancellationfee_transfer_to_sp: transfer });
+    // ------------------------------------------------------------------------------------------------------
+
+    // Update payment method details-------------------------------------------------------------------------
     const paymentIntentId = session.payment_intent;
     const paymentIntent = await stripe.paymentIntents.retrieve(
       paymentIntentId as string
@@ -487,8 +499,9 @@ const handleServiceCancellationFee = async (session: any) => {
       exp_month,
       exp_year,
     };
+    // -------------------------------------------------------------------------------------------------------
 
-    //create purchase details when user will initiate a payment intent
+    //create cancellation record for customer-----------------------------------------------------------------
     const CancellationFeeData = {
       userId: user?._id,
       serviceId: session.metadata.serviceId,
@@ -503,7 +516,9 @@ const handleServiceCancellationFee = async (session: any) => {
     const saveCancellationFee = await new CancellationFeeModel(
       CancellationFeeData
     ).save();
-    //cancel the service
+    // ---------------------------------------------------------------------------------------------------------
+
+    // After successfully saved the related data finally cancel the service by customer's side------------------
     const updatedService = await ServiceModel.findOneAndUpdate(
       { _id: new mongoose.Types.ObjectId(serviceId), userId: user._id },
       {
@@ -517,6 +532,9 @@ const handleServiceCancellationFee = async (session: any) => {
       },
       { new: true }
     );
+    // ---------------------------------------------------------------------------------------------------------
+
+    // Create a record for admin revenue as some amt of cancellation will be credited to admin'a account--------
     const transaction = {
       userId: user._id,
       type: "credit",
@@ -525,6 +543,7 @@ const handleServiceCancellationFee = async (session: any) => {
       serviceId: session.metadata.serviceId,
     };
     await new AdminRevenueModel(transaction).save();
+    // -----------------------------------------------------------------------------------------------------------
   } catch (error: any) {
     console.error(
       "❌ Error in handleCheckoutSessionCompleted (Lead Generation Fee):",

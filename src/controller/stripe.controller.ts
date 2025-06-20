@@ -646,7 +646,11 @@ export const payForService = async (req: CustomRequest, res: Response) => {
         stripeAccount: spWalletDetails?.stripeConnectedAccountId,
       }
     );
+    const transferUpdate = await stripe.transfers.update(transfer.id, {
+      description: `LeadGenerationFee_for_service_${serviceId}`,
+    });
     console.log({ transfer });
+    console.log({ transferUpdate });
 
     const transactionData = {
       type: "debit",
@@ -737,7 +741,7 @@ export const createServiceCancellationCheckoutSession = async (
       payment_method_types: ["card"],
       mode: "payment",
       customer: stripeCustomerId,
-      
+
       line_items: [
         {
           price_data: {
@@ -765,7 +769,7 @@ export const createServiceCancellationCheckoutSession = async (
         userId: userId?.toString(),
         SPId: serviceDeatils?.serviceProviderId?.toString(),
         SPAmount,
-        SPStripeAccountId
+        SPStripeAccountId,
       },
       success_url: "https://frontend.theassure.co.uk/payment-success",
       cancel_url: "https://frontend.theassure.co.uk/payment-error",

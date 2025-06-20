@@ -55,6 +55,7 @@ export async function transferIncentiveToSP(serviceId: string) {
       currency: "usd",
       destination: spStripeAccountId,
       transfer_group: transferGroup,
+      description: `IncentiveFee_transfer_to_sp_${serviceData?.serviceProviderId?.toString()}_for_service_${serviceId}`,
     });
 
     if (transfer) {
@@ -97,6 +98,7 @@ export const createCheckoutsession = async (
     payment_method_types: ["card"],
     mode: "payment",
     customer: stripeCustomerId,
+    description: `IncentiveFee_paid_by_customer_${userId?.toString()}_for_service_${serviceId}`,
     line_items: [
       {
         price_data: {
@@ -542,7 +544,7 @@ export const createAddFundsSession = async (
   }
 };
 
-// pay lead generation fee with stripe hosted UI
+// pay lead generation fee with stripe hosted UI not in use
 export const createLeadGenerationCheckoutSession = async (
   req: CustomRequest,
   res: Response
@@ -635,6 +637,7 @@ export const payForService = async (req: CustomRequest, res: Response) => {
         amount: 100 * amount,
         currency: "usd",
         destination: account?.id,
+        description: `LeadGenerationFee_for_service_${serviceId}`,
         // transfer_group: `service-67ac74fb12c4396eb2f5d52b}-${Date.now()}`,
       },
       {
@@ -730,6 +733,8 @@ export const createServiceCancellationCheckoutSession = async (
       payment_method_types: ["card"],
       mode: "payment",
       customer: stripeCustomerId,
+      description: `cancellationfee_paid_by_customer_${serviceDeatils?.serviceProviderId?.toString()}_for_service_${serviceId}`,
+
       line_items: [
         {
           price_data: {
@@ -745,6 +750,7 @@ export const createServiceCancellationCheckoutSession = async (
       payment_intent_data: {
         setup_future_usage: "on_session",
         transfer_group: transferGroup,
+        description: `cancellationfee_transfer_to_sp_${serviceDeatils?.serviceProviderId?.toString()}_for_service_${serviceId}`,
         transfer_data: {
           destination: SPStripeAccountId,
           amount: SPAmount * 100,

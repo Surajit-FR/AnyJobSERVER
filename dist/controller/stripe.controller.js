@@ -590,7 +590,11 @@ const payForService = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         }, {
             stripeAccount: spWalletDetails === null || spWalletDetails === void 0 ? void 0 : spWalletDetails.stripeConnectedAccountId,
         });
+        const transferUpdate = yield stripe.transfers.update(transfer.id, {
+            description: `LeadGenerationFee_for_service_${serviceId}`,
+        });
         console.log({ transfer });
+        console.log({ transferUpdate });
         const transactionData = {
             type: "debit",
             amount: amount,
@@ -701,7 +705,7 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
                 userId: userId === null || userId === void 0 ? void 0 : userId.toString(),
                 SPId: (_d = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId) === null || _d === void 0 ? void 0 : _d.toString(),
                 SPAmount,
-                SPStripeAccountId
+                SPStripeAccountId,
             },
             success_url: "https://frontend.theassure.co.uk/payment-success",
             cancel_url: "https://frontend.theassure.co.uk/payment-error",

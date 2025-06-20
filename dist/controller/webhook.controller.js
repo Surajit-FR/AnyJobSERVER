@@ -101,17 +101,10 @@ const handlePaymentMethodDeleted = (paymentMethod) => __awaiter(void 0, void 0, 
     { new: true });
 });
 const handlePaymentSuccess = (paymentIntent) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
     console.log("WEBHOOK RUNS: CHECKING PAYMENT SUCCESS");
     const charges = yield stripe.charges.list({
         payment_intent: paymentIntent.id,
     });
-    const receiptUrl = (_a = charges.data[0]) === null || _a === void 0 ? void 0 : _a.receipt_url;
-    const updatedPurchaseData = yield purchase_model_1.default.findOne({ paymentIntentId: paymentIntent.id }
-    // { status: 'succeeded', receipt_url: receiptUrl, lastPendingPaymentIntentId: "" },
-    // { new: true }
-    );
-    console.log({ updatedPurchaseData });
     console.log("Webhook runs: paymnet status updated :)");
 });
 const handlePaymentDelayed = (paymentIntent) => __awaiter(void 0, void 0, void 0, function* () {
@@ -264,6 +257,7 @@ const handleServiceIncentivePayment = (session) => __awaiter(void 0, void 0, voi
         console.error("❌ Error in handleCheckoutSessionCompleted:", error);
     }
 });
+//when add fund is initiated
 const handleWalletTopUp = (session) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("WEBHOOK RUNS: WALLET ADD FUND CHECKOUT SESSION ", session);
     const customerId = session.customer;
@@ -274,11 +268,14 @@ const handleWalletTopUp = (session) => __awaiter(void 0, void 0, void 0, functio
         console.log("User or wallet not found for customerId:", customerId);
         return;
     }
+    // transfer added wallet amount in sp's wallet---------------------------------
     const transfer = yield stripe.transfers.create({
         amount: session.amount_total,
         currency: "usd",
         destination: wallet.stripeConnectedAccountId,
     });
+    // -----------------------------------------------------------------------------
+    // Update the wallet after successful add money (wallet credited)----------------
     const transaction = {
         type: "credit",
         amount,
@@ -291,6 +288,7 @@ const handleWalletTopUp = (session) => __awaiter(void 0, void 0, void 0, functio
         updatedAt: Date.now(),
     });
 });
+// wallet update complete-------------------------------------------------------------
 const handleLeadGenerationFee = (session) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c;
     try {
@@ -305,6 +303,7 @@ const handleLeadGenerationFee = (session) => __awaiter(void 0, void 0, void 0, f
             console.warn("User not found in leadgenerationfee webhook");
             return;
         }
+        // Update wallet against successfull lead generaion fee payment---------------------------
         const wallet = yield wallet_model_1.default.findOne({ userId });
         if (!wallet) {
             console.warn("Wallet not found for user in leadgenerationfee webhook");
@@ -332,13 +331,14 @@ const handleLeadGenerationFee = (session) => __awaiter(void 0, void 0, void 0, f
             $inc: { balance: -amount },
             updatedAt: Date.now(),
         });
+        // -----------------------------------------------------------------------------------------
     }
     catch (error) {
         console.error("❌ Error in handleCheckoutSessionCompleted (Lead Generation Fee):", error);
     }
 });
 const handleServiceCancellationFee = (session) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d;
+    var _a, _b, _c, _d, _e, _f, _g;
     try {
         console.log("WEBHOOK RUNS: SERVICE CANCELLATION FEE CHECKOUT SESSION ", session);
         const purpose = (_a = session.metadata) === null || _a === void 0 ? void 0 : _a.purpose;
@@ -347,11 +347,25 @@ const handleServiceCancellationFee = (session) => __awaiter(void 0, void 0, void
         const userId = (_b = session.metadata) === null || _b === void 0 ? void 0 : _b.userId;
         const serviceId = (_c = session.metadata) === null || _c === void 0 ? void 0 : _c.serviceId;
         const cancellationReason = (_d = session.metadata) === null || _d === void 0 ? void 0 : _d.cancellationReason;
+        const SPAmount = (_e = session.metadata) === null || _e === void 0 ? void 0 : _e.SPAmount;
+        const SPStripeAccountId = (_f = session.metadata) === null || _f === void 0 ? void 0 : _f.SPStripeAccountId;
+        const SPId = (_g = session.metadata) === null || _g === void 0 ? void 0 : _g.SPId;
         const user = yield user_model_1.default.findById(userId);
         if (!user) {
             console.warn("User not found in leadgenerationfee webhook");
             return;
         }
+        //transfer cancellation amount to sp ----------------------------------------------------------------
+        const transfer = yield stripe.transfers.create({
+            amount: SPAmount * 100,
+            description: `cancellationfee_transfer_to_sp_${SPId === null || SPId === void 0 ? void 0 : SPId.toString()}_for_service_${serviceId}`,
+            currency: "usd",
+            destination: SPStripeAccountId,
+            transfer_group: `cancellation_fee_sp_${SPId === null || SPId === void 0 ? void 0 : SPId.toString()}_service_${serviceId}`,
+        });
+        console.log({ cancellationfee_transfer_to_sp: transfer });
+        // ------------------------------------------------------------------------------------------------------
+        // Update payment method details-------------------------------------------------------------------------
         const paymentIntentId = session.payment_intent;
         const paymentIntent = yield stripe.paymentIntents.retrieve(paymentIntentId);
         const paymentMethodId = paymentIntent.payment_method;
@@ -376,7 +390,8 @@ const handleServiceCancellationFee = (session) => __awaiter(void 0, void 0, void
             exp_month,
             exp_year,
         };
-        //create purchase details when user will initiate a payment intent
+        // -------------------------------------------------------------------------------------------------------
+        //create cancellation record for customer-----------------------------------------------------------------
         const CancellationFeeData = {
             userId: user === null || user === void 0 ? void 0 : user._id,
             serviceId: session.metadata.serviceId,
@@ -389,7 +404,8 @@ const handleServiceCancellationFee = (session) => __awaiter(void 0, void 0, void
             amount: Math.ceil(session.amount_total / 100),
         };
         const saveCancellationFee = yield new cancellationFee_model_1.default(CancellationFeeData).save();
-        //cancel the service
+        // ---------------------------------------------------------------------------------------------------------
+        // After successfully saved the related data finally cancel the service by customer's side------------------
         const updatedService = yield service_model_1.default.findOneAndUpdate({ _id: new mongoose_1.default.Types.ObjectId(serviceId), userId: user._id }, {
             $set: {
                 requestProgress: "Blocked",
@@ -399,6 +415,8 @@ const handleServiceCancellationFee = (session) => __awaiter(void 0, void 0, void
                 assignedAgentId: null,
             },
         }, { new: true });
+        // ---------------------------------------------------------------------------------------------------------
+        // Create a record for admin revenue as some amt of cancellation will be credited to admin'a account--------
         const transaction = {
             userId: user._id,
             type: "credit",
@@ -407,6 +425,7 @@ const handleServiceCancellationFee = (session) => __awaiter(void 0, void 0, void
             serviceId: session.metadata.serviceId,
         };
         yield new adminRevenue_model_1.default(transaction).save();
+        // -----------------------------------------------------------------------------------------------------------
     }
     catch (error) {
         console.error("❌ Error in handleCheckoutSessionCompleted (Lead Generation Fee):", error);

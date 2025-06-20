@@ -47,7 +47,7 @@ function createCustomerIfNotExists(userId) {
 }
 function transferIncentiveToSP(serviceId) {
     return __awaiter(this, void 0, void 0, function* () {
-        var _a;
+        var _a, _b;
         const serviceData = yield service_model_1.default.findById({ _id: serviceId });
         if (!serviceData)
             throw new Error("Service not found");
@@ -66,6 +66,7 @@ function transferIncentiveToSP(serviceId) {
                 currency: "usd",
                 destination: spStripeAccountId,
                 transfer_group: transferGroup,
+                description: `IncentiveFee_transfer_to_sp_${(_b = serviceData === null || serviceData === void 0 ? void 0 : serviceData.serviceProviderId) === null || _b === void 0 ? void 0 : _b.toString()}_for_service_${serviceId}`,
             });
             if (transfer) {
                 const transaction = {
@@ -102,6 +103,7 @@ const createCheckoutsession = (req, res) => __awaiter(void 0, void 0, void 0, fu
         payment_method_types: ["card"],
         mode: "payment",
         customer: stripeCustomerId,
+        description: `IncentiveFee_paid_by_customer_${userId === null || userId === void 0 ? void 0 : userId.toString()}_for_service_${serviceId}`,
         line_items: [
             {
                 price_data: {
@@ -497,7 +499,7 @@ const createAddFundsSession = (req, res) => __awaiter(void 0, void 0, void 0, fu
     }
 });
 exports.createAddFundsSession = createAddFundsSession;
-// pay lead generation fee with stripe hosted UI
+// pay lead generation fee with stripe hosted UI not in use
 const createLeadGenerationCheckoutSession = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
@@ -580,6 +582,7 @@ const payForService = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             amount: 100 * amount,
             currency: "usd",
             destination: account === null || account === void 0 ? void 0 : account.id,
+            description: `LeadGenerationFee_for_service_${serviceId}`,
             // transfer_group: `service-67ac74fb12c4396eb2f5d52b}-${Date.now()}`,
         }, {
             stripeAccount: spWalletDetails === null || spWalletDetails === void 0 ? void 0 : spWalletDetails.stripeConnectedAccountId,
@@ -637,7 +640,7 @@ const isTheFirstPurchase = (req, res) => __awaiter(void 0, void 0, void 0, funct
 exports.isTheFirstPurchase = isTheFirstPurchase;
 //checkout session for service cancellation by customer
 const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c;
+    var _a, _b, _c, _d, _e;
     try {
         const { serviceId, cancellationReason } = req.body;
         const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
@@ -668,6 +671,7 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
             payment_method_types: ["card"],
             mode: "payment",
             customer: stripeCustomerId,
+            description: `cancellationfee_paid_by_customer_${(_c = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId) === null || _c === void 0 ? void 0 : _c.toString()}_for_service_${serviceId}`,
             line_items: [
                 {
                     price_data: {
@@ -683,6 +687,7 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
             payment_intent_data: {
                 setup_future_usage: "on_session",
                 transfer_group: transferGroup,
+                description: `cancellationfee_transfer_to_sp_${(_d = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId) === null || _d === void 0 ? void 0 : _d.toString()}_for_service_${serviceId}`,
                 transfer_data: {
                     destination: SPStripeAccountId,
                     amount: SPAmount * 100,
@@ -696,7 +701,7 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
                 serviceId,
                 cancellationReason,
                 userId: userId === null || userId === void 0 ? void 0 : userId.toString(),
-                SPId: (_c = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId) === null || _c === void 0 ? void 0 : _c.toString(),
+                SPId: (_e = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId) === null || _e === void 0 ? void 0 : _e.toString(),
             },
             success_url: "https://frontend.theassure.co.uk/payment-success",
             cancel_url: "https://frontend.theassure.co.uk/payment-error",

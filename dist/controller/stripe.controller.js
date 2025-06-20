@@ -590,11 +590,7 @@ const payForService = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         }, {
             stripeAccount: spWalletDetails === null || spWalletDetails === void 0 ? void 0 : spWalletDetails.stripeConnectedAccountId,
         });
-        const transferUpdate = yield stripe.transfers.update(transfer.id, {
-            description: `LeadGenerationFee_for_service_${serviceId}`,
-        });
         console.log({ transfer });
-        console.log({ transferUpdate });
         const transactionData = {
             type: "debit",
             amount: amount,

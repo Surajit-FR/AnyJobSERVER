@@ -750,15 +750,10 @@ export const createServiceCancellationCheckoutSession = async (
           quantity: 1,
         },
       ],
-      // payment_intent_data: {
-      //   setup_future_usage: "on_session",
-      //   description: `cancellationfee_paid_by_customer_${serviceDeatils?.serviceProviderId?.toString()}_for_service_${serviceId}`,
-      //   transfer_group: transferGroup,
-      //   transfer_data: {
-      //     destination: SPStripeAccountId,
-      //     amount: SPAmount * 100,
-      //   },
-      // },
+      payment_intent_data: {
+        setup_future_usage: "on_session",
+        description: `cancellationfee_paid_by_customer_${serviceDeatils?.serviceProviderId?.toString()}_for_service_${serviceId}`,
+      },
 
       payment_method_data: {
         allow_redisplay: "always",

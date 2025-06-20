@@ -209,37 +209,37 @@ const handleCheckoutSessionCompleted = async (session: any) => {
     );
 
     // Update the user's payment method record in the DB
-    const payment_method_details = {
-      userId: user?._id,
-      stripeCustomerId: customerId,
-      paymentMethodId: paymentMethodId,
-      last4,
-      brand,
-      exp_month,
-      exp_year,
-    };
-    const existingData = await PaymentMethodModel.findOne({
-      userId: user?._id,
-      paymentMethodId: paymentMethodId,
-    });
-    if (!existingData) {
-      await new PaymentMethodModel(payment_method_details).save();
-    }
+    // const payment_method_details = {
+    //   userId: user?._id,
+    //   stripeCustomerId: customerId,
+    //   paymentMethodId: paymentMethodId,
+    //   last4,
+    //   brand,
+    //   exp_month,
+    //   exp_year,
+    // };
+    // const existingData = await PaymentMethodModel.findOne({
+    //   userId: user?._id,
+    //   paymentMethodId: paymentMethodId,
+    // });
+    // if (!existingData) {
+    //   await new PaymentMethodModel(payment_method_details).save();
+    // }
 
-    //create purchase details when user will initiate a payment intent
-    const purchaseData = {
-      userId: user?._id,
-      serviceId: session.metadata.serviceId,
-      paymentMethodId: user?.paymentMethodId,
-      paymentMethodDetails: payment_method_details,
+    // //create purchase details when user will initiate a payment intent
+    // const purchaseData = {
+    //   userId: user?._id,
+    //   serviceId: session.metadata.serviceId,
+    //   paymentMethodId: user?.paymentMethodId,
+    //   paymentMethodDetails: payment_method_details,
 
-      stripeCustomerId: paymentIntent?.customer,
-      paymentIntentId: paymentIntent?.id,
-      status: session.status === "complete" ? "succeeded" : "failed",
-      currency: "usd",
-      amount: Math.ceil(session.amount_total / 100),
-    };
-    const savePurchaseData = await new PurchaseModel(purchaseData).save();
+    //   stripeCustomerId: paymentIntent?.customer,
+    //   paymentIntentId: paymentIntent?.id,
+    //   status: session.status === "complete" ? "succeeded" : "failed",
+    //   currency: "usd",
+    //   amount: Math.ceil(session.amount_total / 100),
+    // };
+    // const savePurchaseData = await new PurchaseModel(purchaseData).save();
   } catch (err) {
     console.error("❌ Error in handleCheckoutSessionCompleted:", err);
   }

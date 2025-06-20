@@ -104,7 +104,7 @@ const createCheckoutsession = (req, res) => __awaiter(void 0, void 0, void 0, fu
         payment_method_types: ["card"],
         mode: "payment",
         customer: stripeCustomerId,
-        description: `IncentiveFee_paid_by_customer_${userId === null || userId === void 0 ? void 0 : userId.toString()}_for_service_${serviceId}`,
+        // description: `IncentiveFee_paid_by_customer_${userId?.toString()}_for_service_${serviceId}`,
         line_items: [
             {
                 price_data: {
@@ -134,6 +134,7 @@ const createCheckoutsession = (req, res) => __awaiter(void 0, void 0, void 0, fu
         success_url: "https://frontend.theassure.co.uk/payment-success",
         cancel_url: "https://frontend.theassure.co.uk/payment-error",
     });
+    console.log({ Incentivesession: session });
     res.json({ url: session.url });
 });
 exports.createCheckoutsession = createCheckoutsession;
@@ -642,7 +643,7 @@ const isTheFirstPurchase = (req, res) => __awaiter(void 0, void 0, void 0, funct
 exports.isTheFirstPurchase = isTheFirstPurchase;
 //checkout session for service cancellation by customer
 const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d;
     try {
         const { serviceId, cancellationReason } = req.body;
         const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
@@ -673,7 +674,7 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
             payment_method_types: ["card"],
             mode: "payment",
             customer: stripeCustomerId,
-            description: `cancellationfee_paid_by_customer_${(_c = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId) === null || _c === void 0 ? void 0 : _c.toString()}_for_service_${serviceId}`,
+            // description: `cancellationfee_paid_by_customer_${serviceDeatils?.serviceProviderId?.toString()}_for_service_${serviceId}`,
             line_items: [
                 {
                     price_data: {
@@ -689,7 +690,7 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
             payment_intent_data: {
                 setup_future_usage: "on_session",
                 transfer_group: transferGroup,
-                description: `cancellationfee_transfer_to_sp_${(_d = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId) === null || _d === void 0 ? void 0 : _d.toString()}_for_service_${serviceId}`,
+                description: `cancellationfee_transfer_to_sp_${(_c = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId) === null || _c === void 0 ? void 0 : _c.toString()}_for_service_${serviceId}`,
                 transfer_data: {
                     destination: SPStripeAccountId,
                     amount: SPAmount * 100,
@@ -703,7 +704,7 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
                 serviceId,
                 cancellationReason,
                 userId: userId === null || userId === void 0 ? void 0 : userId.toString(),
-                SPId: (_e = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId) === null || _e === void 0 ? void 0 : _e.toString(),
+                SPId: (_d = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId) === null || _d === void 0 ? void 0 : _d.toString(),
             },
             success_url: "https://frontend.theassure.co.uk/payment-success",
             cancel_url: "https://frontend.theassure.co.uk/payment-error",

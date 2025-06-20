@@ -154,9 +154,6 @@ export function getCardType(cardNumber: string): string {
     return 'Unknown';
 }
 
-const cardNumber = "4111111111111111";
-// console.log(`Card Type: ${getCardType(cardNumber)}`);
-
 export async function isNotificationPreferenceOn(userId: string) {
     let isOn
 

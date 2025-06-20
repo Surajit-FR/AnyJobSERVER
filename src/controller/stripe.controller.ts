@@ -55,8 +55,7 @@ export async function transferIncentiveToSP(serviceId: string) {
       currency: "usd",
       destination: spStripeAccountId,
       transfer_group: transferGroup,
-
-      // description: `IncentiveFee_transfer_to_sp_${serviceData?.serviceProviderId?.toString()}_for_service_${serviceId}`,
+      description: `IncentiveFee_transfer_to_sp_${serviceData?.serviceProviderId?.toString()}_for_service_${serviceId}`,
     });
     console.log({ transfer });
     if (transfer) {
@@ -99,7 +98,6 @@ export const createCheckoutsession = async (
     payment_method_types: ["card"],
     mode: "payment",
     customer: stripeCustomerId,
-    // description: `IncentiveFee_paid_by_customer_${userId?.toString()}_for_service_${serviceId}`,
     line_items: [
       {
         price_data: {
@@ -113,6 +111,7 @@ export const createCheckoutsession = async (
       },
     ],
     payment_intent_data: {
+      description: `IncentiveFee_paid_by_customer_${userId?.toString()}_for_service_${serviceId}`,
       setup_future_usage: "on_session",
     },
 
@@ -737,8 +736,7 @@ export const createServiceCancellationCheckoutSession = async (
       payment_method_types: ["card"],
       mode: "payment",
       customer: stripeCustomerId,
-      // description: `cancellationfee_paid_by_customer_${serviceDeatils?.serviceProviderId?.toString()}_for_service_${serviceId}`,
-
+      
       line_items: [
         {
           price_data: {
@@ -753,8 +751,9 @@ export const createServiceCancellationCheckoutSession = async (
       ],
       payment_intent_data: {
         setup_future_usage: "on_session",
+        description: `cancellationfee_paid_by_customer_${serviceDeatils?.serviceProviderId?.toString()}_for_service_${serviceId}`,
         transfer_group: transferGroup,
-        description: `cancellationfee_transfer_to_sp_${serviceDeatils?.serviceProviderId?.toString()}_for_service_${serviceId}`,
+        // description: `cancellationfee_transfer_to_sp_${serviceDeatils?.serviceProviderId?.toString()}_for_service_${serviceId}`,
         transfer_data: {
           destination: SPStripeAccountId,
           amount: SPAmount * 100,

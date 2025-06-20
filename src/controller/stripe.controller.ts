@@ -646,11 +646,7 @@ export const payForService = async (req: CustomRequest, res: Response) => {
         stripeAccount: spWalletDetails?.stripeConnectedAccountId,
       }
     );
-    const transferUpdate = await stripe.transfers.update(transfer.id, {
-      description: `LeadGenerationFee_for_service_${serviceId}`,
-    });
     console.log({ transfer });
-    console.log({ transferUpdate });
 
     const transactionData = {
       type: "debit",

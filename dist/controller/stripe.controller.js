@@ -644,7 +644,7 @@ const isTheFirstPurchase = (req, res) => __awaiter(void 0, void 0, void 0, funct
 exports.isTheFirstPurchase = isTheFirstPurchase;
 //checkout session for service cancellation by customer
 const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c;
+    var _a, _b, _c, _d;
     try {
         const { serviceId, cancellationReason } = req.body;
         const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
@@ -687,15 +687,10 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
                     quantity: 1,
                 },
             ],
-            // payment_intent_data: {
-            //   setup_future_usage: "on_session",
-            //   description: `cancellationfee_paid_by_customer_${serviceDeatils?.serviceProviderId?.toString()}_for_service_${serviceId}`,
-            //   transfer_group: transferGroup,
-            //   transfer_data: {
-            //     destination: SPStripeAccountId,
-            //     amount: SPAmount * 100,
-            //   },
-            // },
+            payment_intent_data: {
+                setup_future_usage: "on_session",
+                description: `cancellationfee_paid_by_customer_${(_c = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId) === null || _c === void 0 ? void 0 : _c.toString()}_for_service_${serviceId}`,
+            },
             payment_method_data: {
                 allow_redisplay: "always",
             },
@@ -704,7 +699,7 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
                 serviceId,
                 cancellationReason,
                 userId: userId === null || userId === void 0 ? void 0 : userId.toString(),
-                SPId: (_c = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId) === null || _c === void 0 ? void 0 : _c.toString(),
+                SPId: (_d = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId) === null || _d === void 0 ? void 0 : _d.toString(),
                 SPAmount,
                 SPStripeAccountId
             },

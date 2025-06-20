@@ -159,35 +159,35 @@ const handleCheckoutSessionCompleted = (session) => __awaiter(void 0, void 0, vo
         }
         const user = yield user_model_1.default.findOneAndUpdate({ stripeCustomerId: customerId }, { paymentMethodId: paymentMethodId }, { new: true, upsert: true });
         // Update the user's payment method record in the DB
-        const payment_method_details = {
-            userId: user === null || user === void 0 ? void 0 : user._id,
-            stripeCustomerId: customerId,
-            paymentMethodId: paymentMethodId,
-            last4,
-            brand,
-            exp_month,
-            exp_year,
-        };
-        const existingData = yield paymentMethod_model_1.default.findOne({
-            userId: user === null || user === void 0 ? void 0 : user._id,
-            paymentMethodId: paymentMethodId,
-        });
-        if (!existingData) {
-            yield new paymentMethod_model_1.default(payment_method_details).save();
-        }
-        //create purchase details when user will initiate a payment intent
-        const purchaseData = {
-            userId: user === null || user === void 0 ? void 0 : user._id,
-            serviceId: session.metadata.serviceId,
-            paymentMethodId: user === null || user === void 0 ? void 0 : user.paymentMethodId,
-            paymentMethodDetails: payment_method_details,
-            stripeCustomerId: paymentIntent === null || paymentIntent === void 0 ? void 0 : paymentIntent.customer,
-            paymentIntentId: paymentIntent === null || paymentIntent === void 0 ? void 0 : paymentIntent.id,
-            status: session.status === "complete" ? "succeeded" : "failed",
-            currency: "usd",
-            amount: Math.ceil(session.amount_total / 100),
-        };
-        const savePurchaseData = yield new purchase_model_1.default(purchaseData).save();
+        // const payment_method_details = {
+        //   userId: user?._id,
+        //   stripeCustomerId: customerId,
+        //   paymentMethodId: paymentMethodId,
+        //   last4,
+        //   brand,
+        //   exp_month,
+        //   exp_year,
+        // };
+        // const existingData = await PaymentMethodModel.findOne({
+        //   userId: user?._id,
+        //   paymentMethodId: paymentMethodId,
+        // });
+        // if (!existingData) {
+        //   await new PaymentMethodModel(payment_method_details).save();
+        // }
+        // //create purchase details when user will initiate a payment intent
+        // const purchaseData = {
+        //   userId: user?._id,
+        //   serviceId: session.metadata.serviceId,
+        //   paymentMethodId: user?.paymentMethodId,
+        //   paymentMethodDetails: payment_method_details,
+        //   stripeCustomerId: paymentIntent?.customer,
+        //   paymentIntentId: paymentIntent?.id,
+        //   status: session.status === "complete" ? "succeeded" : "failed",
+        //   currency: "usd",
+        //   amount: Math.ceil(session.amount_total / 100),
+        // };
+        // const savePurchaseData = await new PurchaseModel(purchaseData).save();
     }
     catch (err) {
         console.error("❌ Error in handleCheckoutSessionCompleted:", err);

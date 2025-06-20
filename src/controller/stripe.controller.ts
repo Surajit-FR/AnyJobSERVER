@@ -57,7 +57,7 @@ export async function transferIncentiveToSP(serviceId: string) {
       transfer_group: transferGroup,
       description: `IncentiveFee_transfer_to_sp_${serviceData?.serviceProviderId?.toString()}_for_service_${serviceId}`,
     });
-
+    console.log({ transfer });
     if (transfer) {
       const transaction = {
         userId: serviceData.userId,
@@ -644,6 +644,8 @@ export const payForService = async (req: CustomRequest, res: Response) => {
         stripeAccount: spWalletDetails?.stripeConnectedAccountId,
       }
     );
+    console.log({ transfer });
+
     const transactionData = {
       type: "debit",
       amount: amount,
@@ -770,6 +772,7 @@ export const createServiceCancellationCheckoutSession = async (
       success_url: "https://frontend.theassure.co.uk/payment-success",
       cancel_url: "https://frontend.theassure.co.uk/payment-error",
     } as Stripe.Checkout.SessionCreateParams);
+    console.log({ cancellationSession: session });
 
     res.json({ url: session.url });
   } catch (err: any) {

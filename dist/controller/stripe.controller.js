@@ -47,7 +47,7 @@ function createCustomerIfNotExists(userId) {
 }
 function transferIncentiveToSP(serviceId) {
     return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b;
+        var _a;
         const serviceData = yield service_model_1.default.findById({ _id: serviceId });
         if (!serviceData)
             throw new Error("Service not found");
@@ -66,7 +66,7 @@ function transferIncentiveToSP(serviceId) {
                 currency: "usd",
                 destination: spStripeAccountId,
                 transfer_group: transferGroup,
-                description: `IncentiveFee_transfer_to_sp_${(_b = serviceData === null || serviceData === void 0 ? void 0 : serviceData.serviceProviderId) === null || _b === void 0 ? void 0 : _b.toString()}_for_service_${serviceId}`,
+                // description: `IncentiveFee_transfer_to_sp_${serviceData?.serviceProviderId?.toString()}_for_service_${serviceId}`,
             });
             console.log({ transfer });
             if (transfer) {
@@ -583,7 +583,7 @@ const payForService = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             amount: 100 * amount,
             currency: "usd",
             destination: account === null || account === void 0 ? void 0 : account.id,
-            description: `LeadGenerationFee_for_service_${serviceId}`,
+            // description: `LeadGenerationFee_for_service_${serviceId}`,
             // transfer_group: `service-67ac74fb12c4396eb2f5d52b}-${Date.now()}`,
         }, {
             stripeAccount: spWalletDetails === null || spWalletDetails === void 0 ? void 0 : spWalletDetails.stripeConnectedAccountId,

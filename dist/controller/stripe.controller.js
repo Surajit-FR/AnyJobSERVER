@@ -654,7 +654,7 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
         }).select("serviceProviderId");
         const categoryId = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.categoryId;
         const categoryDetails = yield category_model_1.default.findById(categoryId);
-        console.log({ categoryDetails });
+        console.log({ serviceDeatils });
         if (!categoryDetails) {
             return (0, response_1.sendSuccessResponse)(res, 400, "categoryDetails not found");
         }

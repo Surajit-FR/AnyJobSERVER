@@ -716,7 +716,7 @@ export const createServiceCancellationCheckoutSession = async (
     }).select("serviceProviderId");
     const categoryId = serviceDeatils?.categoryId;
     const categoryDetails = await CategoryModel.findById(categoryId);
-    console.log({categoryDetails});
+    console.log({serviceDeatils});
 
     if (!categoryDetails) {
       return sendSuccessResponse(res, 400, "categoryDetails not found");

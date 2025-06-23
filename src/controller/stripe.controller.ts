@@ -713,7 +713,7 @@ export const createServiceCancellationCheckoutSession = async (
     const userId = req.user?._id;
     const serviceDeatils = await ServiceModel.findOne({
       _id: serviceId,
-    }).select("serviceProviderId");
+    });
     const categoryId = serviceDeatils?.categoryId;
     const categoryDetails = await CategoryModel.findById(categoryId);
     console.log({serviceDeatils});

@@ -651,7 +651,7 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
         const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         const serviceDeatils = yield service_model_1.default.findOne({
             _id: serviceId,
-        }).select("serviceProviderId");
+        });
         const categoryId = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.categoryId;
         const categoryDetails = yield category_model_1.default.findById(categoryId);
         console.log({ serviceDeatils });

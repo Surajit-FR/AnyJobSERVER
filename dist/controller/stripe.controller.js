@@ -654,20 +654,17 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
         });
         const categoryId = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.categoryId;
         const categoryDetails = yield category_model_1.default.findById(categoryId);
-        console.log({ serviceDeatils });
         if (!categoryDetails) {
-            return (0, response_1.sendSuccessResponse)(res, 400, "categoryDetails not found");
+            return (0, response_1.sendSuccessResponse)(res, 200, "categoryDetails not found");
         }
-        const serviceCost = Number(categoryDetails.serviceCost) * 100;
+        const serviceCost = parseInt(categoryDetails.serviceCost);
         const SPStripeAccount = yield wallet_model_1.default.findOne({
             userId: serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId,
         });
         const SPStripeAccountId = SPStripeAccount === null || SPStripeAccount === void 0 ? void 0 : SPStripeAccount.stripeConnectedAccountId;
-        const amount = Math.ceil(serviceCost * 25) / 100;
+        const amount = serviceCost * 0.25;
         const AnyJobAmount = Math.ceil(amount * 25) / 100;
         const SPAmount = Math.ceil(amount * 75) / 100;
-        console.log({ AnyJobAmount });
-        console.log({ SPAmount });
         const user = yield user_model_1.default.findById(userId);
         if (!user)
             return res.status(404).json({ error: "User not found" });
@@ -681,7 +678,6 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
             yield user_model_1.default.findByIdAndUpdate(userId, { stripeCustomerId });
         }
         const transferGroup = `cancellation_fee_sp_${(_b = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId) === null || _b === void 0 ? void 0 : _b.toString()}_service_${serviceId}`;
-        const amountToPay = Math.round((AnyJobAmount + SPAmount));
         const session = yield stripe.checkout.sessions.create({
             payment_method_types: ["card"],
             mode: "payment",
@@ -690,7 +686,7 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
                 {
                     price_data: {
                         currency: "usd",
-                        unit_amount: amountToPay,
+                        unit_amount: (AnyJobAmount + SPAmount) * 100,
                         product_data: {
                             name: "Cancellation Fee",
                         },
@@ -711,7 +707,7 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
                 cancellationReason,
                 userId: userId === null || userId === void 0 ? void 0 : userId.toString(),
                 SPId: (_d = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId) === null || _d === void 0 ? void 0 : _d.toString(),
-                SPAmount: SPAmount / 100,
+                SPAmount,
                 SPStripeAccountId,
             },
             success_url: "https://frontend.theassure.co.uk/payment-success",

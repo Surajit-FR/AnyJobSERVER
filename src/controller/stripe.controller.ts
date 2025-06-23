@@ -716,24 +716,17 @@ export const createServiceCancellationCheckoutSession = async (
     });
     const categoryId = serviceDeatils?.categoryId;
     const categoryDetails = await CategoryModel.findById(categoryId);
-    console.log({serviceDeatils});
-
     if (!categoryDetails) {
-      return sendSuccessResponse(res, 400, "categoryDetails not found");
+      return sendSuccessResponse(res, 200, "categoryDetails not found");
     }
-    const serviceCost = Number(categoryDetails.serviceCost) * 100;
-    
+    const serviceCost = parseInt(categoryDetails.serviceCost);
     const SPStripeAccount = await WalletModel.findOne({
       userId: serviceDeatils?.serviceProviderId,
     });
     const SPStripeAccountId = SPStripeAccount?.stripeConnectedAccountId;
-    const amount = Math.ceil(serviceCost * 25) / 100;
-    
-    
+    const amount = serviceCost * 0.25;
     const AnyJobAmount = Math.ceil(amount * 25) / 100;
     const SPAmount = Math.ceil(amount * 75) / 100;
-    console.log({AnyJobAmount})
-    console.log({SPAmount})
     const user = await UserModel.findById(userId);
     if (!user) return res.status(404).json({ error: "User not found" });
 
@@ -747,7 +740,6 @@ export const createServiceCancellationCheckoutSession = async (
       await UserModel.findByIdAndUpdate(userId, { stripeCustomerId });
     }
     const transferGroup = `cancellation_fee_sp_${serviceDeatils?.serviceProviderId?.toString()}_service_${serviceId}`;
-    const amountToPay = Math.round((AnyJobAmount + SPAmount))
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",
@@ -757,7 +749,7 @@ export const createServiceCancellationCheckoutSession = async (
         {
           price_data: {
             currency: "usd",
-            unit_amount: amountToPay,
+            unit_amount: (AnyJobAmount + SPAmount) * 100,
             product_data: {
               name: "Cancellation Fee",
             },
@@ -779,7 +771,7 @@ export const createServiceCancellationCheckoutSession = async (
         cancellationReason,
         userId: userId?.toString(),
         SPId: serviceDeatils?.serviceProviderId?.toString(),
-        SPAmount:SPAmount/100,
+        SPAmount,
         SPStripeAccountId,
       },
       success_url: "https://frontend.theassure.co.uk/payment-success",

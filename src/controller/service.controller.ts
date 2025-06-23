@@ -468,6 +468,7 @@ export const getAcceptedServiceRequestInJobQueue = asyncHandler(
           path: "$categoryDetails",
         },
       },
+      { $sort: { acceptedAt: -1 } },
 
       {
         $project: {
@@ -497,7 +498,6 @@ export const getAcceptedServiceRequestInJobQueue = asyncHandler(
       { $match: searchQuery },
       { $skip: skip },
       { $limit: limitNumber },
-      { $sort: { updatedAt: -1 } },
     ]);
 
     return sendSuccessResponse(

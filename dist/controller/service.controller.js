@@ -491,9 +491,7 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
                     });
                 }
                 if ((spWalletDetails === null || spWalletDetails === void 0 ? void 0 : spWalletDetails.balance) <= 200) {
-                    return res
-                        .status(400)
-                        .json({
+                    return res.status(400).json({
                         message: "Insufficient balance (minimum $200 wallet balance required)",
                     });
                 }
@@ -616,10 +614,10 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service not found for updating."));
     }
     if (requestProgress === "Pending") {
-        yield (0, stripe_controller_1.transferIncentiveToSP)(serviceId);
         return (0, response_1.sendSuccessResponse)(res, 200, { updatedService }, "Service request accepted successfully.");
     }
     if (requestProgress === "Started") {
+        yield (0, stripe_controller_1.transferIncentiveToSP)(serviceId);
         return (0, response_1.sendSuccessResponse)(res, 200, { updatedService }, "Service request started successfully.");
     }
     if (requestProgress === "Completed") {

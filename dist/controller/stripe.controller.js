@@ -28,6 +28,7 @@ const category_model_1 = __importDefault(require("../models/category.model"));
 const userAdditionalInfo_model_1 = __importDefault(require("../models/userAdditionalInfo.model"));
 const asyncHandler_1 = require("../utils/asyncHandler");
 const adminRevenue_model_1 = __importDefault(require("../models/adminRevenue.model"));
+const response_1 = require("../utils/response");
 const stripe = new stripe_1.default(config_1.STRIPE_SECRET_KEY, {
     apiVersion: "2024-09-30.acacia",
 });
@@ -651,11 +652,17 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
         const serviceDeatils = yield service_model_1.default.findOne({
             _id: serviceId,
         }).select("serviceProviderId");
+        const categoryId = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.categoryId;
+        const categoryDetails = yield category_model_1.default.findById(categoryId);
+        if (!categoryDetails) {
+            return (0, response_1.sendSuccessResponse)(res, 200, "categoryDetails not found");
+        }
+        const serviceCost = parseInt(categoryDetails.serviceCost);
         const SPStripeAccount = yield wallet_model_1.default.findOne({
             userId: serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId,
         });
         const SPStripeAccountId = SPStripeAccount === null || SPStripeAccount === void 0 ? void 0 : SPStripeAccount.stripeConnectedAccountId;
-        const amount = 10;
+        const amount = serviceCost * 0.25;
         const AnyJobAmount = Math.ceil(amount * 25) / 100;
         const SPAmount = Math.ceil(amount * 75) / 100;
         const user = yield user_model_1.default.findById(userId);

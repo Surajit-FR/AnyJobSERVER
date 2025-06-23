@@ -330,6 +330,7 @@ exports.getAcceptedServiceRequestInJobQueue = (0, asyncHandler_1.asyncHandler)((
                 path: "$categoryDetails",
             },
         },
+        { $sort: { acceptedAt: -1 } },
         {
             $project: {
                 categoryName: "$categoryDetails.name",
@@ -358,7 +359,6 @@ exports.getAcceptedServiceRequestInJobQueue = (0, asyncHandler_1.asyncHandler)((
         { $match: searchQuery },
         { $skip: skip },
         { $limit: limitNumber },
-        { $sort: { updatedAt: 1 } },
     ]);
     return (0, response_1.sendSuccessResponse)(res, 200, {
         results,

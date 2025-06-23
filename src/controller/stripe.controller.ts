@@ -721,7 +721,7 @@ export const createServiceCancellationCheckoutSession = async (
     if (!categoryDetails) {
       return sendSuccessResponse(res, 400, "categoryDetails not found");
     }
-    const serviceCost = Number(categoryDetails.serviceCost);
+    const serviceCost = Number(categoryDetails.serviceCost) * 100;
     
     const SPStripeAccount = await WalletModel.findOne({
       userId: serviceDeatils?.serviceProviderId,
@@ -747,7 +747,7 @@ export const createServiceCancellationCheckoutSession = async (
       await UserModel.findByIdAndUpdate(userId, { stripeCustomerId });
     }
     const transferGroup = `cancellation_fee_sp_${serviceDeatils?.serviceProviderId?.toString()}_service_${serviceId}`;
-    const amountToPay = Math.round((AnyJobAmount + SPAmount)*100)
+    const amountToPay = Math.round((AnyJobAmount + SPAmount))
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",

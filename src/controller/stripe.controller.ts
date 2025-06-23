@@ -722,12 +722,12 @@ export const createServiceCancellationCheckoutSession = async (
       return sendSuccessResponse(res, 400, "categoryDetails not found");
     }
     const serviceCost = Number(categoryDetails.serviceCost);
-    console.log({serviceCost});
+    console.log({serviceCost: serviceCost *0.25});
     const SPStripeAccount = await WalletModel.findOne({
       userId: serviceDeatils?.serviceProviderId,
     });
     const SPStripeAccountId = SPStripeAccount?.stripeConnectedAccountId;
-    const amount = serviceCost * 0.25;
+    const amount = Math.ceil(serviceCost * 25) / 100;
     
     
     const AnyJobAmount = Math.ceil(amount * 25) / 100;

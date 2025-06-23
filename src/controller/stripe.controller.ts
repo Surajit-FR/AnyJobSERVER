@@ -747,7 +747,7 @@ export const createServiceCancellationCheckoutSession = async (
       await UserModel.findByIdAndUpdate(userId, { stripeCustomerId });
     }
     const transferGroup = `cancellation_fee_sp_${serviceDeatils?.serviceProviderId?.toString()}_service_${serviceId}`;
-    const amountToPay = Math.round(AnyJobAmount + SPAmount)
+    const amountToPay = Math.round((AnyJobAmount + SPAmount)*100)
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",

@@ -716,15 +716,20 @@ export const createServiceCancellationCheckoutSession = async (
     }).select("serviceProviderId");
     const categoryId = serviceDeatils?.categoryId;
     const categoryDetails = await CategoryModel.findById(categoryId);
+    console.log({categoryDetails});
+
     if (!categoryDetails) {
-      return sendSuccessResponse(res, 200, "categoryDetails not found");
+      return sendSuccessResponse(res, 400, "categoryDetails not found");
     }
     const serviceCost = parseInt(categoryDetails.serviceCost);
+    console.log({serviceCost});
     const SPStripeAccount = await WalletModel.findOne({
       userId: serviceDeatils?.serviceProviderId,
     });
     const SPStripeAccountId = SPStripeAccount?.stripeConnectedAccountId;
     const amount = serviceCost * 0.25;
+    
+    
     const AnyJobAmount = Math.ceil(amount * 25) / 100;
     const SPAmount = Math.ceil(amount * 75) / 100;
     const user = await UserModel.findById(userId);

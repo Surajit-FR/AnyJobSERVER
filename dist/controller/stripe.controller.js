@@ -654,10 +654,12 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
         }).select("serviceProviderId");
         const categoryId = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.categoryId;
         const categoryDetails = yield category_model_1.default.findById(categoryId);
+        console.log({ categoryDetails });
         if (!categoryDetails) {
-            return (0, response_1.sendSuccessResponse)(res, 200, "categoryDetails not found");
+            return (0, response_1.sendSuccessResponse)(res, 400, "categoryDetails not found");
         }
         const serviceCost = parseInt(categoryDetails.serviceCost);
+        console.log({ serviceCost });
         const SPStripeAccount = yield wallet_model_1.default.findOne({
             userId: serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId,
         });

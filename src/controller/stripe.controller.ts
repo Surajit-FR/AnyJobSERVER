@@ -721,7 +721,7 @@ export const createServiceCancellationCheckoutSession = async (
     if (!categoryDetails) {
       return sendSuccessResponse(res, 400, "categoryDetails not found");
     }
-    const serviceCost = parseInt(categoryDetails.serviceCost);
+    const serviceCost = Number(categoryDetails.serviceCost);
     console.log({serviceCost});
     const SPStripeAccount = await WalletModel.findOne({
       userId: serviceDeatils?.serviceProviderId,

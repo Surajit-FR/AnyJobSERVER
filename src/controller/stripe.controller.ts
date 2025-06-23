@@ -725,6 +725,7 @@ export const createServiceCancellationCheckoutSession = async (
     });
     const SPStripeAccountId = SPStripeAccount?.stripeConnectedAccountId;
     const amount = serviceCost * 0.25;
+    console.log({amount})
     const AnyJobAmount = Math.ceil(amount * 25) / 100;
     const SPAmount = Math.ceil(amount * 75) / 100;
     const user = await UserModel.findById(userId);

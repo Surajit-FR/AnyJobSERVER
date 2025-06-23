@@ -663,6 +663,7 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
         });
         const SPStripeAccountId = SPStripeAccount === null || SPStripeAccount === void 0 ? void 0 : SPStripeAccount.stripeConnectedAccountId;
         const amount = serviceCost * 0.25;
+        console.log({ amount });
         const AnyJobAmount = Math.ceil(amount * 25) / 100;
         const SPAmount = Math.ceil(amount * 75) / 100;
         const user = yield user_model_1.default.findById(userId);

@@ -779,7 +779,7 @@ export const createServiceCancellationCheckoutSession = async (
         cancellationReason,
         userId: userId?.toString(),
         SPId: serviceDeatils?.serviceProviderId?.toString(),
-        SPAmount,
+        SPAmount:SPAmount/100,
         SPStripeAccountId,
       },
       success_url: "https://frontend.theassure.co.uk/payment-success",

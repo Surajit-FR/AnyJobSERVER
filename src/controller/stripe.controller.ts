@@ -722,7 +722,7 @@ export const createServiceCancellationCheckoutSession = async (
       return sendSuccessResponse(res, 400, "categoryDetails not found");
     }
     const serviceCost = Number(categoryDetails.serviceCost);
-    console.log({serviceCost: serviceCost *0.25});
+    
     const SPStripeAccount = await WalletModel.findOne({
       userId: serviceDeatils?.serviceProviderId,
     });
@@ -732,6 +732,8 @@ export const createServiceCancellationCheckoutSession = async (
     
     const AnyJobAmount = Math.ceil(amount * 25) / 100;
     const SPAmount = Math.ceil(amount * 75) / 100;
+    console.log({AnyJobAmount})
+    console.log({SPAmount})
     const user = await UserModel.findById(userId);
     if (!user) return res.status(404).json({ error: "User not found" });
 

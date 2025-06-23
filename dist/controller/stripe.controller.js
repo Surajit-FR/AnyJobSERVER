@@ -681,6 +681,7 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
             yield user_model_1.default.findByIdAndUpdate(userId, { stripeCustomerId });
         }
         const transferGroup = `cancellation_fee_sp_${(_b = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId) === null || _b === void 0 ? void 0 : _b.toString()}_service_${serviceId}`;
+        const amountToPay = Math.round(AnyJobAmount + SPAmount);
         const session = yield stripe.checkout.sessions.create({
             payment_method_types: ["card"],
             mode: "payment",
@@ -689,7 +690,7 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
                 {
                     price_data: {
                         currency: "usd",
-                        unit_amount: AnyJobAmount + SPAmount,
+                        unit_amount: amountToPay,
                         product_data: {
                             name: "Cancellation Fee",
                         },

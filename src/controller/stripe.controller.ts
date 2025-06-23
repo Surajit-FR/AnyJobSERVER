@@ -12,6 +12,7 @@ import CategoryModel from "../models/category.model";
 import AdditionalInfoModel from "../models/userAdditionalInfo.model";
 import { asyncHandler } from "../utils/asyncHandler";
 import AdminRevenueModel from "../models/adminRevenue.model";
+import { sendSuccessResponse } from "../utils/response";
 
 const stripe = new Stripe(STRIPE_SECRET_KEY, {
   apiVersion: "2024-09-30.acacia" as any,
@@ -713,11 +714,17 @@ export const createServiceCancellationCheckoutSession = async (
     const serviceDeatils = await ServiceModel.findOne({
       _id: serviceId,
     }).select("serviceProviderId");
+    const categoryId = serviceDeatils?.categoryId;
+    const categoryDetails = await CategoryModel.findById(categoryId);
+    if (!categoryDetails) {
+      return sendSuccessResponse(res, 200, "categoryDetails not found");
+    }
+    const serviceCost = parseInt(categoryDetails.serviceCost);
     const SPStripeAccount = await WalletModel.findOne({
       userId: serviceDeatils?.serviceProviderId,
     });
     const SPStripeAccountId = SPStripeAccount?.stripeConnectedAccountId;
-    const amount = 10;
+    const amount = serviceCost * 0.25;
     const AnyJobAmount = Math.ceil(amount * 25) / 100;
     const SPAmount = Math.ceil(amount * 75) / 100;
     const user = await UserModel.findById(userId);

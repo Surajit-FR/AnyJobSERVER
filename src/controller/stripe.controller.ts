@@ -756,7 +756,7 @@ export const createServiceCancellationCheckoutSession = async (
         {
           price_data: {
             currency: "usd",
-            unit_amount: (AnyJobAmount + SPAmount) * 100,
+            unit_amount: AnyJobAmount + SPAmount,
             product_data: {
               name: "Cancellation Fee",
             },

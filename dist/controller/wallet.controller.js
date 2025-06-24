@@ -90,7 +90,13 @@ exports.fetchTransaction = (0, asyncHandler_1.asyncHandler)((req, res) => __awai
                         input: "$transactions",
                         as: "transaction",
                         in: {
-                            _id: "$$transaction.stripeTransactionId",
+                            _id: {
+                                $cond: {
+                                    if: "$$transaction.stripeTransactionId",
+                                    then: "$$transaction.stripeTransactionId",
+                                    else: "$$transaction.stripeTransferId",
+                                },
+                            },
                             type: "$$transaction.type",
                             amount: "$$transaction.amount",
                             description: "$$transaction.description",

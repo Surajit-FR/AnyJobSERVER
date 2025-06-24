@@ -20,6 +20,7 @@ import WalletModel from "../models/wallet.model";
 import { STRIPE_SECRET_KEY } from "../config/config";
 import { parsePhoneNumberFromString } from "libphonenumber-js";
 import Stripe from "stripe";
+import AdminRevenueModel from "../models/adminRevenue.model";
 const stripe = new Stripe(STRIPE_SECRET_KEY, {
   apiVersion: "2024-09-30.acacia" as any,
 });
@@ -1321,7 +1322,7 @@ export const getAgentEngagementStatus = asyncHandler(
           "teamMembers.userType": 1,
           "teamMembers.agentAvatar": 1,
           "teamMembers.isEngaged": 1,
-        //   "teamMembers.engagement": 1,
+          //   "teamMembers.engagement": 1,
         },
       },
     ]);
@@ -1788,3 +1789,140 @@ export const fetchAdminReceivedFund = async (
     res.status(500).json({ message: "Server error" });
   }
 };
+
+export const fetchAdminAllTransactions = asyncHandler(
+  async (req: CustomRequest, res: Response) => {
+    const { page = "1", limit = "10", query = "" } = req.query;
+    const pageNumber = parseInt(page as string, 10) || 1;
+    const limitNumber = parseInt(limit as string, 10) || 10;
+    const skip = (pageNumber - 1) * limitNumber;
+
+    const searchQuery = {
+      type: "credit",
+      ...(query && {
+        $or: [
+          { stripeTransactionId: { $regex: query, $options: "i" } },
+          { customerName: { $regex: query, $options: "i" } },
+          { categoryName: { $regex: query, $options: "i" } },
+        ],
+      }),
+    };
+
+    const transactionsData = await AdminRevenueModel.aggregate([
+      {
+        $match: {
+          type: "credit",
+        },
+      },
+      {
+        $lookup: {
+          from: "services",
+          foreignField: "_id",
+          localField: "serviceId",
+          as: "serviceId",
+          pipeline: [
+            {
+              $lookup: {
+                from: "categories",
+                foreignField: "_id",
+                localField: "categoryId",
+                as: "categoryId",
+              },
+            },
+            {
+              $unwind: {
+                path: "$categoryId",
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+            {
+              $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "serviceProviderId",
+                as: "serviceProviderId",
+              },
+            },
+            {
+              $unwind: {
+                path: "$serviceProviderId",
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $unwind: {
+          path: "$serviceId",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          foreignField: "_id",
+          localField: "userId",
+          as: "userId",
+        },
+      },
+      {
+        $unwind: {
+          path: "$userId",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $addFields: {
+          serviceProviderName: {
+            $concat: [
+              "$serviceId.serviceProviderId.firstName",
+              " ",
+              "$serviceId.serviceProviderId.lastName",
+            ],
+          },
+          customerName: {
+            $concat: ["$userId.firstName", " ", "$userId.lastName"],
+          },
+          categoryName: "$serviceId.categoryId.name",
+          categoryCost: "$serviceId.categoryId.serviceCost",
+          serviceBookingDate: "$serviceId.serviceProviderId.createdAt",
+        },
+      },
+      { $match: searchQuery },
+      { $skip: skip },
+      { $limit: limitNumber },
+      { $sort: { createdAt: -1 } },
+
+      {
+        $project: {
+          _id: 1,
+          // userId:1,
+          type: 1,
+          currency: 1,
+          amount: 1,
+          description: 1,
+          stripeTransactionId: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          serviceProviderName: 1,
+          customerName: 1,
+          categoryName: 1,
+          categoryCost: 1,
+        },
+      },
+    ]);
+    return sendSuccessResponse(
+      res,
+      200,
+      {
+        transactionsData,
+        pagination: {
+          page: pageNumber,
+          limit: limitNumber,
+        },
+      },
+      "Admin's all transactions fetched successfully"
+    );
+  }
+);

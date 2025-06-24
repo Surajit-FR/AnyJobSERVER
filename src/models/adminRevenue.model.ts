@@ -33,7 +33,12 @@ const adminRevenueSchema = new mongoose.Schema(
     },
     stripeTransactionId: String,
     stripeTransferId: String,
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
   },
+
   { timestamps: true }
 );
 

@@ -87,7 +87,13 @@ export const fetchTransaction = asyncHandler(
               input: "$transactions",
               as: "transaction",
               in: {
-                _id: "$$transaction.stripeTransactionId",
+                _id: {
+                  $cond: {
+                    if: "$$transaction.stripeTransactionId",
+                    then: "$$transaction.stripeTransactionId",
+                    else: "$$transaction.stripeTransferId",
+                  },
+                },
                 type: "$$transaction.type",
                 amount: "$$transaction.amount",
                 description: "$$transaction.description",

@@ -36,6 +36,10 @@ const adminRevenueSchema = new mongoose_1.default.Schema({
     },
     stripeTransactionId: String,
     stripeTransferId: String,
+    isDeleted: {
+        type: Boolean,
+        default: false,
+    },
 }, { timestamps: true });
 const AdminRevenueModel = mongoose_1.default.model("AdminRevenue", adminRevenueSchema);
 exports.default = AdminRevenueModel;

@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fetchAdminReceivedFund = exports.getCustomersTransaction = exports.getPaymentMethods = exports.updateUserPreference = exports.addBankDetails = exports.getIpLogs = exports.updateUser = exports.fetchIPlogs = exports.getAgentEngagementStatus = exports.assignTeamLead = exports.fetchAssociates = exports.banUser = exports.verifyServiceProvider = exports.getSingleUser = exports.getUsers = exports.getAdminUsersList = exports.getRegisteredCustomerList = exports.getServiceProviderList = exports.addAdditionalInfo = exports.addAddress = exports.getUser = void 0;
+exports.fetchAdminAllTransactions = exports.fetchAdminReceivedFund = exports.getCustomersTransaction = exports.getPaymentMethods = exports.updateUserPreference = exports.addBankDetails = exports.getIpLogs = exports.updateUser = exports.fetchIPlogs = exports.getAgentEngagementStatus = exports.assignTeamLead = exports.fetchAssociates = exports.banUser = exports.verifyServiceProvider = exports.getSingleUser = exports.getUsers = exports.getAdminUsersList = exports.getRegisteredCustomerList = exports.getServiceProviderList = exports.addAdditionalInfo = exports.addAddress = exports.getUser = void 0;
 const user_model_1 = __importDefault(require("../models/user.model"));
 const address_model_1 = __importDefault(require("../models/address.model"));
 const userAdditionalInfo_model_1 = __importDefault(require("../models/userAdditionalInfo.model"));
@@ -33,6 +33,7 @@ const wallet_model_1 = __importDefault(require("../models/wallet.model"));
 const config_1 = require("../config/config");
 const libphonenumber_js_1 = require("libphonenumber-js");
 const stripe_1 = __importDefault(require("stripe"));
+const adminRevenue_model_1 = __importDefault(require("../models/adminRevenue.model"));
 const stripe = new stripe_1.default(config_1.STRIPE_SECRET_KEY, {
     apiVersion: "2024-09-30.acacia",
 });
@@ -1377,3 +1378,126 @@ const fetchAdminReceivedFund = (req, res) => __awaiter(void 0, void 0, void 0, f
     }
 });
 exports.fetchAdminReceivedFund = fetchAdminReceivedFund;
+exports.fetchAdminAllTransactions = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { page = "1", limit = "10", query = "" } = req.query;
+    const pageNumber = parseInt(page, 10) || 1;
+    const limitNumber = parseInt(limit, 10) || 10;
+    const skip = (pageNumber - 1) * limitNumber;
+    const searchQuery = Object.assign({ type: "credit" }, (query && {
+        $or: [
+            { stripeTransactionId: { $regex: query, $options: "i" } },
+            { customerName: { $regex: query, $options: "i" } },
+            { categoryName: { $regex: query, $options: "i" } },
+        ],
+    }));
+    const transactionsData = yield adminRevenue_model_1.default.aggregate([
+        {
+            $match: {
+                type: "credit",
+            },
+        },
+        {
+            $lookup: {
+                from: "services",
+                foreignField: "_id",
+                localField: "serviceId",
+                as: "serviceId",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "categories",
+                            foreignField: "_id",
+                            localField: "categoryId",
+                            as: "categoryId",
+                        },
+                    },
+                    {
+                        $unwind: {
+                            path: "$categoryId",
+                            preserveNullAndEmptyArrays: true,
+                        },
+                    },
+                    {
+                        $lookup: {
+                            from: "users",
+                            foreignField: "_id",
+                            localField: "serviceProviderId",
+                            as: "serviceProviderId",
+                        },
+                    },
+                    {
+                        $unwind: {
+                            path: "$serviceProviderId",
+                            preserveNullAndEmptyArrays: true,
+                        },
+                    },
+                ],
+            },
+        },
+        {
+            $unwind: {
+                path: "$serviceId",
+                preserveNullAndEmptyArrays: true,
+            },
+        },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "userId",
+                as: "userId",
+            },
+        },
+        {
+            $unwind: {
+                path: "$userId",
+                preserveNullAndEmptyArrays: true,
+            },
+        },
+        {
+            $addFields: {
+                serviceProviderName: {
+                    $concat: [
+                        "$serviceId.serviceProviderId.firstName",
+                        " ",
+                        "$serviceId.serviceProviderId.lastName",
+                    ],
+                },
+                customerName: {
+                    $concat: ["$userId.firstName", " ", "$userId.lastName"],
+                },
+                categoryName: "$serviceId.categoryId.name",
+                categoryCost: "$serviceId.categoryId.serviceCost",
+                serviceBookingDate: "$serviceId.serviceProviderId.createdAt",
+            },
+        },
+        { $match: searchQuery },
+        { $skip: skip },
+        { $limit: limitNumber },
+        { $sort: { createdAt: -1 } },
+        {
+            $project: {
+                _id: 1,
+                // userId:1,
+                type: 1,
+                currency: 1,
+                amount: 1,
+                description: 1,
+                stripeTransactionId: 1,
+                createdAt: 1,
+                updatedAt: 1,
+                serviceProviderName: 1,
+                customerName: 1,
+                categoryName: 1,
+                categoryCost: 1,
+            },
+        },
+    ]);
+    return (0, response_1.sendSuccessResponse)(res, 200, {
+        transactionsData,
+        pagination: {
+            page: pageNumber,
+            limit: limitNumber,
+        },
+    }, "Admin's all transactions fetched successfully");
+}));

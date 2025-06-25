@@ -499,6 +499,7 @@ const handleServiceCancellationFee = async (session: any) => {
       exp_month,
       exp_year,
     };
+    
     // -------------------------------------------------------------------------------------------------------
 
     //create cancellation record for customer-----------------------------------------------------------------
@@ -540,6 +541,7 @@ const handleServiceCancellationFee = async (session: any) => {
       type: "credit",
       amount: Math.ceil((session.amount_total / 100) * 0.1),
       description: "ServiceCancellationAmount",
+      stripeTransactionId:paymentIntent?.id,  
       serviceId: session.metadata.serviceId,
     };
     await new AdminRevenueModel(transaction).save();

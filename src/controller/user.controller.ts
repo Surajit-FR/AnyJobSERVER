@@ -1889,10 +1889,10 @@ export const fetchAdminAllTransactions = asyncHandler(
           serviceBookingDate: "$serviceId.serviceProviderId.createdAt",
         },
       },
+      { $sort: { createdAt: -1 } },
       { $match: searchQuery },
       { $skip: skip },
       { $limit: limitNumber },
-      { $sort: { createdAt: -1 } },
 
       {
         $project: {

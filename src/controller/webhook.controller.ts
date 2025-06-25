@@ -539,7 +539,7 @@ const handleServiceCancellationFee = async (session: any) => {
     const transaction = {
       userId: user._id,
       type: "credit",
-      amount: Math.ceil((session.amount_total / 100) * 0.25),
+      amount: (session.amount_total / 100) * 0.25,
       description: "ServiceCancellationAmount",
       stripeTransactionId:paymentIntent?.id,  
       serviceId: session.metadata.serviceId,

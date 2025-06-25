@@ -422,6 +422,7 @@ const handleServiceCancellationFee = (session) => __awaiter(void 0, void 0, void
             type: "credit",
             amount: Math.ceil((session.amount_total / 100) * 0.1),
             description: "ServiceCancellationAmount",
+            stripeTransactionId: paymentIntent === null || paymentIntent === void 0 ? void 0 : paymentIntent.id,
             serviceId: session.metadata.serviceId,
         };
         yield new adminRevenue_model_1.default(transaction).save();

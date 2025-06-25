@@ -1471,10 +1471,10 @@ exports.fetchAdminAllTransactions = (0, asyncHandler_1.asyncHandler)((req, res) 
                 serviceBookingDate: "$serviceId.serviceProviderId.createdAt",
             },
         },
+        { $sort: { createdAt: -1 } },
         { $match: searchQuery },
         { $skip: skip },
         { $limit: limitNumber },
-        { $sort: { createdAt: -1 } },
         {
             $project: {
                 _id: 1,

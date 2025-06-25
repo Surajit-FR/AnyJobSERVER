@@ -420,7 +420,7 @@ const handleServiceCancellationFee = (session) => __awaiter(void 0, void 0, void
         const transaction = {
             userId: user._id,
             type: "credit",
-            amount: Math.ceil((session.amount_total / 100) * 0.25),
+            amount: (session.amount_total / 100) * 0.25,
             description: "ServiceCancellationAmount",
             stripeTransactionId: paymentIntent === null || paymentIntent === void 0 ? void 0 : paymentIntent.id,
             serviceId: session.metadata.serviceId,

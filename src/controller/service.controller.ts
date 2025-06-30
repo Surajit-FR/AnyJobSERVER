@@ -603,7 +603,6 @@ export const addorUpdateIncentive = asyncHandler(
       incentiveAmount: number;
       serviceId: string;
     } = req.body;
-    console.log("req.body for add-incentive", req.body);
 
     if (!serviceId || !incentiveAmount) {
       return sendErrorResponse(
@@ -621,11 +620,10 @@ export const addorUpdateIncentive = asyncHandler(
         $set: {
           isIncentiveGiven: true,
         },
-        $inc: { incentiveAmount: incentiveAmount },
+        $inc: { incentiveAmount: Number(incentiveAmount) },
       },
       { new: true }
     );
-    console.log({ updatedService });
 
     if (!updatedService) {
       return sendSuccessResponse(

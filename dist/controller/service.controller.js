@@ -414,6 +414,7 @@ exports.cancelServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __
 exports.addorUpdateIncentive = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const { incentiveAmount, serviceId, } = req.body;
+    console.log("req.body for add-incentive", req.body);
     if (!serviceId || !incentiveAmount) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service ID, incentive check and incentive amount is required."));
     }
@@ -423,6 +424,7 @@ exports.addorUpdateIncentive = (0, asyncHandler_1.asyncHandler)((req, res) => __
         },
         $inc: { incentiveAmount: incentiveAmount },
     }, { new: true });
+    console.log({ updatedService });
     if (!updatedService) {
         return (0, response_1.sendSuccessResponse)(res, 200, "Service request not found for updating.");
     }

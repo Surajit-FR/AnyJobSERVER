@@ -619,8 +619,8 @@ export const addorUpdateIncentive = asyncHandler(
       {
         $set: {
           isIncentiveGiven: true,
-          incentiveAmount,
         },
+        $inc: { incentiveAmount: incentiveAmount },
       },
       { new: true }
     );

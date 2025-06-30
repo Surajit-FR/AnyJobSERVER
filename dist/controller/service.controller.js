@@ -420,8 +420,8 @@ exports.addorUpdateIncentive = (0, asyncHandler_1.asyncHandler)((req, res) => __
     const updatedService = yield service_model_1.default.findOneAndUpdate({ _id: new mongoose_1.default.Types.ObjectId(serviceId), userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id }, {
         $set: {
             isIncentiveGiven: true,
-            incentiveAmount,
         },
+        $inc: { incentiveAmount: incentiveAmount },
     }, { new: true });
     if (!updatedService) {
         return (0, response_1.sendSuccessResponse)(res, 200, "Service request not found for updating.");

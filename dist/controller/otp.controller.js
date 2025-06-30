@@ -47,112 +47,70 @@ const generateVerificationCode = (length) => {
 };
 exports.generateVerificationCode = generateVerificationCode;
 //send otp
-exports.sendOTP = ((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { phoneNumber, purpose, userType } = req.body; //phone number with country code
-    // if (!phoneNumber || !userType) {
-    //     return res.status(400).json({ success: false, message: "phoneNumber, userType are required" });
-    // }
-    let stepDuration = 4 * 60;
-    if (purpose === "service") {
-        stepDuration = 24 * 60 * 60;
-    }
-    // Validate phone number format
-    if (!/^\+\d{1,3}\d{7,15}$/.test(phoneNumber)) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Invalid phone number format"));
-    }
-    const otpLength = 5;
-    const otp = (0, exports.generateVerificationCode)(otpLength);
-    // const formattedPhoneNumber = `+91${phoneNumber}`;
-    // console.log({ formattedPhoneNumber });
-    const expiredAt = new Date(Date.now() + stepDuration * 1000);
-    const message = yield client.messages.create({
-        body: `Your OTP code is ${otp}`,
-        from: TWILIO_PHONE_NUMBERS,
-        to: phoneNumber,
-    });
-    if (purpose !== "verifyPhone") {
-        const user = yield user_model_1.default.findOne({ phone: phoneNumber, isDeleted: false, });
-        if (!user) {
-            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "User does not exist"));
+const sendOTP = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    try {
+        const { phoneNumber, purpose, userType } = req.body; //phone number with country code
+        const lookup = yield client.lookups.v1
+            .phoneNumbers(phoneNumber)
+            .fetch({ type: ["carrier"] });
+        if (((_a = lookup === null || lookup === void 0 ? void 0 : lookup.carrier) === null || _a === void 0 ? void 0 : _a.type) !== "mobile") {
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Phone number is not capable of receiving SMS."));
         }
-        const userId = user._id;
-        const otpEntry = new otp_model_1.default({
-            userId,
-            phoneNumber: phoneNumber,
-            otp,
-            expiredAt,
+        let stepDuration = 4 * 60;
+        if (purpose === "service") {
+            stepDuration = 24 * 60 * 60;
+        }
+        // Validate phone number format
+        if (!/^\+\d{1,3}\d{7,15}$/.test(phoneNumber)) {
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Invalid phone number format"));
+        }
+        const otpLength = 5;
+        const otp = (0, exports.generateVerificationCode)(otpLength);
+        // const formattedPhoneNumber = `+91${phoneNumber}`;
+        // console.log({ formattedPhoneNumber });
+        const expiredAt = new Date(Date.now() + stepDuration * 1000);
+        const message = yield client.messages.create({
+            body: `Your OTP code is ${otp}`,
+            from: TWILIO_PHONE_NUMBERS,
+            to: phoneNumber,
         });
-        yield otpEntry.save();
+        if (purpose !== "verifyPhone") {
+            const user = yield user_model_1.default.findOne({
+                phone: phoneNumber,
+                isDeleted: false,
+            });
+            if (!user) {
+                return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "User does not exist"));
+            }
+            const userId = user._id;
+            const otpEntry = new otp_model_1.default({
+                userId,
+                phoneNumber: phoneNumber,
+                otp,
+                expiredAt,
+            });
+            yield otpEntry.save();
+        }
+        else {
+            const otpEntry = new otp_model_1.default({
+                userId: new mongoose_1.default.Types.ObjectId(),
+                phoneNumber: phoneNumber,
+                otp,
+                expiredAt,
+            });
+            yield otpEntry.save();
+        }
+        return (0, response_1.sendSuccessResponse)(res, 201, message, "OTP sent successfully");
     }
-    else {
-        const otpEntry = new otp_model_1.default({
-            userId: new mongoose_1.default.Types.ObjectId(),
-            phoneNumber: phoneNumber,
-            otp,
-            expiredAt,
-        });
-        yield otpEntry.save();
+    catch (err) {
+        if (err.code === 20404) {
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Phone number not found or invalid."));
+        }
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(500, "Phone lookup failed. Please try again."));
     }
-    return (0, response_1.sendSuccessResponse)(res, 201, message, "OTP sent successfully");
-}));
-// Verify OTP controller
-// export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
-//     const { identifier, otp, purpose } = req.body; // `identifier` can be email or phone number
-//     console.log(req.body);
-//     if (!identifier || !otp || !purpose) {
-//         return sendErrorResponse(res, new ApiError(400, "Identifier (email or phone), otp, and purpose are required"));
-//     }
-//     let queryField = "phoneNumber";
-//     let formattedIdentifier = identifier;
-//     // Check if the identifier is an email
-//     if (identifier.includes("@")) {
-//         queryField = "email";
-//     } else {
-//         // Assume it's a phone number; format it
-//         formattedIdentifier = `+91${identifier}`;
-//     }
-//     const otpEntry = await OTPModel.findOne({ [queryField]: formattedIdentifier });
-//     if ((!otpEntry || otpEntry.expiredAt < new Date())) {
-//         // Delete expired OTP entry if it exists
-//         if (otpEntry) await OTPModel.deleteOne({ _id: otpEntry._id });
-//         return sendSuccessResponse(res, 400, "Invalid or expired OTP");
-//     }
-//     const defaultOtp = "12345";
-//     if (otpEntry.otp !== defaultOtp) {
-//         return sendSuccessResponse(res, 400, "Invalid OTP");
-//     }
-//     // Delete OTP after successful validation
-//     await OTPModel.deleteOne({ _id: otpEntry?._id });
-//     switch (purpose) {
-//         case "login": {
-//             const user = await UserModel.findOne({ phone: identifier });
-//             if (!user) {
-//                 return sendErrorResponse(res, new ApiError(400, "User does not exist"));
-//             }
-//             const { accessToken, refreshToken } = await generateAccessAndRefreshToken(res, user._id);
-//             const loggedInUser = await fetchUserData(user._id);
-//             return res
-//                 .status(200)
-//                 .cookie("accessToken", accessToken, cookieOption)
-//                 .cookie("refreshToken", refreshToken, cookieOption)
-//                 .json(
-//                     new ApiResponse(200, { user: loggedInUser[0], accessToken, refreshToken }, "User logged in successfully")
-//                 );
-//         }
-//         case "forgetPassword": {
-//             return res.status(200).json(new ApiResponse(200, "OTP Verified Successfully"));
-//         }
-//         case "startJob":
-//         case "endJob":
-//             return sendSuccessResponse(res, 200, "OTP Verified Successfully");
-//         case "verifyEmail":
-//             return sendSuccessResponse(res, 200, "OTP Verified Successfully");
-//         case "verifyPhone":
-//             return sendSuccessResponse(res, 200, "OTP Verified Successfully");
-//         default:
-//             return sendErrorResponse(res, new ApiError(400, "Invalid purpose"));
-//     }
-// }); 
+});
+exports.sendOTP = sendOTP;
 exports.verifyOTP = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { identifier, otp, purpose } = req.body; // `identifier` can be email or phone number
     console.log(req.body, "verify otp payload"); //phone number with country code
@@ -184,21 +142,27 @@ exports.verifyOTP = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
             if (!user) {
                 return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "User does not exist"));
             }
-            const serviceProviderInfo = yield teams_model_1.default.findOne({ fieldAgentIds: user._id });
+            const serviceProviderInfo = yield teams_model_1.default.findOne({
+                fieldAgentIds: user._id,
+            });
             if (user.userType === "FieldAgent" || user.userType === "TeamLead") {
-                companyDetails = yield userAdditionalInfo_model_1.default.findOne({ userId: serviceProviderInfo === null || serviceProviderInfo === void 0 ? void 0 : serviceProviderInfo.serviceProviderId });
+                companyDetails = yield userAdditionalInfo_model_1.default.findOne({
+                    userId: serviceProviderInfo === null || serviceProviderInfo === void 0 ? void 0 : serviceProviderInfo.serviceProviderId,
+                });
             }
             else {
-                companyDetails = yield userAdditionalInfo_model_1.default.findOne({ userId: user._id });
+                companyDetails = yield userAdditionalInfo_model_1.default.findOne({
+                    userId: user._id,
+                });
             }
-            const address = yield address_model_1.default.findOne({ userId: user._id }).select('_id userId zipCode addressType location ');
+            const address = yield address_model_1.default.findOne({ userId: user._id }).select("_id userId zipCode addressType location ");
             // console.log(serviceProviderInfo);
             const { accessToken, refreshToken } = yield (0, createTokens_1.generateAccessAndRefreshToken)(res, user._id);
             const loggedInUser = yield (0, auth_controller_1.fetchUserData)(user._id);
             const agentData = {
                 loggedInUser: loggedInUser[0],
                 address: address || null,
-                additionalInfo: companyDetails || null
+                additionalInfo: companyDetails || null,
             };
             return res
                 .status(200)
@@ -207,7 +171,9 @@ exports.verifyOTP = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
                 .json(new ApiResponse_1.ApiResponse(200, { user: agentData, accessToken, refreshToken }, "User logged in successfully"));
         }
         case "forgetPassword": {
-            return res.status(200).json(new ApiResponse_1.ApiResponse(200, "OTP Verified Successfully"));
+            return res
+                .status(200)
+                .json(new ApiResponse_1.ApiResponse(200, "OTP Verified Successfully"));
         }
         case "startJob":
         case "endJob":

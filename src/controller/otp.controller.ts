@@ -106,10 +106,17 @@ export const sendOTP = async (req: Request, res: Response) => {
 
     return sendSuccessResponse(res, 201, message, "OTP sent successfully");
   } catch (err: any) {
+    console.log("OTP Controller Error:", err);
+
     if (err.code === 20404) {
       return sendErrorResponse(
         res,
         new ApiError(400, "Phone number not found or invalid.")
+      );
+    } else if (err.code === 20003) {
+      return sendErrorResponse(
+        res,
+        new ApiError(400, "Something went wrong... please try again later.")
       );
     }
 

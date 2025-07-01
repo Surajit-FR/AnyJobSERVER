@@ -603,6 +603,7 @@ export const addorUpdateIncentive = asyncHandler(
       incentiveAmount: number;
       serviceId: string;
     } = req.body;
+    console.log("addorUpdateIncentive req.body", req.body);
 
     if (!serviceId || !incentiveAmount) {
       return sendErrorResponse(
@@ -624,6 +625,7 @@ export const addorUpdateIncentive = asyncHandler(
       },
       { new: true }
     );
+    console.log({ updatedService });
 
     if (!updatedService) {
       return sendSuccessResponse(

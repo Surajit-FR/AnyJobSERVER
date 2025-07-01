@@ -415,14 +415,28 @@ exports.addorUpdateIncentive = (0, asyncHandler_1.asyncHandler)((req, res) => __
     var _a;
     const { incentiveAmount, serviceId, } = req.body;
     console.log("addorUpdateIncentive req.body", req.body);
+    console.log(typeof req.body.incentiveAmount);
     if (!serviceId || !incentiveAmount) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service ID, incentive check and incentive amount is required."));
     }
-    const updatedService = yield service_model_1.default.findOneAndUpdate({ _id: new mongoose_1.default.Types.ObjectId(serviceId), userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id }, {
-        $set: {
+    const serviceDeatils = yield service_model_1.default.findById({ _id: serviceId });
+    let dataToUpdate = {};
+    let previousIncentiveAmount = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.incentiveAmount;
+    if (previousIncentiveAmount === null &&
+        (serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.isIncentiveGiven) === false) {
+        dataToUpdate = {
             isIncentiveGiven: true,
-        },
-        $inc: { incentiveAmount: Number(incentiveAmount) },
+            incentiveAmount,
+        };
+    }
+    else {
+        dataToUpdate = {
+            isIncentiveGiven: true,
+            incentiveAmount: Number(incentiveAmount) + Number(previousIncentiveAmount)
+        };
+    }
+    const updatedService = yield service_model_1.default.findOneAndUpdate({ _id: new mongoose_1.default.Types.ObjectId(serviceId), userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id }, {
+        $set: dataToUpdate,
     }, { new: true });
     console.log({ updatedService });
     if (!updatedService) {

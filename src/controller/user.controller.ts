@@ -1320,9 +1320,8 @@ export const getAgentEngagementStatus = asyncHandler(
           "teamMembers.email": 1,
           "teamMembers.phone": 1,
           "teamMembers.userType": 1,
-          "teamMembers.agentAvatar": 1,
+          "teamMembers.avatar": 1,
           "teamMembers.isEngaged": 1,
-          //   "teamMembers.engagement": 1,
         },
       },
     ]);

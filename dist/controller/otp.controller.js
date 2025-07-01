@@ -104,8 +104,12 @@ const sendOTP = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         return (0, response_1.sendSuccessResponse)(res, 201, message, "OTP sent successfully");
     }
     catch (err) {
+        console.log("OTP Controller Error:", err);
         if (err.code === 20404) {
             return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Phone number not found or invalid."));
+        }
+        else if (err.code === 20003) {
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Something went wrong... please try again later."));
         }
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(500, "Phone lookup failed. Please try again."));
     }

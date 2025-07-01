@@ -600,10 +600,11 @@ export const addorUpdateIncentive = asyncHandler(
       serviceId,
     }: {
       isIncentiveGiven: boolean;
-      incentiveAmount: number;
+      incentiveAmount: string;
       serviceId: string;
     } = req.body;
     console.log("addorUpdateIncentive req.body", req.body);
+    console.log(typeof req.body.incentiveAmount);
 
     if (!serviceId || !incentiveAmount) {
       return sendErrorResponse(
@@ -615,13 +616,28 @@ export const addorUpdateIncentive = asyncHandler(
       );
     }
 
+    const serviceDeatils = await ServiceModel.findById({ _id: serviceId });
+    let dataToUpdate = {};
+    let previousIncentiveAmount = serviceDeatils?.incentiveAmount;
+    if (
+      previousIncentiveAmount === null &&
+      serviceDeatils?.isIncentiveGiven === false
+    ) {
+      dataToUpdate = {
+        isIncentiveGiven: true,
+        incentiveAmount,
+      };
+    } else {
+      dataToUpdate = {
+        isIncentiveGiven: true,
+        incentiveAmount:Number(incentiveAmount)+Number(previousIncentiveAmount)
+      };
+    }
+
     const updatedService = await ServiceModel.findOneAndUpdate(
       { _id: new mongoose.Types.ObjectId(serviceId), userId: req.user?._id },
       {
-        $set: {
-          isIncentiveGiven: true,
-        },
-        $inc: { incentiveAmount: Number(incentiveAmount) },
+        $set: dataToUpdate,
       },
       { new: true }
     );

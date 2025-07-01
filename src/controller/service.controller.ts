@@ -630,6 +630,7 @@ export const addorUpdateIncentive = asyncHandler(
     } else {
       dataToUpdate = {
         isIncentiveGiven: true,
+        // $inc:{incentiveAmount:Number(incentiveAmount)}
         incentiveAmount:Number(incentiveAmount)+Number(previousIncentiveAmount)
       };
     }

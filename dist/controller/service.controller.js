@@ -432,6 +432,7 @@ exports.addorUpdateIncentive = (0, asyncHandler_1.asyncHandler)((req, res) => __
     else {
         dataToUpdate = {
             isIncentiveGiven: true,
+            // $inc:{incentiveAmount:Number(incentiveAmount)}
             incentiveAmount: Number(incentiveAmount) + Number(previousIncentiveAmount)
         };
     }

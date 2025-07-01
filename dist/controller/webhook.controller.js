@@ -245,13 +245,17 @@ const handleServiceIncentivePayment = (session) => __awaiter(void 0, void 0, voi
             amount: Math.ceil(session.amount_total / 100),
         };
         const savePurchaseData = yield new purchase_model_1.default(purchaseData).save();
-        const updatedService = yield service_model_1.default.findOneAndUpdate({
-            _id: session.metadata.serviceId,
-            userId: user === null || user === void 0 ? void 0 : user._id,
-        }, {
-            isIncentiveGiven: true,
-            incentiveAmount: Math.ceil(session.amount_total / 100),
-        }, { new: true });
+        // const updatedService = await ServiceModel.findOneAndUpdate(
+        //   {
+        //     _id: session.metadata.serviceId,
+        //     userId: user?._id,
+        //   },
+        //   {
+        //     isIncentiveGiven: true,
+        //     incentiveAmount: Math.ceil(session.amount_total / 100),
+        //   },
+        //   { new: true }
+        // );
     }
     catch (error) {
         console.error("❌ Error in handleCheckoutSessionCompleted:", error);

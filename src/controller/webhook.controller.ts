@@ -314,17 +314,18 @@ const handleServiceIncentivePayment = async (session: any) => {
     };
     const savePurchaseData = await new PurchaseModel(purchaseData).save();
 
-    const updatedService = await ServiceModel.findOneAndUpdate(
-      {
-        _id: session.metadata.serviceId,
-        userId: user?._id,
-      },
-      {
-        isIncentiveGiven: true,
-        incentiveAmount: Math.ceil(session.amount_total / 100),
-      },
-      { new: true }
-    );
+    // const updatedService = await ServiceModel.findOneAndUpdate(
+    //   {
+    //     _id: session.metadata.serviceId,
+    //     userId: user?._id,
+    //   },
+    //   {
+    //     isIncentiveGiven: true,
+    //     incentiveAmount: Math.ceil(session.amount_total / 100),
+    //   },
+    //   { new: true }
+    // );
+    
   } catch (error: any) {
     console.error("❌ Error in handleCheckoutSessionCompleted:", error);
   }

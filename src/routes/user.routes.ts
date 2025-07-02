@@ -23,7 +23,8 @@ import {
     getPaymentMethods,
     getCustomersTransaction,
     fetchAdminReceivedFund,
-    fetchAdminAllTransactions
+    fetchAdminAllTransactions,
+    getDashboardCardsDetails
 } from "../controller/user.controller";
 import { givePermission, getUserPermissions } from "../controller/permission.controller";
 import { fetchIncentiveDetails, getJobByStatus, getJobByStatusByAgent } from "../controller/service.controller";
@@ -138,6 +139,10 @@ router.route('/fetch-payment-method').get(verifyUserType(["SuperAdmin", "Custome
 router.route('/fetch-transactions').get(verifyUserType(["SuperAdmin", "Customer"]), getCustomersTransaction);
 router.route('/fetch-admin-received-fund').get(verifyUserType(["SuperAdmin", ]), fetchAdminReceivedFund);
 router.route('/fetch-admin-all-transactions').get(verifyUserType(["SuperAdmin", ]), fetchAdminAllTransactions);
+
+router
+  .route("/get-dashboard-card-details")
+  .get(verifyUserType(["SuperAdmin"]), getDashboardCardsDetails);
 
 
 

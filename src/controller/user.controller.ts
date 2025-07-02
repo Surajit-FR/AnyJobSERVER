@@ -21,6 +21,7 @@ import { STRIPE_SECRET_KEY } from "../config/config";
 import { parsePhoneNumberFromString } from "libphonenumber-js";
 import Stripe from "stripe";
 import AdminRevenueModel from "../models/adminRevenue.model";
+import ServiceModel from "../models/service.model";
 const stripe = new Stripe(STRIPE_SECRET_KEY, {
   apiVersion: "2024-09-30.acacia" as any,
 });
@@ -1922,6 +1923,43 @@ export const fetchAdminAllTransactions = asyncHandler(
         },
       },
       "Admin's all transactions fetched successfully"
+    );
+  }
+);
+
+export const getDashboardCardsDetails = asyncHandler(
+  async (req: CustomRequest, res: Response) => {
+    const totalCustomer = await UserModel.find({
+      userType: "Customer",
+      isDeleted: false,
+    }).countDocuments();
+
+    const totalServiceProvider = await UserModel.find({
+      userType: "ServiceProvider",
+      isVerified: true,
+      isDeleted: false,
+    }).countDocuments();
+
+    const totalGeneratedService = await ServiceModel.find({}).countDocuments();
+
+    const balance = await stripe.balance.retrieve();
+    const avilable = balance.available[0].amount 
+    const pending = balance.pending[0].amount 
+
+    return sendSuccessResponse(
+      res,
+      200,
+      {
+        totalCustomer, 
+        totalServiceProvider, 
+        totalGeneratedService, 
+        balance:{
+          avilable,
+          pending
+        }, 
+        
+      },
+      "Dashboard card details fetched successfully"
     );
   }
 );

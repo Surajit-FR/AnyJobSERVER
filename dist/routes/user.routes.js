@@ -66,4 +66,7 @@ router.route('/fetch-payment-method').get((0, userAuth_1.verifyUserType)(["Super
 router.route('/fetch-transactions').get((0, userAuth_1.verifyUserType)(["SuperAdmin", "Customer"]), user_controller_1.getCustomersTransaction);
 router.route('/fetch-admin-received-fund').get((0, userAuth_1.verifyUserType)(["SuperAdmin",]), user_controller_1.fetchAdminReceivedFund);
 router.route('/fetch-admin-all-transactions').get((0, userAuth_1.verifyUserType)(["SuperAdmin",]), user_controller_1.fetchAdminAllTransactions);
+router
+    .route("/get-dashboard-card-details")
+    .get((0, userAuth_1.verifyUserType)(["SuperAdmin"]), user_controller_1.getDashboardCardsDetails);
 exports.default = router;

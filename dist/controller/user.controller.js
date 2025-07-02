@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fetchAdminAllTransactions = exports.fetchAdminReceivedFund = exports.getCustomersTransaction = exports.getPaymentMethods = exports.updateUserPreference = exports.addBankDetails = exports.getIpLogs = exports.updateUser = exports.fetchIPlogs = exports.getAgentEngagementStatus = exports.assignTeamLead = exports.fetchAssociates = exports.banUser = exports.verifyServiceProvider = exports.getSingleUser = exports.getUsers = exports.getAdminUsersList = exports.getRegisteredCustomerList = exports.getServiceProviderList = exports.addAdditionalInfo = exports.addAddress = exports.getUser = void 0;
+exports.getDashboardCardsDetails = exports.fetchAdminAllTransactions = exports.fetchAdminReceivedFund = exports.getCustomersTransaction = exports.getPaymentMethods = exports.updateUserPreference = exports.addBankDetails = exports.getIpLogs = exports.updateUser = exports.fetchIPlogs = exports.getAgentEngagementStatus = exports.assignTeamLead = exports.fetchAssociates = exports.banUser = exports.verifyServiceProvider = exports.getSingleUser = exports.getUsers = exports.getAdminUsersList = exports.getRegisteredCustomerList = exports.getServiceProviderList = exports.addAdditionalInfo = exports.addAddress = exports.getUser = void 0;
 const user_model_1 = __importDefault(require("../models/user.model"));
 const address_model_1 = __importDefault(require("../models/address.model"));
 const userAdditionalInfo_model_1 = __importDefault(require("../models/userAdditionalInfo.model"));
@@ -34,6 +34,7 @@ const config_1 = require("../config/config");
 const libphonenumber_js_1 = require("libphonenumber-js");
 const stripe_1 = __importDefault(require("stripe"));
 const adminRevenue_model_1 = __importDefault(require("../models/adminRevenue.model"));
+const service_model_1 = __importDefault(require("../models/service.model"));
 const stripe = new stripe_1.default(config_1.STRIPE_SECRET_KEY, {
     apiVersion: "2024-09-30.acacia",
 });
@@ -1499,4 +1500,28 @@ exports.fetchAdminAllTransactions = (0, asyncHandler_1.asyncHandler)((req, res) 
             limit: limitNumber,
         },
     }, "Admin's all transactions fetched successfully");
+}));
+exports.getDashboardCardsDetails = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const totalCustomer = yield user_model_1.default.find({
+        userType: "Customer",
+        isDeleted: false,
+    }).countDocuments();
+    const totalServiceProvider = yield user_model_1.default.find({
+        userType: "ServiceProvider",
+        isVerified: true,
+        isDeleted: false,
+    }).countDocuments();
+    const totalGeneratedService = yield service_model_1.default.find({}).countDocuments();
+    const balance = yield stripe.balance.retrieve();
+    const avilable = balance.available[0].amount;
+    const pending = balance.pending[0].amount;
+    return (0, response_1.sendSuccessResponse)(res, 200, {
+        totalCustomer,
+        totalServiceProvider,
+        totalGeneratedService,
+        balance: {
+            avilable,
+            pending
+        },
+    }, "Dashboard card details fetched successfully");
 }));

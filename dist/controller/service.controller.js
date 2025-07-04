@@ -224,6 +224,7 @@ exports.getServiceRequestList = (0, asyncHandler_1.asyncHandler)((req, res) => _
                 serviceStartDate: 1,
                 requestProgress: 1,
                 tipAmount: 1,
+                incentiveAmount: 1,
                 "userId.firstName": 1,
                 "userId.lastName": 1,
                 // userName: { $concat: ["$userId.firstName", " ", "$userId.lastName"] },

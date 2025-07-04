@@ -195,7 +195,7 @@ exports.loginUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
         // Fetch additional info and address by userId
         const userAddress = yield address_model_1.default.findOne({ userId: user._id }).select('_id userId zipCode addressType location ');
         const userAdditionalInfo = yield userAdditionalInfo_model_1.default.findOne({ userId: user._id });
-        if (!userAddress && !userAdditionalInfo) {
+        if (!userAddress || !userAdditionalInfo) {
             return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(403, "Your account is created but please add address & your additional information.", [], { accessToken }));
         }
         if (!user.isVerified) {

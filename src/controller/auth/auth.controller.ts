@@ -218,7 +218,7 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
         const userAddress = await AddressModel.findOne({ userId: user._id }).select('_id userId zipCode addressType location ');
         const userAdditionalInfo = await AdditionalInfoModel.findOne({ userId: user._id });
 
-        if (!userAddress && !userAdditionalInfo) {
+        if (!userAddress || !userAdditionalInfo) {
             return sendErrorResponse(res, new ApiError(403, "Your account is created but please add address & your additional information.", [], { accessToken }));
         }
 

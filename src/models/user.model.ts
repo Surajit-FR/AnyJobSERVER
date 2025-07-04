@@ -27,7 +27,7 @@ const UserSchema: Schema<IUser> = new Schema({
     },
     email: {
         type: String,
-        // unique: true,
+        unique: true,
         lowercase: true,
         default: ""
     },
@@ -39,7 +39,7 @@ const UserSchema: Schema<IUser> = new Schema({
         type: String,
         default: "",
         required: false,
-        // unique:true
+        unique:true
     },
     password: {
         type: String,

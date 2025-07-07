@@ -85,7 +85,7 @@ export interface IAdditionalUserInfo extends Document {
     socialSecurity: string;
     companyLicense: string;
     companyLicenseImage: string;
-    insurancePolicy: number;
+    insurancePolicy: string;
     licenseProofImage: string;
     businessLicenseImage: string;
     businessImage: string;

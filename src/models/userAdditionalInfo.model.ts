@@ -12,7 +12,7 @@ const AdditionalUserInfoSchema: Schema<IAdditionalUserInfo> = new Schema({
     socialSecurity: { type: String, default: "", },
     companyLicense: { type: String, default: "", },
     companyLicenseImage: { type: String, default: "", },
-    insurancePolicy: { type: Number, },
+    insurancePolicy: { type: String, },
     licenseProofImage: { type: String, default: "", },
     businessLicenseImage: { type: String, default: "", },
     businessImage: { type: String, default: "", },

@@ -434,7 +434,7 @@ exports.addorUpdateIncentive = (0, asyncHandler_1.asyncHandler)((req, res) => __
         dataToUpdate = {
             isIncentiveGiven: true,
             // $inc:{incentiveAmount:Number(incentiveAmount)}
-            incentiveAmount: Number(incentiveAmount) + Number(previousIncentiveAmount)
+            incentiveAmount: Number(incentiveAmount) + Number(previousIncentiveAmount),
         };
     }
     const updatedService = yield service_model_1.default.findOneAndUpdate({ _id: new mongoose_1.default.Types.ObjectId(serviceId), userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id }, {
@@ -1577,7 +1577,7 @@ exports.getJobByStatusByAgent = (0, asyncHandler_1.asyncHandler)((req, res) => _
     }, "Service request retrieved successfully.");
 }));
 exports.assignJob = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c;
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     const userType = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userType;
     let serviceProviderId = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
     const { assignedAgentId, serviceId } = req.body;
@@ -1611,6 +1611,14 @@ exports.assignJob = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
     if (!updatedService) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service not found for assigning."));
     }
+    //send notification to field agent when a job is assigned to him
+    const notificationContent = `You have been assigned a job by ${(_e = (_d = req.user) === null || _d === void 0 ? void 0 : _d.firstName) !== null && _e !== void 0 ? _e : "SP"} ${(_g = (_f = req.user) === null || _f === void 0 ? void 0 : _f.lastName) !== null && _g !== void 0 ? _g : ""}`;
+    yield (0, sendPushNotification_1.sendPushNotification)(assignedAgentId.toString(), "Job Assigned", notificationContent, {
+        senderId: (_h = req.user) === null || _h === void 0 ? void 0 : _h._id,
+        receiverId: assignedAgentId,
+        title: notificationContent,
+        notificationType: "Service Assigned",
+    });
     return (0, response_1.sendSuccessResponse)(res, 200, updatedService, "Job assigned to the agent successfully.");
 }));
 exports.totalJobCount = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {

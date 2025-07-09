@@ -632,7 +632,8 @@ export const addorUpdateIncentive = asyncHandler(
       dataToUpdate = {
         isIncentiveGiven: true,
         // $inc:{incentiveAmount:Number(incentiveAmount)}
-        incentiveAmount:Number(incentiveAmount)+Number(previousIncentiveAmount)
+        incentiveAmount:
+          Number(incentiveAmount) + Number(previousIncentiveAmount),
       };
     }
 
@@ -2141,6 +2142,23 @@ export const assignJob = asyncHandler(
         new ApiError(400, "Service not found for assigning.")
       );
     }
+    //send notification to field agent when a job is assigned to him
+
+    const notificationContent = `You have been assigned a job by ${
+      req.user?.firstName ?? "SP"
+    } ${req.user?.lastName ?? ""}`;
+
+    await sendPushNotification(
+      assignedAgentId.toString() as string,
+      "Job Assigned",
+      notificationContent,
+      {
+        senderId: req.user?._id,
+        receiverId: assignedAgentId,
+        title: notificationContent,
+        notificationType: "Service Assigned",
+      }
+    );
 
     return sendSuccessResponse(
       res,

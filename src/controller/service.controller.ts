@@ -16,7 +16,9 @@ import { sendPushNotification } from "../utils/sendPushNotification";
 import { isNotificationPreferenceOn } from "../utils/auth";
 import WalletModel from "../models/wallet.model";
 import { transferIncentiveToSP } from "./stripe.controller";
-
+import { sendSMS } from "./otp.controller";
+import tzLookup from "tz-lookup";
+import moment from "moment-timezone";
 const testFcm =
   "fVSB8tntRb2ufrLcySfGxs:APA91bH3CCLoxCPSmRuTo4q7j0aAxWLCdu6WtAdBWogzo79j69u8M_qFwcNygw7LIGrLYBXFqz2SUZI-4js8iyHxe12BMe-azVy2v7d22o4bvxy2pzTZ4kE";
 
@@ -1041,7 +1043,7 @@ export const fetchServiceRequest = asyncHandler(
     const sortCriteria: any = {};
     sortCriteria[validSortBy] = validSortType;
 
-    const userId = req.user?._id as string;
+    const userId = req.user?._id as string; //sp
     const userType = req.user?.userType;
 
     let serviceProviderId: string | undefined;
@@ -1346,7 +1348,7 @@ export const fetchNearByServiceProvider = asyncHandler(
 
 // fetchSingleServiceRequest controller
 export const fetchSingleServiceRequest = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (req: CustomRequest, res: Response) => {
     const { serviceId } = req.params;
 
     if (!serviceId) {
@@ -1355,6 +1357,25 @@ export const fetchSingleServiceRequest = asyncHandler(
         new ApiError(400, "Service request ID is required.")
       );
     }
+    const userId = req.user?._id;
+    const address = await AddressModel.findOne({ userId });
+    if (!address) {
+      return sendErrorResponse(
+        res,
+        new ApiError(400, "Service request ID is required.")
+      );
+    }
+    const longitude = address.longitude;
+    const latitude = address.latitude;
+    // Extract coordinates and validate
+    const serviceProviderLongitude: number = parseFloat(longitude);
+    const serviceProviderLatitude: number = parseFloat(latitude);
+
+    const SP_Timezone = tzLookup(
+      serviceProviderLatitude,
+      serviceProviderLongitude
+    );
+    console.log(SP_Timezone);
 
     const serviceRequestToFetch = await ServiceModel.aggregate([
       {
@@ -1542,10 +1563,48 @@ export const fetchSingleServiceRequest = asyncHandler(
       },
     ]);
 
+    if (!serviceRequestToFetch.length) {
+      return sendErrorResponse(
+        res,
+        new ApiError(404, "Service request not found.")
+      );
+    }
+
+    const serviceData = serviceRequestToFetch[0];
+
+    // ✅ Timezone-aware conversion logic
+    const serviceStartDate = serviceData.serviceStartDate;
+    const bookedTimeSlot = serviceData.bookedTimeSlot?.[0]?.startTime;
+
+    if (serviceStartDate && bookedTimeSlot) {
+      const combinedUtcDateTime = moment.utc(serviceStartDate).set({
+        hour: moment.utc(bookedTimeSlot).hour(),
+        minute: moment.utc(bookedTimeSlot).minute(),
+        second: 0,
+        millisecond: 0,
+      });
+
+      const converted = combinedUtcDateTime.clone().tz(SP_Timezone);
+      console.log("converted timezone: ", converted);
+
+      serviceData.serviceStartInSPTimeZone = converted.toISOString();
+      serviceData.serviceStartReadableFormat = converted.format(
+        "MMMM DD, YYYY, hh:mm A z"
+      );
+
+      // Service end time = +2 hours
+      const endTime = converted.clone().add(2, "hours");
+      console.log({ endTime });
+
+      // Add service end time in SP time zone
+      serviceData.serviceEndsInSPTimeZone = endTime.toISOString();
+      serviceData.serviceEndReadableFormat = endTime.format("MMMM DD, YYYY, hh:mm A z");
+    }
+
     return sendSuccessResponse(
       res,
       200,
-      serviceRequestToFetch,
+      serviceData,
       "Service request retrieved successfully."
     );
   }
@@ -2159,6 +2218,12 @@ export const assignJob = asyncHandler(
         notificationType: "Service Assigned",
       }
     );
+
+    const agentDetails = await UserModel.findById(assignedAgentId);
+    if (agentDetails) {
+      const agentPhoneNumber = agentDetails.phone;
+      await sendSMS(agentPhoneNumber, notificationContent);
+    }
 
     return sendSuccessResponse(
       res,

@@ -230,3 +230,39 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
       return sendErrorResponse(res, new ApiError(400, "Invalid purpose"));
   }
 });
+
+export const sendSMS = async (to: string, sms: string) => {
+  try {
+    const lookup = await client.lookups.v1
+      .phoneNumbers(to)
+      .fetch({ type: ["carrier"] });
+
+    if (lookup?.carrier?.type !== "mobile") {
+      return new ApiError(400, "Phone number is not capable of receiving SMS.");
+    }
+
+    // Validate phone number format
+    if (!/^\+\d{1,3}\d{7,15}$/.test(to)) {
+      return new ApiError(400, "Invalid phone number format");
+    }
+
+    const message = await client.messages.create({
+      body: sms,
+      from: TWILIO_PHONE_NUMBERS,
+      to: to,
+    });
+  } catch (err: any) {
+    console.log("OTP Controller Error:", err);
+
+    if (err.code === 20404) {
+      return new ApiError(400, "Phone number not found or invalid.");
+    } else if (err.code === 20003) {
+      return new ApiError(
+        400,
+        "Something went wrong... please try again later."
+      );
+    }
+
+    return new ApiError(500, "Phone lookup failed. Please try again.");
+  }
+};

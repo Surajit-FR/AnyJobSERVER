@@ -27,6 +27,9 @@ const axios_1 = __importDefault(require("axios"));
 const sendPushNotification_1 = require("../utils/sendPushNotification");
 const wallet_model_1 = __importDefault(require("../models/wallet.model"));
 const stripe_controller_1 = require("./stripe.controller");
+const otp_controller_1 = require("./otp.controller");
+const tz_lookup_1 = __importDefault(require("tz-lookup"));
+const moment_timezone_1 = __importDefault(require("moment-timezone"));
 const testFcm = "fVSB8tntRb2ufrLcySfGxs:APA91bH3CCLoxCPSmRuTo4q7j0aAxWLCdu6WtAdBWogzo79j69u8M_qFwcNygw7LIGrLYBXFqz2SUZI-4js8iyHxe12BMe-azVy2v7d22o4bvxy2pzTZ4kE";
 //is cancellation fee is applicable or not
 function isCancellationFeeApplicable(serviceId) {
@@ -684,7 +687,7 @@ exports.fetchServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __a
     const validSortType = sortType.toLowerCase() === "desc" ? -1 : 1;
     const sortCriteria = {};
     sortCriteria[validSortBy] = validSortType;
-    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id; //sp
     const userType = (_b = req.user) === null || _b === void 0 ? void 0 : _b.userType;
     let serviceProviderId;
     let address;
@@ -917,10 +920,23 @@ exports.fetchNearByServiceProvider = (0, asyncHandler_1.asyncHandler)((req, res)
 }));
 // fetchSingleServiceRequest controller
 exports.fetchSingleServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c;
     const { serviceId } = req.params;
     if (!serviceId) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service request ID is required."));
     }
+    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+    const address = yield address_model_1.default.findOne({ userId });
+    if (!address) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service request ID is required."));
+    }
+    const longitude = address.longitude;
+    const latitude = address.latitude;
+    // Extract coordinates and validate
+    const serviceProviderLongitude = parseFloat(longitude);
+    const serviceProviderLatitude = parseFloat(latitude);
+    const SP_Timezone = (0, tz_lookup_1.default)(serviceProviderLatitude, serviceProviderLongitude);
+    console.log(SP_Timezone);
     const serviceRequestToFetch = yield service_model_1.default.aggregate([
         {
             $match: {
@@ -1103,7 +1119,32 @@ exports.fetchSingleServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) 
             },
         },
     ]);
-    return (0, response_1.sendSuccessResponse)(res, 200, serviceRequestToFetch, "Service request retrieved successfully.");
+    if (!serviceRequestToFetch.length) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, "Service request not found."));
+    }
+    const serviceData = serviceRequestToFetch[0];
+    // ✅ Timezone-aware conversion logic
+    const serviceStartDate = serviceData.serviceStartDate;
+    const bookedTimeSlot = (_c = (_b = serviceData.bookedTimeSlot) === null || _b === void 0 ? void 0 : _b[0]) === null || _c === void 0 ? void 0 : _c.startTime;
+    if (serviceStartDate && bookedTimeSlot) {
+        const combinedUtcDateTime = moment_timezone_1.default.utc(serviceStartDate).set({
+            hour: moment_timezone_1.default.utc(bookedTimeSlot).hour(),
+            minute: moment_timezone_1.default.utc(bookedTimeSlot).minute(),
+            second: 0,
+            millisecond: 0,
+        });
+        const converted = combinedUtcDateTime.clone().tz(SP_Timezone);
+        console.log("converted timezone: ", converted);
+        serviceData.serviceStartInSPTimeZone = converted.toISOString();
+        serviceData.serviceStartReadableFormat = converted.format("MMMM DD, YYYY, hh:mm A z");
+        // Service end time = +2 hours
+        const endTime = converted.clone().add(2, "hours");
+        console.log({ endTime });
+        // Add service end time in SP time zone
+        serviceData.serviceEndsInSPTimeZone = endTime.toISOString();
+        serviceData.serviceEndReadableFormat = endTime.format("MMMM DD, YYYY, hh:mm A z");
+    }
+    return (0, response_1.sendSuccessResponse)(res, 200, serviceData, "Service request retrieved successfully.");
 }));
 // Function to fetch associated customer with the service request
 const fetchAssociatedCustomer = (serviceId) => __awaiter(void 0, void 0, void 0, function* () {
@@ -1619,6 +1660,11 @@ exports.assignJob = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
         title: notificationContent,
         notificationType: "Service Assigned",
     });
+    const agentDetails = yield user_model_1.default.findById(assignedAgentId);
+    if (agentDetails) {
+        const agentPhoneNumber = agentDetails.phone;
+        yield (0, otp_controller_1.sendSMS)(agentPhoneNumber, notificationContent);
+    }
     return (0, response_1.sendSuccessResponse)(res, 200, updatedService, "Job assigned to the agent successfully.");
 }));
 exports.totalJobCount = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {

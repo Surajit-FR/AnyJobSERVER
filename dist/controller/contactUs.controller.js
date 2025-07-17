@@ -18,6 +18,7 @@ const asyncHandler_1 = require("../utils/asyncHandler");
 const contactUs_model_1 = __importDefault(require("../models/contactUs.model"));
 const ApisErrors_1 = require("../utils/ApisErrors");
 const mongoose_1 = __importDefault(require("mongoose"));
+const sendMail_1 = require("../utils/sendMail");
 exports.sendQueryMessage = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const { fullName, email, contactNumber, message } = req.body;
@@ -25,27 +26,39 @@ exports.sendQueryMessage = (0, asyncHandler_1.asyncHandler)((req, res) => __awai
     if (!fullName || !email || !contactNumber || !message) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Fullname email,contact and message all are required field"));
     }
-    ;
-    const contactUsData = yield contactUs_model_1.default.create({
-        fullName,
-        email,
-        contactNumber,
-        message,
-        senderId,
-    });
-    if (!contactUsData) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(500, "Failed to send your message."));
+    const from = email;
+    const html = `
+    <p><strong>Full Name:</strong> ${fullName}</p>
+    <p><strong>Email:</strong> ${email}</p>
+    <p><strong>Contact Number:</strong> ${contactNumber}</p>
+    <p><strong>Message:</strong></p>
+<p style="margin-left: 20px; font-style: italic;">${message}</p>`;
+    const sendMailToAdminEmail = yield (0, sendMail_1.sendMailToAdmin)(from, fullName, html);
+    if (sendMailToAdminEmail) {
+        const to = email;
+        const subject = "Thank You";
+        const html = `Dear ${fullName}, thank you for contacting us`;
+        yield (0, sendMail_1.sendMail)(to, subject, html);
+        const contactUsData = yield contactUs_model_1.default.create({
+            fullName,
+            email,
+            contactNumber,
+            message,
+            senderId,
+        });
+        if (!contactUsData) {
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(500, "Failed to send your message."));
+        }
     }
-    ;
-    return (0, response_1.sendSuccessResponse)(res, 200, contactUsData, "Message sent successfully.");
+    return (0, response_1.sendSuccessResponse)(res, 200, "Message sent successfully.");
 }));
 exports.fetchQueryMessage = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const queryMessages = yield contactUs_model_1.default.aggregate([
         {
             $match: {
                 isDeleted: false,
-                isRead: false
-            }
+                isRead: false,
+            },
         },
         {
             $project: {
@@ -55,8 +68,8 @@ exports.fetchQueryMessage = (0, asyncHandler_1.asyncHandler)((req, res) => __awa
                 contactNumber: 1,
                 message: 1,
                 isRead: 1,
-            }
-        }
+            },
+        },
     ]);
     if (!queryMessages.length) {
         return (0, response_1.sendSuccessResponse)(res, 200, "No messages till now.");
@@ -68,7 +81,9 @@ exports.deleteQueryMessage = (0, asyncHandler_1.asyncHandler)((req, res) => __aw
     if (!messageId) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "messageId is required"));
     }
-    const deletedQueryMessages = yield contactUs_model_1.default.findByIdAndDelete({ _id: new mongoose_1.default.Types.ObjectId(messageId) });
+    const deletedQueryMessages = yield contactUs_model_1.default.findByIdAndDelete({
+        _id: new mongoose_1.default.Types.ObjectId(messageId),
+    });
     if (!deletedQueryMessages) {
         return (0, response_1.sendSuccessResponse)(res, 200, "No messages deleted");
     }

@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verifyOTP = exports.sendOTP = exports.generateVerificationCode = void 0;
+exports.sendSMS = exports.verifyOTP = exports.sendOTP = exports.generateVerificationCode = void 0;
 const twilio_1 = __importDefault(require("twilio"));
 const otp_model_1 = __importDefault(require("../models/otp.model"));
 const otplib_1 = require("otplib");
@@ -190,3 +190,34 @@ exports.verifyOTP = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
             return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Invalid purpose"));
     }
 }));
+const sendSMS = (to, sms) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    try {
+        const lookup = yield client.lookups.v1
+            .phoneNumbers(to)
+            .fetch({ type: ["carrier"] });
+        if (((_a = lookup === null || lookup === void 0 ? void 0 : lookup.carrier) === null || _a === void 0 ? void 0 : _a.type) !== "mobile") {
+            return new ApisErrors_1.ApiError(400, "Phone number is not capable of receiving SMS.");
+        }
+        // Validate phone number format
+        if (!/^\+\d{1,3}\d{7,15}$/.test(to)) {
+            return new ApisErrors_1.ApiError(400, "Invalid phone number format");
+        }
+        const message = yield client.messages.create({
+            body: sms,
+            from: TWILIO_PHONE_NUMBERS,
+            to: to,
+        });
+    }
+    catch (err) {
+        console.log("OTP Controller Error:", err);
+        if (err.code === 20404) {
+            return new ApisErrors_1.ApiError(400, "Phone number not found or invalid.");
+        }
+        else if (err.code === 20003) {
+            return new ApisErrors_1.ApiError(400, "Something went wrong... please try again later.");
+        }
+        return new ApisErrors_1.ApiError(500, "Phone lookup failed. Please try again.");
+    }
+});
+exports.sendSMS = sendSMS;

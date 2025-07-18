@@ -116,10 +116,11 @@ const sendOTP = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.sendOTP = sendOTP;
 exports.verifyOTP = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { identifier, otp, purpose } = req.body; // `identifier` can be email or phone number
+    const { identifier, otp, purpose, userType } = req.body; // `identifier` can be email or phone number
     console.log(req.body, "verify otp payload"); //phone number with country code
     // console.log(req.body);
     if (!identifier || !otp || !purpose) {
+        console.log("triggered");
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Identifier (email or phone), otp, and purpose are required"));
     }
     let queryField = "phoneNumber";
@@ -141,7 +142,7 @@ exports.verifyOTP = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
     }
     switch (purpose) {
         case "login": {
-            const user = yield user_model_1.default.findOne({ phone: identifier });
+            const user = yield user_model_1.default.findOne({ phone: identifier, userType });
             let companyDetails;
             if (!user) {
                 return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "User does not exist"));

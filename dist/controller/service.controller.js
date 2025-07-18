@@ -232,6 +232,9 @@ exports.getServiceRequestList = (0, asyncHandler_1.asyncHandler)((req, res) => _
                 "userId.lastName": 1,
                 // userName: { $concat: ["$userId.firstName", " ", "$userId.lastName"] },
                 createdAt: 1,
+                acceptedAt: 1,
+                startedAt: 1,
+                completedAt: 1,
             },
         },
     ]);
@@ -463,6 +466,9 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service not found."));
     }
     const customerDetails = yield user_model_1.default.findById(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.userId);
+    if (!customerDetails) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Customer details not found."));
+    }
     const serviceProviderDetails = yield user_model_1.default.findById(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.serviceProviderId).select("serviceProviderId");
     let serviceProviderId = userId;
     if (userType === "TeamLead") {
@@ -528,6 +534,8 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
                 title: notificationContent,
                 notificationType: "Service Accepted",
             });
+            const customerPhoneNumber = customerDetails === null || customerDetails === void 0 ? void 0 : customerDetails.phone;
+            yield (0, otp_controller_1.sendSMS)(customerPhoneNumber, notificationContent);
         }
         //if a service is in accepted mode or CancelledByFA mode then one can start that service by assigning FA...
         if ((serviceRequest.requestProgress === "Pending" ||
@@ -545,6 +553,8 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
                     title: notificationContent,
                     notificationType: "Service Started",
                 });
+                const customerPhoneNumber = customerDetails === null || customerDetails === void 0 ? void 0 : customerDetails.phone;
+                yield (0, otp_controller_1.sendSMS)(customerPhoneNumber, notificationContent);
             }
             else if (((_p = req.user) === null || _p === void 0 ? void 0 : _p.userType) === "FieldAgent") {
                 yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.serviceProviderId.toString(), 
@@ -563,6 +573,8 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
                     title: notificationContent,
                     notificationType: "Service Started",
                 });
+                const customerPhoneNumber = customerDetails === null || customerDetails === void 0 ? void 0 : customerDetails.phone;
+                yield (0, otp_controller_1.sendSMS)(customerPhoneNumber, notificationContent);
             }
         }
         if (serviceRequest.requestProgress === "Started" &&
@@ -579,6 +591,8 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
                     title: notificationContent,
                     notificationType: "Service Started",
                 });
+                const customerPhoneNumber = customerDetails === null || customerDetails === void 0 ? void 0 : customerDetails.phone;
+                yield (0, otp_controller_1.sendSMS)(customerPhoneNumber, notificationContent);
             }
             else if (((_y = req.user) === null || _y === void 0 ? void 0 : _y.userType) === "FieldAgent") {
                 yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.serviceProviderId.toString(), 
@@ -597,6 +611,8 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
                     title: notificationContent,
                     notificationType: "Service Started",
                 });
+                const customerPhoneNumber = customerDetails === null || customerDetails === void 0 ? void 0 : customerDetails.phone;
+                yield (0, otp_controller_1.sendSMS)(customerPhoneNumber, notificationContent);
             }
         }
     }
@@ -616,6 +632,8 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
                 title: notificationContent,
                 notificationType: "Service Started",
             });
+            const customerPhoneNumber = customerDetails === null || customerDetails === void 0 ? void 0 : customerDetails.phone;
+            yield (0, otp_controller_1.sendSMS)(customerPhoneNumber, notificationContent);
         }
         if (userType === "FieldAgent") {
             (updateData.requestProgress = "CancelledByFA"),

@@ -128,12 +128,13 @@ export const sendOTP = async (req: Request, res: Response) => {
 };
 
 export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
-  const { identifier, otp, purpose } = req.body; // `identifier` can be email or phone number
+  const { identifier, otp, purpose, userType } = req.body; // `identifier` can be email or phone number
   console.log(req.body, "verify otp payload"); //phone number with country code
 
   // console.log(req.body);
 
-  if (!identifier || !otp || !purpose) {
+  if (!identifier || !otp || !purpose ) {
+    console.log("triggered");    
     return sendErrorResponse(
       res,
       new ApiError(
@@ -167,7 +168,7 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
 
   switch (purpose) {
     case "login": {
-      const user = await UserModel.findOne({ phone: identifier });
+      const user = await UserModel.findOne({ phone: identifier, userType });
       let companyDetails;
       if (!user) {
         return sendErrorResponse(res, new ApiError(400, "User does not exist"));

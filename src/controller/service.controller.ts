@@ -354,6 +354,9 @@ export const getServiceRequestList = asyncHandler(
           "userId.lastName": 1,
           // userName: { $concat: ["$userId.firstName", " ", "$userId.lastName"] },
           createdAt: 1,
+          acceptedAt: 1,
+          startedAt: 1,
+          completedAt: 1,
         },
       },
     ]);
@@ -685,6 +688,12 @@ export const handleServiceRequestState = asyncHandler(
       return sendErrorResponse(res, new ApiError(400, "Service not found."));
     }
     const customerDetails = await UserModel.findById(serviceRequest?.userId);
+    if (!customerDetails) {
+      return sendErrorResponse(
+        res,
+        new ApiError(400, "Customer details not found.")
+      );
+    }
     const serviceProviderDetails = await UserModel.findById(
       serviceRequest?.serviceProviderId
     ).select("serviceProviderId");
@@ -782,6 +791,8 @@ export const handleServiceRequestState = asyncHandler(
             notificationType: "Service Accepted",
           }
         );
+        const customerPhoneNumber = customerDetails?.phone;
+        await sendSMS(customerPhoneNumber, notificationContent);
       }
       //if a service is in accepted mode or CancelledByFA mode then one can start that service by assigning FA...
       if (
@@ -807,6 +818,8 @@ export const handleServiceRequestState = asyncHandler(
               notificationType: "Service Started",
             }
           );
+          const customerPhoneNumber = customerDetails?.phone;
+          await sendSMS(customerPhoneNumber, notificationContent);
         } else if (req.user?.userType === "FieldAgent") {
           await sendPushNotification(
             serviceRequest?.serviceProviderId.toString() as string,
@@ -832,6 +845,8 @@ export const handleServiceRequestState = asyncHandler(
               notificationType: "Service Started",
             }
           );
+          const customerPhoneNumber = customerDetails?.phone;
+          await sendSMS(customerPhoneNumber, notificationContent);
         }
       }
       if (
@@ -856,6 +871,8 @@ export const handleServiceRequestState = asyncHandler(
               notificationType: "Service Started",
             }
           );
+          const customerPhoneNumber = customerDetails?.phone;
+          await sendSMS(customerPhoneNumber, notificationContent);
         } else if (req.user?.userType === "FieldAgent") {
           await sendPushNotification(
             serviceRequest?.serviceProviderId.toString() as string,
@@ -881,6 +898,8 @@ export const handleServiceRequestState = asyncHandler(
               notificationType: "Service Started",
             }
           );
+          const customerPhoneNumber = customerDetails?.phone;
+          await sendSMS(customerPhoneNumber, notificationContent);
         }
       }
     }
@@ -908,6 +927,8 @@ export const handleServiceRequestState = asyncHandler(
             notificationType: "Service Started",
           }
         );
+        const customerPhoneNumber = customerDetails?.phone;
+        await sendSMS(customerPhoneNumber, notificationContent);
       }
       if (userType === "FieldAgent") {
         (updateData.requestProgress = "CancelledByFA"),

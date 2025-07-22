@@ -30,6 +30,7 @@ const stripe_controller_1 = require("./stripe.controller");
 const otp_controller_1 = require("./otp.controller");
 const tz_lookup_1 = __importDefault(require("tz-lookup"));
 const moment_timezone_1 = __importDefault(require("moment-timezone"));
+const shift_model_1 = __importDefault(require("../models/shift.model"));
 const testFcm = "fVSB8tntRb2ufrLcySfGxs:APA91bH3CCLoxCPSmRuTo4q7j0aAxWLCdu6WtAdBWogzo79j69u8M_qFwcNygw7LIGrLYBXFqz2SUZI-4js8iyHxe12BMe-azVy2v7d22o4bvxy2pzTZ4kE";
 //is cancellation fee is applicable or not
 function isCancellationFeeApplicable(serviceId) {
@@ -66,7 +67,7 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
     let locationDetails, finalLongitude, finalLatitude, finalLocation;
     const { categoryId, serviceStartDate, serviceShifftId, SelectedShiftTime, serviceZipCode, serviceAddress, serviceLatitude, serviceLongitude, useMyCurrentLocation, serviceLandMark, userPhoneNumber, isIncentiveGiven, incentiveAmount, isTipGiven, tipAmount, otherInfo, serviceProductImage, answerArray, serviceAddressId, // Expecting answerArray instead of answers
      } = req.body;
-    // console.log(req.body);
+    console.log(req.body);
     // Validate required fields
     if (!categoryId)
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Category ID is required."));
@@ -164,7 +165,7 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
         serviceLandMark: serviceLandMark,
         location: finalLocation,
         isIncentiveGiven,
-        incentiveAmount,
+        incentiveAmount: incentiveAmount === null ? 0 : incentiveAmount,
         isTipGiven,
         tipAmount,
         otherInfo,
@@ -217,8 +218,25 @@ exports.getServiceRequestList = (0, asyncHandler_1.asyncHandler)((req, res) => _
             },
         },
         { $unwind: "$userId" },
+        {
+            $addFields: {
+                timeInQueue: {
+                    $cond: {
+                        if: { $ne: ["$acceptedAt", null] },
+                        then: {
+                            $dateDiff: {
+                                startDate: "$createdAt",
+                                endDate: "$acceptedAt",
+                                unit: "minute",
+                            },
+                        },
+                        else: 0,
+                    },
+                },
+            },
+        },
         { $match: searchQuery },
-        { $sort: { createdAt: validSortType } },
+        { $sort: { [validSortBy]: validSortType } },
         { $skip: skip },
         { $limit: limitNumber },
         {
@@ -235,6 +253,7 @@ exports.getServiceRequestList = (0, asyncHandler_1.asyncHandler)((req, res) => _
                 acceptedAt: 1,
                 startedAt: 1,
                 completedAt: 1,
+                timeInQueue: 1,
             },
         },
     ]);
@@ -429,7 +448,7 @@ exports.addorUpdateIncentive = (0, asyncHandler_1.asyncHandler)((req, res) => __
     const serviceDeatils = yield service_model_1.default.findById({ _id: serviceId });
     let dataToUpdate = {};
     let previousIncentiveAmount = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.incentiveAmount;
-    if (previousIncentiveAmount === null &&
+    if (previousIncentiveAmount === 0 &&
         (serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.isIncentiveGiven) === false) {
         dataToUpdate = {
             isIncentiveGiven: true,
@@ -1826,6 +1845,32 @@ exports.getJobByStatusByAgent = (0, asyncHandler_1.asyncHandler)((req, res) => _
         },
     }, "Service request retrieved successfully.");
 }));
+const fetchCalculatedServiceStartTime = (serviceId) => __awaiter(void 0, void 0, void 0, function* () {
+    const serviceDetails = yield service_model_1.default.findById(serviceId);
+    if (!serviceDetails) {
+        return new ApisErrors_1.ApiError(400, "Service id is required.");
+    }
+    const serviceStartDate = serviceDetails.serviceStartDate;
+    const serviceShift = serviceDetails.serviceShifftId;
+    const selectedSlot = serviceDetails.SelectedShiftTime;
+    const shiftTimeId = selectedSlot === null || selectedSlot === void 0 ? void 0 : selectedSlot.shiftTimeId;
+    const shiftDetails = yield shift_model_1.default.findById(serviceShift);
+    const slotArray = shiftDetails === null || shiftDetails === void 0 ? void 0 : shiftDetails.shiftTimes;
+    if (!slotArray) {
+        return new ApisErrors_1.ApiError(400, "Service Details is required.");
+    }
+    const selectedTimeRange = slotArray.filter((slot) => String(slot._id) == String(shiftTimeId));
+    const datePart = moment_timezone_1.default.utc(serviceStartDate).format("YYYY-MM-DD");
+    const timePart = moment_timezone_1.default
+        .utc(selectedTimeRange[0].startTime)
+        .format("HH:mm:ss");
+    const combinedDateTimeString = `${datePart}T${timePart}Z`;
+    const serviceCalculatedStartTime = moment_timezone_1.default
+        .utc(combinedDateTimeString)
+        .toDate();
+    console.log("Combined UTC timestamp:", serviceCalculatedStartTime);
+    return serviceCalculatedStartTime;
+});
 exports.assignJob = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c, _d, _e, _f, _g, _h;
     const userType = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userType;
@@ -1834,7 +1879,6 @@ exports.assignJob = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
     if (!serviceId) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service ID is required."));
     }
-    let isAssignable = true;
     if (userType === "TeamLead") {
         const permissions = yield permission_model_1.default.findOne({
             userId: (_c = req.user) === null || _c === void 0 ? void 0 : _c._id,
@@ -1849,9 +1893,26 @@ exports.assignJob = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
         // const agentUser = await UserModel.findById(assignedAgentId).select('userType');
         // isAssignable = agentUser?.userType === "FieldAgent" || agentUser?.userType === "TeamLead";
     }
-    // if (!isAssignable) {
-    //     return sendErrorResponse(res, new ApiError(403, "Assigned agent must be a FieldAgent."));
-    // };
+    const assignedServicesToAgent = yield service_model_1.default.aggregate([
+        {
+            $match: {
+                assignedAgentId: new mongoose_1.default.Types.ObjectId(assignedAgentId),
+            },
+        },
+    ]);
+    const AgentBookedTimeslot = yield Promise.all(assignedServicesToAgent.map((service) => __awaiter(void 0, void 0, void 0, function* () {
+        const time = yield fetchCalculatedServiceStartTime(service._id);
+        return time; // returns Date
+    })));
+    const incomingServiceCalculatedDate = yield fetchCalculatedServiceStartTime(serviceId);
+    console.log({ AgentBookedTimeslot });
+    console.log({ incomingServiceCalculatedDate });
+    const isConflict = AgentBookedTimeslot.filter((bookedTime) => String(bookedTime) == String(incomingServiceCalculatedDate));
+    console.log({ isConflict });
+    if (isConflict.length > 0) {
+        console.log("conflict due to same slot");
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Field agent is not avilable for this date and slot."));
+    }
     const updatedService = yield service_model_1.default.findByIdAndUpdate(serviceId, {
         $set: {
             assignedAgentId: new mongoose_1.default.Types.ObjectId(assignedAgentId),
@@ -1860,8 +1921,7 @@ exports.assignJob = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
     }, { new: true });
     if (!updatedService) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service not found for assigning."));
-    }
-    //send notification to field agent when a job is assigned to him
+    } //send notification to field agent when a job is assigned to him
     const notificationContent = `You have been assigned a job by ${(_e = (_d = req.user) === null || _d === void 0 ? void 0 : _d.firstName) !== null && _e !== void 0 ? _e : "SP"} ${(_g = (_f = req.user) === null || _f === void 0 ? void 0 : _f.lastName) !== null && _g !== void 0 ? _g : ""}`;
     yield (0, sendPushNotification_1.sendPushNotification)(assignedAgentId.toString(), "Job Assigned", notificationContent, {
         senderId: (_h = req.user) === null || _h === void 0 ? void 0 : _h._id,

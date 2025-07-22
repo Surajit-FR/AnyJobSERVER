@@ -19,6 +19,7 @@ import { transferIncentiveToSP } from "./stripe.controller";
 import { sendSMS } from "./otp.controller";
 import tzLookup from "tz-lookup";
 import moment from "moment-timezone";
+import ShiftModel from "../models/shift.model";
 const testFcm =
   "fVSB8tntRb2ufrLcySfGxs:APA91bH3CCLoxCPSmRuTo4q7j0aAxWLCdu6WtAdBWogzo79j69u8M_qFwcNygw7LIGrLYBXFqz2SUZI-4js8iyHxe12BMe-azVy2v7d22o4bvxy2pzTZ4kE";
 
@@ -84,7 +85,7 @@ export const addService = asyncHandler(
       answerArray,
       serviceAddressId, // Expecting answerArray instead of answers
     }: IAddServicePayloadReq = req.body;
-    // console.log(req.body);
+    console.log(req.body);
 
     // Validate required fields
     if (!categoryId)
@@ -252,7 +253,7 @@ export const addService = asyncHandler(
       serviceLandMark: serviceLandMark,
       location: finalLocation,
       isIncentiveGiven,
-      incentiveAmount,
+      incentiveAmount: incentiveAmount === null ? 0 : incentiveAmount,
       isTipGiven,
       tipAmount,
       otherInfo,
@@ -339,8 +340,27 @@ export const getServiceRequestList = asyncHandler(
         },
       },
       { $unwind: "$userId" },
+
+      {
+        $addFields: {
+          timeInQueue: {
+            $cond: {
+              if: { $ne: ["$acceptedAt", null] },
+              then: {
+                $dateDiff: {
+                  startDate: "$createdAt",
+                  endDate: "$acceptedAt",
+                  unit: "minute",
+                },
+              },
+              else: 0,
+            },
+          },
+        },
+      },
+
       { $match: searchQuery },
-      { $sort: { createdAt: validSortType } },
+      { $sort: { [validSortBy]: validSortType } },
       { $skip: skip },
       { $limit: limitNumber },
       {
@@ -357,6 +377,7 @@ export const getServiceRequestList = asyncHandler(
           acceptedAt: 1,
           startedAt: 1,
           completedAt: 1,
+          timeInQueue: 1,
         },
       },
     ]);
@@ -606,7 +627,7 @@ export const addorUpdateIncentive = asyncHandler(
       serviceId,
     }: {
       isIncentiveGiven: boolean;
-      incentiveAmount: string;
+      incentiveAmount: number;
       serviceId: string;
     } = req.body;
     console.log("addorUpdateIncentive req.body", req.body);
@@ -626,7 +647,7 @@ export const addorUpdateIncentive = asyncHandler(
     let dataToUpdate = {};
     let previousIncentiveAmount = serviceDeatils?.incentiveAmount;
     if (
-      previousIncentiveAmount === null &&
+      previousIncentiveAmount === 0 &&
       serviceDeatils?.isIncentiveGiven === false
     ) {
       dataToUpdate = {
@@ -2367,6 +2388,46 @@ export const getJobByStatusByAgent = asyncHandler(
     );
   }
 );
+interface ShiftTimSlots {
+  shiftId: string;
+  shiftTimeId: string;
+}
+
+const fetchCalculatedServiceStartTime = async (serviceId: string) => {
+  const serviceDetails = await ServiceModel.findById(serviceId);
+  if (!serviceDetails) {
+    return new ApiError(400, "Service id is required.");
+  }
+  const serviceStartDate = serviceDetails.serviceStartDate;
+  const serviceShift = serviceDetails.serviceShifftId;
+  const selectedSlot = serviceDetails.SelectedShiftTime as ShiftTimSlots;
+  const shiftTimeId = selectedSlot?.shiftTimeId;
+  const shiftDetails = await ShiftModel.findById(serviceShift);
+
+  const slotArray = shiftDetails?.shiftTimes;
+
+  if (!slotArray) {
+    return new ApiError(400, "Service Details is required.");
+  }
+  const selectedTimeRange = slotArray.filter(
+    (slot) => String(slot._id) == String(shiftTimeId)
+  );
+
+  const datePart = moment.utc(serviceStartDate).format("YYYY-MM-DD");
+
+  const timePart = moment
+    .utc(selectedTimeRange[0].startTime)
+    .format("HH:mm:ss");
+  const combinedDateTimeString = `${datePart}T${timePart}Z`;
+
+  const serviceCalculatedStartTime = moment
+    .utc(combinedDateTimeString)
+    .toDate();
+
+  console.log("Combined UTC timestamp:", serviceCalculatedStartTime);
+
+  return serviceCalculatedStartTime;
+};
 
 export const assignJob = asyncHandler(
   async (req: CustomRequest, res: Response) => {
@@ -2380,9 +2441,6 @@ export const assignJob = asyncHandler(
         new ApiError(400, "Service ID is required.")
       );
     }
-
-    let isAssignable = true;
-
     if (userType === "TeamLead") {
       const permissions = await PermissionModel.findOne({
         userId: req.user?._id,
@@ -2402,10 +2460,38 @@ export const assignJob = asyncHandler(
       // const agentUser = await UserModel.findById(assignedAgentId).select('userType');
       // isAssignable = agentUser?.userType === "FieldAgent" || agentUser?.userType === "TeamLead";
     }
+    const assignedServicesToAgent = await ServiceModel.aggregate([
+      {
+        $match: {
+          assignedAgentId: new mongoose.Types.ObjectId(assignedAgentId),
+        },
+      },
+    ]);
+    const AgentBookedTimeslot = await Promise.all(
+      assignedServicesToAgent.map(async (service) => {
+        const time = await fetchCalculatedServiceStartTime(service._id);
+        return time; // returns Date
+      })
+    );
+    const incomingServiceCalculatedDate = await fetchCalculatedServiceStartTime(
+      serviceId
+    );
 
-    // if (!isAssignable) {
-    //     return sendErrorResponse(res, new ApiError(403, "Assigned agent must be a FieldAgent."));
-    // };
+    console.log({ AgentBookedTimeslot });
+    console.log({ incomingServiceCalculatedDate });
+
+    const isConflict = AgentBookedTimeslot.filter(
+      (bookedTime) =>
+        String(bookedTime) == String(incomingServiceCalculatedDate)
+    );
+    console.log({ isConflict });
+    if (isConflict.length > 0) {
+      console.log("conflict due to same slot");      
+      return sendErrorResponse(
+        res,
+        new ApiError(400, "Field agent is not avilable for this date and slot.")
+      );
+    }
 
     const updatedService = await ServiceModel.findByIdAndUpdate(
       serviceId,
@@ -2423,8 +2509,7 @@ export const assignJob = asyncHandler(
         res,
         new ApiError(400, "Service not found for assigning.")
       );
-    }
-    //send notification to field agent when a job is assigned to him
+    } //send notification to field agent when a job is assigned to him
 
     const notificationContent = `You have been assigned a job by ${
       req.user?.firstName ?? "SP"

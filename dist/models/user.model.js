@@ -59,7 +59,7 @@ const UserSchema = new mongoose_1.Schema({
     },
     email: {
         type: String,
-        unique: true,
+        // unique: true,
         lowercase: true,
         default: ""
     },
@@ -71,7 +71,7 @@ const UserSchema = new mongoose_1.Schema({
         type: String,
         default: "",
         required: false,
-        unique: true
+        // unique:true
     },
     password: {
         type: String,

@@ -51,6 +51,10 @@ const sendOTP = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
         const { phoneNumber, purpose, userType } = req.body; //phone number with country code
+        console.log("send otp", req.body);
+        if (!phoneNumber || !purpose || !userType) {
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Invalid payload3"));
+        }
         const lookup = yield client.lookups.v1
             .phoneNumbers(phoneNumber)
             .fetch({ type: ["carrier"] });
@@ -77,6 +81,7 @@ const sendOTP = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         });
         if (purpose !== "verifyPhone") {
             const user = yield user_model_1.default.findOne({
+                userType: userType,
                 phone: phoneNumber,
                 isDeleted: false,
             });

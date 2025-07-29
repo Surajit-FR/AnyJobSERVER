@@ -22,7 +22,7 @@ const serviceAccount = {
     type: config_1.FIREBASE_TYPE,
     project_id: config_1.FIREBASE_PROJECT_ID,
     private_key_id: config_1.FIREBASE_PRIVATE_KEY_ID,
-    private_key: config_1.FIREBASE_PRIVATE_KEY === null || config_1.FIREBASE_PRIVATE_KEY === void 0 ? void 0 : config_1.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    private_key: config_1.FIREBASE_PRIVATE_KEY === null || config_1.FIREBASE_PRIVATE_KEY === void 0 ? void 0 : config_1.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
     client_email: config_1.FIREBASE_CLIENT_EMAIL,
     client_id: config_1.FIREBASE_CLIENT_ID,
     auth_uri: config_1.FIREBASE_AUTH_URI,
@@ -42,7 +42,9 @@ const storeFcmToken = (req, res) => __awaiter(void 0, void 0, void 0, function* 
     try {
         const { userId, token } = req.body;
         if (!userId || !token) {
-            return res.status(400).json({ message: "User ID and token are required." });
+            return res
+                .status(400)
+                .json({ message: "User ID and token are required." });
         }
         const userRef = firestore.collection("fcmTokens").doc(userId);
         const doc = yield userRef.get();
@@ -124,7 +126,9 @@ function sendPushNotification(userId, title, body, dbData) {
             // Handle invalid tokens
             response.responses.forEach((res, index) => {
                 var _a, _b;
-                if (!res.success && (((_a = res.error) === null || _a === void 0 ? void 0 : _a.code) === "messaging/registration-token-not-registered" || ((_b = res.error) === null || _b === void 0 ? void 0 : _b.code) === "messaging/invalid-argument")) {
+                if (!res.success &&
+                    (((_a = res.error) === null || _a === void 0 ? void 0 : _a.code) === "messaging/registration-token-not-registered" ||
+                        ((_b = res.error) === null || _b === void 0 ? void 0 : _b.code) === "messaging/invalid-argument")) {
                     tokens.splice(index, 1);
                 }
             });
@@ -147,4 +151,3 @@ function sendPushNotification(userId, title, body, dbData) {
         }
     });
 }
-;

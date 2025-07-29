@@ -41,6 +41,11 @@ export const generateVerificationCode = (length: number): number => {
 export const sendOTP = async (req: Request, res: Response) => {
   try {
     const { phoneNumber, purpose, userType } = req.body; //phone number with country code
+    console.log("send otp", req.body);
+
+    if (!phoneNumber || !purpose || !userType) {
+      return sendErrorResponse(res, new ApiError(400, "Invalid payload3"));
+    }
     const lookup = await client.lookups.v1
       .phoneNumbers(phoneNumber)
       .fetch({ type: ["carrier"] });
@@ -80,6 +85,7 @@ export const sendOTP = async (req: Request, res: Response) => {
 
     if (purpose !== "verifyPhone") {
       const user = await UserModel.findOne({
+        userType: userType,
         phone: phoneNumber,
         isDeleted: false,
       });
@@ -133,8 +139,8 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
 
   // console.log(req.body);
 
-  if (!identifier || !otp || !purpose ) {
-    console.log("triggered");    
+  if (!identifier || !otp || !purpose) {
+    console.log("triggered");
     return sendErrorResponse(
       res,
       new ApiError(

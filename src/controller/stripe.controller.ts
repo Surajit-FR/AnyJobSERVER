@@ -27,6 +27,10 @@ export async function createCustomerIfNotExists(userId: string) {
     const customer = await stripe.customers.create({
       email: user.email,
       name: user.firstName + " " + user.lastName || "default",
+      metadata: {
+        appUserType:user.userType,
+        appUserId: String(user._id),
+      },
     });
     await UserModel.findByIdAndUpdate(
       { _id: userId },
@@ -725,7 +729,7 @@ export const createServiceCancellationCheckoutSession = async (
     });
     const SPStripeAccountId = SPStripeAccount?.stripeConnectedAccountId;
     const amount = Math.round(serviceCost * 0.25);
-    console.log({amount})
+    console.log({ amount });
     const AnyJobAmount = Math.ceil(amount * 25) / 100;
     const SPAmount = Math.ceil(amount * 75) / 100;
     const user = await UserModel.findById(userId);

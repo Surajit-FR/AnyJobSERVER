@@ -73,9 +73,11 @@ const stripeWebhook = (req, res) => __awaiter(void 0, void 0, void 0, function* 
 exports.stripeWebhook = stripeWebhook;
 //EVENT HANDLERS
 const handleCustomerCreated = (customer) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("WEBHOOK RUNS: CUSTOMER CREATED");
+    console.log("WEBHOOK RUNS: CUSTOMER CREATED", customer);
+    const userType = customer.metadata.appUserType;
+    const email = customer.email;
     // Store customer ID in database
-    yield user_model_1.default.findOneAndUpdate({ email: customer.email }, { stripeCustomerId: customer.id }, { new: true, upsert: true });
+    yield user_model_1.default.findOneAndUpdate({ email, userType }, { stripeCustomerId: customer.id }, { new: true, upsert: true });
 });
 const handlePaymentMethodAttached = (paymentMethod) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("WEBHOOK RUNS: ATTATCH PAYMENT METHOD");

@@ -41,6 +41,10 @@ function createCustomerIfNotExists(userId) {
             const customer = yield stripe.customers.create({
                 email: user.email,
                 name: user.firstName + " " + user.lastName || "default",
+                metadata: {
+                    appUserType: user.userType,
+                    appUserId: String(user._id),
+                },
             });
             yield user_model_1.default.findByIdAndUpdate({ _id: userId }, { stripeCustomerId: customer.id });
         }

@@ -76,11 +76,12 @@ export const stripeWebhook = async (req: Request, res: Response) => {
 
 //EVENT HANDLERS
 const handleCustomerCreated = async (customer: any) => {
-  console.log("WEBHOOK RUNS: CUSTOMER CREATED");
-
+  console.log("WEBHOOK RUNS: CUSTOMER CREATED", customer);
+  const userType = customer.metadata.appUserType;
+  const email = customer.email;
   // Store customer ID in database
   await UserModel.findOneAndUpdate(
-    { email: customer.email },
+    { email, userType },
     { stripeCustomerId: customer.id },
     { new: true, upsert: true }
   );
@@ -325,7 +326,6 @@ const handleServiceIncentivePayment = async (session: any) => {
     //   },
     //   { new: true }
     // );
-    
   } catch (error: any) {
     console.error("❌ Error in handleCheckoutSessionCompleted:", error);
   }
@@ -542,7 +542,7 @@ const handleServiceCancellationFee = async (session: any) => {
       type: "credit",
       amount: (session.amount_total / 100) * 0.25,
       description: "ServiceCancellationAmount",
-      stripeTransactionId:paymentIntent?.id,  
+      stripeTransactionId: paymentIntent?.id,
       serviceId: session.metadata.serviceId,
     };
     await new AdminRevenueModel(transaction).save();

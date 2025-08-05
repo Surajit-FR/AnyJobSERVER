@@ -20,6 +20,8 @@ import OTPModel from "../../models/otp.model";
 import AddressModel from "../../models/address.model";
 import AdditionalInfoModel from "../../models/userAdditionalInfo.model";
 import bcrypt from "bcrypt";
+import { firestore } from "../../utils/sendPushNotification";
+import admin from "firebase-admin";
 
 // fetchUserData func.
 export const fetchUserData = async (userId: string | ObjectId) => {
@@ -368,26 +370,50 @@ export const saveFcmToken = asyncHandler(
 // logout user controller
 export const logoutUser = asyncHandler(
   async (req: CustomRequest, res: Response) => {
-    if (!req.user || !req.user?._id) {
+    if (!req.user || !req.user._id) {
       return sendErrorResponse(
         res,
         new ApiError(400, "User not found in request")
       );
     }
 
-    const userId = req.user?._id;
+    const userId = req.user._id.toString();
+    const { deviceId } = req.body;
 
+    if (!deviceId) {
+      return res.status(400).json({ message: "Device ID is required." });
+    }
+
+    // Remove the FCM token for the specific device
+    const userRef = firestore.collection("fcmTokens").doc(userId);
+    const doc = await userRef.get();
+
+    if (doc.exists) {
+      const tokens: { token: string; deviceId: string }[] =
+        doc.data()?.tokens || [];
+
+      const updatedTokens = tokens.filter(
+        (entry) => entry.deviceId !== deviceId
+      );
+
+      await userRef.update({
+        tokens: updatedTokens,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+
+    // Clear the refresh token in DB
     await UserModel.findByIdAndUpdate(
       userId,
       {
         $set: {
           refreshToken: "",
-          fcmToken: "",
         },
       },
       { new: true }
     );
 
+    // Clear auth cookies
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -401,6 +427,7 @@ export const logoutUser = asyncHandler(
       .json(new ApiResponse(200, {}, "User logged out successfully"));
   }
 );
+
 
 // refreshAccessToken controller
 export const refreshAccessToken = asyncHandler(

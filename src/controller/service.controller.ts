@@ -813,7 +813,7 @@ export const handleServiceRequestState = asyncHandler(
           }
         );
         const customerPhoneNumber = customerDetails?.phone;
-        // await sendSMS(customerPhoneNumber, notificationContent);
+        await sendSMS(customerPhoneNumber, notificationContent);
       }
       //if a service is in accepted mode or CancelledByFA mode then one can start that service by assigning FA...
       if (
@@ -840,7 +840,7 @@ export const handleServiceRequestState = asyncHandler(
             }
           );
           const customerPhoneNumber = customerDetails?.phone;
-          // await sendSMS(customerPhoneNumber, notificationContent);
+          await sendSMS(customerPhoneNumber, notificationContent);
         } else if (req.user?.userType === "FieldAgent") {
           await sendPushNotification(
             serviceRequest?.serviceProviderId.toString() as string,
@@ -867,7 +867,7 @@ export const handleServiceRequestState = asyncHandler(
             }
           );
           const customerPhoneNumber = customerDetails?.phone;
-          // await sendSMS(customerPhoneNumber, notificationContent);
+          await sendSMS(customerPhoneNumber, notificationContent);
         }
       }
       if (
@@ -893,7 +893,7 @@ export const handleServiceRequestState = asyncHandler(
             }
           );
           const customerPhoneNumber = customerDetails?.phone;
-          // await sendSMS(customerPhoneNumber, notificationContent);
+          await sendSMS(customerPhoneNumber, notificationContent);
         } else if (req.user?.userType === "FieldAgent") {
           await sendPushNotification(
             serviceRequest?.serviceProviderId.toString() as string,
@@ -920,7 +920,7 @@ export const handleServiceRequestState = asyncHandler(
             }
           );
           const customerPhoneNumber = customerDetails?.phone;
-          // await sendSMS(customerPhoneNumber, notificationContent);
+          await sendSMS(customerPhoneNumber, notificationContent);
         }
       }
     }
@@ -949,7 +949,7 @@ export const handleServiceRequestState = asyncHandler(
           }
         );
         const customerPhoneNumber = customerDetails?.phone;
-        // await sendSMS(customerPhoneNumber, notificationContent);
+        await sendSMS(customerPhoneNumber, notificationContent);
       }
       if (userType === "FieldAgent") {
         (updateData.requestProgress = "CancelledByFA"),

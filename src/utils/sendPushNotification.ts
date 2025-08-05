@@ -33,36 +33,42 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount as any),
 });
 
-const firestore = admin.firestore(); //Gets firebase store
+export const firestore = admin.firestore(); //Gets firebase store
 // console.log(firestore,"firestore");
 
 // Store FCM token
 export const storeFcmToken = async (req: Request, res: Response) => {
   try {
-    const { userId, token } = req.body;
+    const { userId, token, deviceId } = req.body;
 
-    if (!userId || !token) {
+    if (!userId || !token || !deviceId) {
       return res
         .status(400)
-        .json({ message: "User ID and token are required." });
+        .json({ message: "User ID, token, and device ID are required." });
     }
 
     const userRef = firestore.collection("fcmTokens").doc(userId);
-
     const doc = await userRef.get();
 
-    if (doc.exists) {
-      const existingTokens: string[] = doc.data()?.tokens || [];
+    const newEntry = { token, deviceId };
 
-      if (!existingTokens.includes(token)) {
+    if (doc.exists) {
+      const existingTokens: { token: string; deviceId: string }[] =
+        doc.data()?.tokens || [];
+
+      const alreadyExists = existingTokens.some(
+        (entry) => entry.token === token && entry.deviceId === deviceId
+      );
+
+      if (!alreadyExists) {
         await userRef.update({
-          tokens: [...existingTokens, token],
+          tokens: [...existingTokens, newEntry],
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
       }
     } else {
       await userRef.set({
-        tokens: [token],
+        tokens: [newEntry],
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
     }

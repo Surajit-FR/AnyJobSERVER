@@ -48,7 +48,7 @@ const sendMailToAdmin = (from, senderName, html) => __awaiter(void 0, void 0, vo
     try {
         const info = yield transporter.sendMail({
             from: `${senderName}<${from}>`,
-            to: "miltonbaker.psoriatic@gmail.com",
+            to: "info@anyjob.com",
             subject: `New Message from ${senderName}`,
             html,
         });

@@ -29,6 +29,8 @@ const otp_controller_1 = require("../otp.controller");
 const otp_model_1 = __importDefault(require("../../models/otp.model"));
 const address_model_1 = __importDefault(require("../../models/address.model"));
 const userAdditionalInfo_model_1 = __importDefault(require("../../models/userAdditionalInfo.model"));
+const sendPushNotification_1 = require("../../utils/sendPushNotification");
+const firebase_admin_1 = __importDefault(require("firebase-admin"));
 // fetchUserData func.
 const fetchUserData = (userId) => __awaiter(void 0, void 0, void 0, function* () {
     const user = yield user_model_1.default.aggregate([
@@ -234,17 +236,33 @@ exports.saveFcmToken = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(
 }));
 // logout user controller
 exports.logoutUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b;
-    if (!req.user || !((_a = req.user) === null || _a === void 0 ? void 0 : _a._id)) {
+    var _a;
+    if (!req.user || !req.user._id) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "User not found in request"));
     }
-    const userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+    const userId = req.user._id.toString();
+    const { deviceId } = req.body;
+    if (!deviceId) {
+        return res.status(400).json({ message: "Device ID is required." });
+    }
+    // Remove the FCM token for the specific device
+    const userRef = sendPushNotification_1.firestore.collection("fcmTokens").doc(userId);
+    const doc = yield userRef.get();
+    if (doc.exists) {
+        const tokens = ((_a = doc.data()) === null || _a === void 0 ? void 0 : _a.tokens) || [];
+        const updatedTokens = tokens.filter((entry) => entry.deviceId !== deviceId);
+        yield userRef.update({
+            tokens: updatedTokens,
+            updatedAt: firebase_admin_1.default.firestore.FieldValue.serverTimestamp(),
+        });
+    }
+    // Clear the refresh token in DB
     yield user_model_1.default.findByIdAndUpdate(userId, {
         $set: {
             refreshToken: "",
-            fcmToken: "",
         },
     }, { new: true });
+    // Clear auth cookies
     const cookieOptions = {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",

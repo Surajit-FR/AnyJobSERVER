@@ -554,7 +554,7 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
                 notificationType: "Service Accepted",
             });
             const customerPhoneNumber = customerDetails === null || customerDetails === void 0 ? void 0 : customerDetails.phone;
-            yield (0, otp_controller_1.sendSMS)(customerPhoneNumber, notificationContent);
+            // await sendSMS(customerPhoneNumber, notificationContent);
         }
         //if a service is in accepted mode or CancelledByFA mode then one can start that service by assigning FA...
         if ((serviceRequest.requestProgress === "Pending" ||
@@ -573,7 +573,7 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
                     notificationType: "Service Started",
                 });
                 const customerPhoneNumber = customerDetails === null || customerDetails === void 0 ? void 0 : customerDetails.phone;
-                yield (0, otp_controller_1.sendSMS)(customerPhoneNumber, notificationContent);
+                // await sendSMS(customerPhoneNumber, notificationContent);
             }
             else if (((_p = req.user) === null || _p === void 0 ? void 0 : _p.userType) === "FieldAgent") {
                 yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.serviceProviderId.toString(), 
@@ -593,7 +593,7 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
                     notificationType: "Service Started",
                 });
                 const customerPhoneNumber = customerDetails === null || customerDetails === void 0 ? void 0 : customerDetails.phone;
-                yield (0, otp_controller_1.sendSMS)(customerPhoneNumber, notificationContent);
+                // await sendSMS(customerPhoneNumber, notificationContent);
             }
         }
         if (serviceRequest.requestProgress === "Started" &&
@@ -611,7 +611,7 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
                     notificationType: "Service Started",
                 });
                 const customerPhoneNumber = customerDetails === null || customerDetails === void 0 ? void 0 : customerDetails.phone;
-                yield (0, otp_controller_1.sendSMS)(customerPhoneNumber, notificationContent);
+                // await sendSMS(customerPhoneNumber, notificationContent);
             }
             else if (((_y = req.user) === null || _y === void 0 ? void 0 : _y.userType) === "FieldAgent") {
                 yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.serviceProviderId.toString(), 
@@ -631,7 +631,7 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
                     notificationType: "Service Started",
                 });
                 const customerPhoneNumber = customerDetails === null || customerDetails === void 0 ? void 0 : customerDetails.phone;
-                yield (0, otp_controller_1.sendSMS)(customerPhoneNumber, notificationContent);
+                // await sendSMS(customerPhoneNumber, notificationContent);
             }
         }
     }
@@ -652,7 +652,7 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
                 notificationType: "Service Started",
             });
             const customerPhoneNumber = customerDetails === null || customerDetails === void 0 ? void 0 : customerDetails.phone;
-            yield (0, otp_controller_1.sendSMS)(customerPhoneNumber, notificationContent);
+            // await sendSMS(customerPhoneNumber, notificationContent);
         }
         if (userType === "FieldAgent") {
             (updateData.requestProgress = "CancelledByFA"),

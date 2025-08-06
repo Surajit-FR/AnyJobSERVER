@@ -22,6 +22,7 @@ import { parsePhoneNumberFromString } from "libphonenumber-js";
 import Stripe from "stripe";
 import AdminRevenueModel from "../models/adminRevenue.model";
 import ServiceModel from "../models/service.model";
+import CancellationFeeModel from "../models/cancellationFee.model";
 const stripe = new Stripe(STRIPE_SECRET_KEY, {
   apiVersion: "2024-09-30.acacia" as any,
 });
@@ -1610,6 +1611,84 @@ export const getPaymentMethods = async (req: CustomRequest, res: Response) => {
   }
 };
 
+// export const getCustomersTransaction = async (
+//   req: CustomRequest,
+//   res: Response
+// ) => {
+//   try {
+//     const userId = req.user?._id;
+
+//     const transactionsDetails = await PurchaseModel.aggregate([
+//       {
+//         $match: {
+//           userId: userId,
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "cancellationfees",
+//           foreignField: "userId",
+//           localField: "userId",
+//           as: "cancellationDetails",
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "users",
+//           foreignField: "_id",
+//           localField: "userId",
+//           as: "userDetails",
+//         },
+//       },
+//       {
+//         $unwind: {
+//           preserveNullAndEmptyArrays: true,
+//           path: "$userDetails",
+//         },
+//       },
+//       {
+//         $addFields: {
+//           userName: {
+//             $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"],
+//           },
+//           userImage: "$userDetails.avatar",
+//         },
+//       },
+//       {
+//         $project: {
+//           _id: 1,
+//           userId: 1,
+//           userName: 1,
+//           userImage: 1,
+//           cancellationDetails: 1,
+//           serviceId: 1,
+//           paymentMethodDetails: 1,
+//           paymentIntentId: 1,
+//           currency: 1,
+//           amount: 1,
+//           status: 1,
+//           createdAt: 1,
+//           updatedAt: 1,
+//         },
+//       },
+//     ]);
+
+//     if (!transactionsDetails) {
+//       return res.status(404).json({ message: "No transaction was found" });
+//     }
+
+//     return sendSuccessResponse(
+//       res,
+//       200,
+//       transactionsDetails,
+//       "Transaction history fetched successfully"
+//     );
+//   } catch (error) {
+//     console.error("Error fetching payment methods:", error);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
+
 export const getCustomersTransaction = async (
   req: CustomRequest,
   res: Response
@@ -1617,64 +1696,81 @@ export const getCustomersTransaction = async (
   try {
     const userId = req.user?._id;
 
-    const transactionsDetails = await PurchaseModel.aggregate([
-      {
-        $match: {
-          userId: userId,
-        },
-      },
-      {
-        $lookup: {
-          from: "users",
-          foreignField: "_id",
-          localField: "userId",
-          as: "userDetails",
-        },
-      },
-      {
-        $unwind: {
-          preserveNullAndEmptyArrays: true,
-          path: "$userDetails",
-        },
-      },
-      {
-        $addFields: {
-          userName: {
-            $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"],
+    const [purchases, cancellations] = await Promise.all([
+      PurchaseModel.aggregate([
+        { $match: { userId } },
+        {
+          $lookup: {
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "userDetails",
           },
-          userImage: "$userDetails.avatar",
         },
-      },
-      {
-        $project: {
-          _id: 1,
-          userId: 1,
-          userName: 1,
-          userImage: 1,
-          serviceId: 1,
-          paymentMethodDetails: 1,
-          paymentIntentId: 1,
-          currency: 1,
-          amount: 1,
-          status: 1,
-          createdAt: 1,
-          updatedAt: 1,
+        {
+          $unwind: {
+            path: "$userDetails",
+            preserveNullAndEmptyArrays: true,
+          },
         },
-      },
+        {
+          $addFields: {
+            userName: {
+              $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"],
+            },
+            userImage: "$userDetails.avatar",
+            type: { $literal: "incentiveFee" },
+          },
+        },
+        {
+          $project: {
+            userDetails: 0,
+          },
+        },
+      ]),
+      CancellationFeeModel.aggregate([
+        { $match: { userId } },
+        {
+          $lookup: {
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "userDetails",
+          },
+        },
+        {
+          $unwind: {
+            path: "$userDetails",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $addFields: {
+            userName: {
+              $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"],
+            },
+            userImage: "$userDetails.avatar",
+            type: { $literal: "cancellationFee" },
+          },
+        },
+        {
+          $project: {
+            userDetails: 0,
+          },
+        },
+      ]),
     ]);
 
-    if (!transactionsDetails) {
-      return res.status(404).json({ message: "No transaction was found" });
-    }
+    const transactions = [...purchases, ...cancellations];
 
     return sendSuccessResponse(
       res,
       200,
-      transactionsDetails,
+      transactions,
       "Transaction history fetched successfully"
     );
   } catch (error) {
-    console.error("Error fetching payment methods:", error);
+    console.error("Error fetching customer transactions:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -1943,21 +2039,20 @@ export const getDashboardCardsDetails = asyncHandler(
     const totalGeneratedService = await ServiceModel.find({}).countDocuments();
 
     const balance = await stripe.balance.retrieve();
-    const avilable = balance.available[0].amount 
-    const pending = balance.pending[0].amount 
+    const avilable = balance.available[0].amount;
+    const pending = balance.pending[0].amount;
 
     return sendSuccessResponse(
       res,
       200,
       {
-        totalCustomer, 
-        totalServiceProvider, 
-        totalGeneratedService, 
-        balance:{
+        totalCustomer,
+        totalServiceProvider,
+        totalGeneratedService,
+        balance: {
           avilable,
-          pending
-        }, 
-        
+          pending,
+        },
       },
       "Dashboard card details fetched successfully"
     );

@@ -27,6 +27,10 @@ const axios_1 = __importDefault(require("axios"));
 const sendPushNotification_1 = require("../utils/sendPushNotification");
 const wallet_model_1 = __importDefault(require("../models/wallet.model"));
 const stripe_controller_1 = require("./stripe.controller");
+const otp_controller_1 = require("./otp.controller");
+const tz_lookup_1 = __importDefault(require("tz-lookup"));
+const moment_timezone_1 = __importDefault(require("moment-timezone"));
+const shift_model_1 = __importDefault(require("../models/shift.model"));
 const testFcm = "fVSB8tntRb2ufrLcySfGxs:APA91bH3CCLoxCPSmRuTo4q7j0aAxWLCdu6WtAdBWogzo79j69u8M_qFwcNygw7LIGrLYBXFqz2SUZI-4js8iyHxe12BMe-azVy2v7d22o4bvxy2pzTZ4kE";
 //is cancellation fee is applicable or not
 function isCancellationFeeApplicable(serviceId) {
@@ -63,7 +67,7 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
     let locationDetails, finalLongitude, finalLatitude, finalLocation;
     const { categoryId, serviceStartDate, serviceShifftId, SelectedShiftTime, serviceZipCode, serviceAddress, serviceLatitude, serviceLongitude, useMyCurrentLocation, serviceLandMark, userPhoneNumber, isIncentiveGiven, incentiveAmount, isTipGiven, tipAmount, otherInfo, serviceProductImage, answerArray, serviceAddressId, // Expecting answerArray instead of answers
      } = req.body;
-    // console.log(req.body);
+    console.log(req.body);
     // Validate required fields
     if (!categoryId)
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Category ID is required."));
@@ -161,7 +165,7 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
         serviceLandMark: serviceLandMark,
         location: finalLocation,
         isIncentiveGiven,
-        incentiveAmount,
+        incentiveAmount: incentiveAmount === null ? 0 : incentiveAmount,
         isTipGiven,
         tipAmount,
         otherInfo,
@@ -214,8 +218,25 @@ exports.getServiceRequestList = (0, asyncHandler_1.asyncHandler)((req, res) => _
             },
         },
         { $unwind: "$userId" },
+        {
+            $addFields: {
+                timeInQueue: {
+                    $cond: {
+                        if: { $ne: ["$acceptedAt", null] },
+                        then: {
+                            $dateDiff: {
+                                startDate: "$createdAt",
+                                endDate: "$acceptedAt",
+                                unit: "minute",
+                            },
+                        },
+                        else: 0,
+                    },
+                },
+            },
+        },
         { $match: searchQuery },
-        { $sort: { createdAt: validSortType } },
+        { $sort: { [validSortBy]: validSortType } },
         { $skip: skip },
         { $limit: limitNumber },
         {
@@ -224,10 +245,15 @@ exports.getServiceRequestList = (0, asyncHandler_1.asyncHandler)((req, res) => _
                 serviceStartDate: 1,
                 requestProgress: 1,
                 tipAmount: 1,
+                incentiveAmount: 1,
                 "userId.firstName": 1,
                 "userId.lastName": 1,
                 // userName: { $concat: ["$userId.firstName", " ", "$userId.lastName"] },
                 createdAt: 1,
+                acceptedAt: 1,
+                startedAt: 1,
+                completedAt: 1,
+                timeInQueue: 1,
             },
         },
     ]);
@@ -414,15 +440,32 @@ exports.cancelServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __
 exports.addorUpdateIncentive = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const { incentiveAmount, serviceId, } = req.body;
+    console.log("addorUpdateIncentive req.body", req.body);
+    console.log(typeof req.body.incentiveAmount);
     if (!serviceId || !incentiveAmount) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service ID, incentive check and incentive amount is required."));
     }
-    const updatedService = yield service_model_1.default.findOneAndUpdate({ _id: new mongoose_1.default.Types.ObjectId(serviceId), userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id }, {
-        $set: {
+    const serviceDeatils = yield service_model_1.default.findById({ _id: serviceId });
+    let dataToUpdate = {};
+    let previousIncentiveAmount = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.incentiveAmount;
+    if (previousIncentiveAmount === 0 &&
+        (serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.isIncentiveGiven) === false) {
+        dataToUpdate = {
             isIncentiveGiven: true,
             incentiveAmount,
-        },
+        };
+    }
+    else {
+        dataToUpdate = {
+            isIncentiveGiven: true,
+            // $inc:{incentiveAmount:Number(incentiveAmount)}
+            incentiveAmount: Number(incentiveAmount) + Number(previousIncentiveAmount),
+        };
+    }
+    const updatedService = yield service_model_1.default.findOneAndUpdate({ _id: new mongoose_1.default.Types.ObjectId(serviceId), userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id }, {
+        $set: dataToUpdate,
     }, { new: true });
+    console.log({ updatedService });
     if (!updatedService) {
         return (0, response_1.sendSuccessResponse)(res, 200, "Service request not found for updating.");
     }
@@ -442,6 +485,9 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service not found."));
     }
     const customerDetails = yield user_model_1.default.findById(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.userId);
+    if (!customerDetails) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Customer details not found."));
+    }
     const serviceProviderDetails = yield user_model_1.default.findById(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.serviceProviderId).select("serviceProviderId");
     let serviceProviderId = userId;
     if (userType === "TeamLead") {
@@ -507,6 +553,8 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
                 title: notificationContent,
                 notificationType: "Service Accepted",
             });
+            const customerPhoneNumber = customerDetails === null || customerDetails === void 0 ? void 0 : customerDetails.phone;
+            yield (0, otp_controller_1.sendSMS)(customerPhoneNumber, notificationContent);
         }
         //if a service is in accepted mode or CancelledByFA mode then one can start that service by assigning FA...
         if ((serviceRequest.requestProgress === "Pending" ||
@@ -524,6 +572,8 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
                     title: notificationContent,
                     notificationType: "Service Started",
                 });
+                const customerPhoneNumber = customerDetails === null || customerDetails === void 0 ? void 0 : customerDetails.phone;
+                yield (0, otp_controller_1.sendSMS)(customerPhoneNumber, notificationContent);
             }
             else if (((_p = req.user) === null || _p === void 0 ? void 0 : _p.userType) === "FieldAgent") {
                 yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.serviceProviderId.toString(), 
@@ -542,6 +592,8 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
                     title: notificationContent,
                     notificationType: "Service Started",
                 });
+                const customerPhoneNumber = customerDetails === null || customerDetails === void 0 ? void 0 : customerDetails.phone;
+                yield (0, otp_controller_1.sendSMS)(customerPhoneNumber, notificationContent);
             }
         }
         if (serviceRequest.requestProgress === "Started" &&
@@ -558,6 +610,8 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
                     title: notificationContent,
                     notificationType: "Service Started",
                 });
+                const customerPhoneNumber = customerDetails === null || customerDetails === void 0 ? void 0 : customerDetails.phone;
+                yield (0, otp_controller_1.sendSMS)(customerPhoneNumber, notificationContent);
             }
             else if (((_y = req.user) === null || _y === void 0 ? void 0 : _y.userType) === "FieldAgent") {
                 yield (0, sendPushNotification_1.sendPushNotification)(serviceRequest === null || serviceRequest === void 0 ? void 0 : serviceRequest.serviceProviderId.toString(), 
@@ -576,6 +630,8 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
                     title: notificationContent,
                     notificationType: "Service Started",
                 });
+                const customerPhoneNumber = customerDetails === null || customerDetails === void 0 ? void 0 : customerDetails.phone;
+                yield (0, otp_controller_1.sendSMS)(customerPhoneNumber, notificationContent);
             }
         }
     }
@@ -595,6 +651,8 @@ exports.handleServiceRequestState = (0, asyncHandler_1.asyncHandler)((req, res) 
                 title: notificationContent,
                 notificationType: "Service Started",
             });
+            const customerPhoneNumber = customerDetails === null || customerDetails === void 0 ? void 0 : customerDetails.phone;
+            yield (0, otp_controller_1.sendSMS)(customerPhoneNumber, notificationContent);
         }
         if (userType === "FieldAgent") {
             (updateData.requestProgress = "CancelledByFA"),
@@ -666,7 +724,7 @@ exports.fetchServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __a
     const validSortType = sortType.toLowerCase() === "desc" ? -1 : 1;
     const sortCriteria = {};
     sortCriteria[validSortBy] = validSortType;
-    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id; //sp
     const userType = (_b = req.user) === null || _b === void 0 ? void 0 : _b.userType;
     let serviceProviderId;
     let address;
@@ -899,193 +957,422 @@ exports.fetchNearByServiceProvider = (0, asyncHandler_1.asyncHandler)((req, res)
 }));
 // fetchSingleServiceRequest controller
 exports.fetchSingleServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c, _d;
     const { serviceId } = req.params;
+    console.log({ serviceId });
     if (!serviceId) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service request ID is required."));
     }
-    const serviceRequestToFetch = yield service_model_1.default.aggregate([
-        {
-            $match: {
-                isDeleted: false,
-                _id: new mongoose_1.default.Types.ObjectId(serviceId),
+    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
+    if (((_b = req.user) === null || _b === void 0 ? void 0 : _b.userType) !== "ServiceProvider") {
+        const serviceRequestToFetch = yield service_model_1.default.aggregate([
+            {
+                $match: {
+                    isDeleted: false,
+                    _id: new mongoose_1.default.Types.ObjectId(serviceId),
+                },
             },
-        },
-        {
-            $lookup: {
-                from: "categories",
-                foreignField: "_id",
-                localField: "categoryId",
-                as: "categoryId",
+            {
+                $lookup: {
+                    from: "categories",
+                    foreignField: "_id",
+                    localField: "categoryId",
+                    as: "categoryId",
+                },
             },
-        },
-        {
-            $unwind: {
-                // preserveNullAndEmptyArrays: true,
-                path: "$categoryId",
+            {
+                $unwind: {
+                    // preserveNullAndEmptyArrays: true,
+                    path: "$categoryId",
+                },
             },
-        },
-        {
-            $lookup: {
-                from: "users",
-                foreignField: "_id",
-                localField: "userId",
-                as: "userId",
-                pipeline: [
-                    {
-                        $lookup: {
-                            from: "ratings",
-                            foreignField: "ratedTo",
-                            localField: "_id",
-                            as: "userRatings",
+            {
+                $lookup: {
+                    from: "users",
+                    foreignField: "_id",
+                    localField: "userId",
+                    as: "userId",
+                    pipeline: [
+                        {
+                            $lookup: {
+                                from: "ratings",
+                                foreignField: "ratedTo",
+                                localField: "_id",
+                                as: "userRatings",
+                            },
                         },
-                    },
-                    {
-                        $addFields: {
-                            totalRatings: { $ifNull: [{ $size: "$userRatings" }, 0] },
-                            userAvgRating: {
-                                $ifNull: [{ $avg: "$userRatings.rating" }, 0],
+                        {
+                            $addFields: {
+                                totalRatings: { $ifNull: [{ $size: "$userRatings" }, 0] },
+                                userAvgRating: {
+                                    $ifNull: [{ $avg: "$userRatings.rating" }, 0],
+                                },
+                            },
+                        },
+                    ],
+                },
+            },
+            {
+                $unwind: {
+                    preserveNullAndEmptyArrays: true,
+                    path: "$userId",
+                },
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    foreignField: "_id",
+                    localField: "serviceProviderId",
+                    as: "serviceProviderId",
+                    pipeline: [
+                        {
+                            $lookup: {
+                                from: "additionalinfos",
+                                foreignField: "userId",
+                                localField: "_id",
+                                as: "providerAdditionalInfo",
+                            },
+                        },
+                    ],
+                },
+            },
+            {
+                $unwind: {
+                    preserveNullAndEmptyArrays: true,
+                    path: "$serviceProviderId",
+                },
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    foreignField: "_id",
+                    localField: "assignedAgentId",
+                    as: "assignedAgentId",
+                },
+            },
+            {
+                $unwind: {
+                    preserveNullAndEmptyArrays: true,
+                    path: "$assignedAgentId",
+                },
+            },
+            {
+                $lookup: {
+                    from: "shifts",
+                    foreignField: "_id",
+                    localField: "serviceShifftId",
+                    as: "serviceShifftId",
+                },
+            },
+            {
+                $unwind: {
+                    preserveNullAndEmptyArrays: true,
+                    path: "$serviceShifftId",
+                },
+            },
+            {
+                $addFields: {
+                    bookedTimeSlot: {
+                        $filter: {
+                            input: "$serviceShifftId.shiftTimes",
+                            as: "shiftTime",
+                            cond: {
+                                $eq: ["$$shiftTime._id", "$SelectedShiftTime.shiftTimeId"],
                             },
                         },
                     },
-                ],
+                },
             },
-        },
-        {
-            $unwind: {
-                preserveNullAndEmptyArrays: true,
-                path: "$userId",
-            },
-        },
-        {
-            $lookup: {
-                from: "users",
-                foreignField: "_id",
-                localField: "serviceProviderId",
-                as: "serviceProviderId",
-                pipeline: [
-                    {
-                        $lookup: {
-                            from: "additionalinfos",
-                            foreignField: "userId",
-                            localField: "_id",
-                            as: "providerAdditionalInfo",
+            {
+                $project: {
+                    categoryName: "$categoryId.name",
+                    LeadGenerationFee: {
+                        $floor: {
+                            $multiply: [{ $toDouble: "$categoryId.serviceCost" }, 0.25],
                         },
                     },
-                ],
+                    bookedServiceShift: "$serviceShifftId.shiftName",
+                    bookedTimeSlot: 1,
+                    serviceStartDate: 1,
+                    customerId: "$userId._id",
+                    customerName: {
+                        $concat: ["$userId.firstName", " ", "$userId.lastName"],
+                    },
+                    customerEmail: "$userId.email",
+                    customerAvatar: "$userId.avatar",
+                    customerPhone: "$userId.phone",
+                    totalCustomerRatings: "$userId.totalRatings",
+                    customerAvgRating: "$userId.userAvgRating",
+                    serviceProviderName: {
+                        $concat: [
+                            "$serviceProviderId.firstName",
+                            " ",
+                            "$serviceProviderId.lastName",
+                        ],
+                    },
+                    serviceProviderID: "$serviceProviderId._id",
+                    serviceProviderEmail: "$serviceProviderId.email",
+                    serviceProviderAvatar: "$serviceProviderId.avatar",
+                    serviceProviderPhone: "$serviceProviderId.phone",
+                    serviceProviderCompanyName: "$serviceProviderId.providerAdditionalInfo.companyName",
+                    serviceProviderCompanyDesc: "$serviceProviderId.providerAdditionalInfo.companyIntroduction",
+                    serviceProviderBusinessImage: "$serviceProviderId.providerAdditionalInfo.businessImage",
+                    assignedAgentName: {
+                        $concat: [
+                            "$assignedAgentId.firstName",
+                            " ",
+                            "$assignedAgentId.lastName",
+                        ],
+                    },
+                    assignedAgentID: "$assignedAgentId._id",
+                    assignedAgentEmail: "$assignedAgentId.email",
+                    assignedAgentAvatar: "$assignedAgentId.avatar",
+                    assignedAgentPhone: "$assignedAgentId.phone",
+                    serviceAddress: 1,
+                    answerArray: 1,
+                    serviceProductImage: 1,
+                    serviceDescription: "$otherInfo.serviceDescription",
+                    serviceProductSerialNumber: "$otherInfo.productSerialNumber",
+                    isReqAcceptedByServiceProvider: 1,
+                    requestProgress: 1,
+                    isIncentiveGiven: 1,
+                    incentiveAmount: 1,
+                    createdAt: 1,
+                    updatedAt: 1,
+                    serviceLatitude: 1,
+                    serviceLongitude: 1,
+                    startedAt: 1,
+                    completedAt: 1,
+                    acceptedAt: 1,
+                },
             },
-        },
-        {
-            $unwind: {
-                preserveNullAndEmptyArrays: true,
-                path: "$serviceProviderId",
+        ]);
+        if (!serviceRequestToFetch.length) {
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, "Service request not found."));
+        }
+        return (0, response_1.sendSuccessResponse)(res, 200, serviceRequestToFetch, "Service request retrieved successfully.");
+    }
+    else {
+        const address = yield address_model_1.default.findOne({ userId });
+        if (!address) {
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Address is not found."));
+        }
+        const longitude = address.longitude;
+        const latitude = address.latitude;
+        // Extract coordinates and validate
+        const serviceProviderLongitude = parseFloat(longitude);
+        const serviceProviderLatitude = parseFloat(latitude);
+        const SP_Timezone = (0, tz_lookup_1.default)(serviceProviderLatitude, serviceProviderLongitude);
+        console.log(SP_Timezone);
+        const serviceRequestToFetch = yield service_model_1.default.aggregate([
+            {
+                $match: {
+                    isDeleted: false,
+                    _id: new mongoose_1.default.Types.ObjectId(serviceId),
+                },
             },
-        },
-        {
-            $lookup: {
-                from: "users",
-                foreignField: "_id",
-                localField: "assignedAgentId",
-                as: "assignedAgentId",
+            {
+                $lookup: {
+                    from: "categories",
+                    foreignField: "_id",
+                    localField: "categoryId",
+                    as: "categoryId",
+                },
             },
-        },
-        {
-            $unwind: {
-                preserveNullAndEmptyArrays: true,
-                path: "$assignedAgentId",
+            {
+                $unwind: {
+                    // preserveNullAndEmptyArrays: true,
+                    path: "$categoryId",
+                },
             },
-        },
-        {
-            $lookup: {
-                from: "shifts",
-                foreignField: "_id",
-                localField: "serviceShifftId",
-                as: "serviceShifftId",
+            {
+                $lookup: {
+                    from: "users",
+                    foreignField: "_id",
+                    localField: "userId",
+                    as: "userId",
+                    pipeline: [
+                        {
+                            $lookup: {
+                                from: "ratings",
+                                foreignField: "ratedTo",
+                                localField: "_id",
+                                as: "userRatings",
+                            },
+                        },
+                        {
+                            $addFields: {
+                                totalRatings: { $ifNull: [{ $size: "$userRatings" }, 0] },
+                                userAvgRating: {
+                                    $ifNull: [{ $avg: "$userRatings.rating" }, 0],
+                                },
+                            },
+                        },
+                    ],
+                },
             },
-        },
-        {
-            $unwind: {
-                preserveNullAndEmptyArrays: true,
-                path: "$serviceShifftId",
+            {
+                $unwind: {
+                    preserveNullAndEmptyArrays: true,
+                    path: "$userId",
+                },
             },
-        },
-        {
-            $addFields: {
-                bookedTimeSlot: {
-                    $filter: {
-                        input: "$serviceShifftId.shiftTimes",
-                        as: "shiftTime",
-                        cond: {
-                            $eq: ["$$shiftTime._id", "$SelectedShiftTime.shiftTimeId"],
+            {
+                $lookup: {
+                    from: "users",
+                    foreignField: "_id",
+                    localField: "serviceProviderId",
+                    as: "serviceProviderId",
+                    pipeline: [
+                        {
+                            $lookup: {
+                                from: "additionalinfos",
+                                foreignField: "userId",
+                                localField: "_id",
+                                as: "providerAdditionalInfo",
+                            },
+                        },
+                    ],
+                },
+            },
+            {
+                $unwind: {
+                    preserveNullAndEmptyArrays: true,
+                    path: "$serviceProviderId",
+                },
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    foreignField: "_id",
+                    localField: "assignedAgentId",
+                    as: "assignedAgentId",
+                },
+            },
+            {
+                $unwind: {
+                    preserveNullAndEmptyArrays: true,
+                    path: "$assignedAgentId",
+                },
+            },
+            {
+                $lookup: {
+                    from: "shifts",
+                    foreignField: "_id",
+                    localField: "serviceShifftId",
+                    as: "serviceShifftId",
+                },
+            },
+            {
+                $unwind: {
+                    preserveNullAndEmptyArrays: true,
+                    path: "$serviceShifftId",
+                },
+            },
+            {
+                $addFields: {
+                    bookedTimeSlot: {
+                        $filter: {
+                            input: "$serviceShifftId.shiftTimes",
+                            as: "shiftTime",
+                            cond: {
+                                $eq: ["$$shiftTime._id", "$SelectedShiftTime.shiftTimeId"],
+                            },
                         },
                     },
                 },
             },
-        },
-        {
-            $project: {
-                categoryName: "$categoryId.name",
-                LeadGenerationFee: {
-                    $floor: {
-                        $multiply: [{ $toDouble: "$categoryId.serviceCost" }, 0.25],
+            {
+                $project: {
+                    categoryName: "$categoryId.name",
+                    LeadGenerationFee: {
+                        $floor: {
+                            $multiply: [{ $toDouble: "$categoryId.serviceCost" }, 0.25],
+                        },
                     },
+                    bookedServiceShift: "$serviceShifftId.shiftName",
+                    bookedTimeSlot: 1,
+                    serviceStartDate: 1,
+                    customerId: "$userId._id",
+                    customerName: {
+                        $concat: ["$userId.firstName", " ", "$userId.lastName"],
+                    },
+                    customerEmail: "$userId.email",
+                    customerAvatar: "$userId.avatar",
+                    customerPhone: "$userId.phone",
+                    totalCustomerRatings: "$userId.totalRatings",
+                    customerAvgRating: "$userId.userAvgRating",
+                    serviceProviderName: {
+                        $concat: [
+                            "$serviceProviderId.firstName",
+                            " ",
+                            "$serviceProviderId.lastName",
+                        ],
+                    },
+                    serviceProviderID: "$serviceProviderId._id",
+                    serviceProviderEmail: "$serviceProviderId.email",
+                    serviceProviderAvatar: "$serviceProviderId.avatar",
+                    serviceProviderPhone: "$serviceProviderId.phone",
+                    serviceProviderCompanyName: "$serviceProviderId.providerAdditionalInfo.companyName",
+                    serviceProviderCompanyDesc: "$serviceProviderId.providerAdditionalInfo.companyIntroduction",
+                    serviceProviderBusinessImage: "$serviceProviderId.providerAdditionalInfo.businessImage",
+                    assignedAgentName: {
+                        $concat: [
+                            "$assignedAgentId.firstName",
+                            " ",
+                            "$assignedAgentId.lastName",
+                        ],
+                    },
+                    assignedAgentID: "$assignedAgentId._id",
+                    assignedAgentEmail: "$assignedAgentId.email",
+                    assignedAgentAvatar: "$assignedAgentId.avatar",
+                    assignedAgentPhone: "$assignedAgentId.phone",
+                    serviceAddress: 1,
+                    answerArray: 1,
+                    serviceProductImage: 1,
+                    serviceDescription: "$otherInfo.serviceDescription",
+                    serviceProductSerialNumber: "$otherInfo.productSerialNumber",
+                    isReqAcceptedByServiceProvider: 1,
+                    requestProgress: 1,
+                    isIncentiveGiven: 1,
+                    incentiveAmount: 1,
+                    createdAt: 1,
+                    updatedAt: 1,
+                    serviceLatitude: 1,
+                    serviceLongitude: 1,
+                    startedAt: 1,
+                    completedAt: 1,
+                    acceptedAt: 1,
                 },
-                bookedServiceShift: "$serviceShifftId.shiftName",
-                bookedTimeSlot: 1,
-                serviceStartDate: 1,
-                customerId: "$userId._id",
-                customerName: {
-                    $concat: ["$userId.firstName", " ", "$userId.lastName"],
-                },
-                customerEmail: "$userId.email",
-                customerAvatar: "$userId.avatar",
-                customerPhone: "$userId.phone",
-                totalCustomerRatings: "$userId.totalRatings",
-                customerAvgRating: "$userId.userAvgRating",
-                serviceProviderName: {
-                    $concat: [
-                        "$serviceProviderId.firstName",
-                        " ",
-                        "$serviceProviderId.lastName",
-                    ],
-                },
-                serviceProviderID: "$serviceProviderId._id",
-                serviceProviderEmail: "$serviceProviderId.email",
-                serviceProviderAvatar: "$serviceProviderId.avatar",
-                serviceProviderPhone: "$serviceProviderId.phone",
-                serviceProviderCompanyName: "$serviceProviderId.providerAdditionalInfo.companyName",
-                serviceProviderCompanyDesc: "$serviceProviderId.providerAdditionalInfo.companyIntroduction",
-                serviceProviderBusinessImage: "$serviceProviderId.providerAdditionalInfo.businessImage",
-                assignedAgentName: {
-                    $concat: [
-                        "$assignedAgentId.firstName",
-                        " ",
-                        "$assignedAgentId.lastName",
-                    ],
-                },
-                assignedAgentID: "$assignedAgentId._id",
-                assignedAgentEmail: "$assignedAgentId.email",
-                assignedAgentAvatar: "$assignedAgentId.avatar",
-                assignedAgentPhone: "$assignedAgentId.phone",
-                serviceAddress: 1,
-                answerArray: 1,
-                serviceProductImage: 1,
-                serviceDescription: "$otherInfo.serviceDescription",
-                serviceProductSerialNumber: "$otherInfo.productSerialNumber",
-                isReqAcceptedByServiceProvider: 1,
-                requestProgress: 1,
-                isIncentiveGiven: 1,
-                incentiveAmount: 1,
-                createdAt: 1,
-                updatedAt: 1,
-                serviceLatitude: 1,
-                serviceLongitude: 1,
-                startedAt: 1,
-                completedAt: 1,
-                acceptedAt: 1,
             },
-        },
-    ]);
-    return (0, response_1.sendSuccessResponse)(res, 200, serviceRequestToFetch, "Service request retrieved successfully.");
+        ]);
+        if (!serviceRequestToFetch.length) {
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, "Service request not found."));
+        }
+        const serviceData = serviceRequestToFetch[0];
+        // ✅ Timezone-aware conversion logic
+        const serviceStartDate = serviceData.serviceStartDate;
+        const bookedTimeSlot = (_d = (_c = serviceData.bookedTimeSlot) === null || _c === void 0 ? void 0 : _c[0]) === null || _d === void 0 ? void 0 : _d.startTime;
+        if (serviceStartDate && bookedTimeSlot) {
+            const combinedUtcDateTime = moment_timezone_1.default.utc(serviceStartDate).set({
+                hour: moment_timezone_1.default.utc(bookedTimeSlot).hour(),
+                minute: moment_timezone_1.default.utc(bookedTimeSlot).minute(),
+                second: 0,
+                millisecond: 0,
+            });
+            const converted = combinedUtcDateTime.clone().tz(SP_Timezone);
+            console.log("converted timezone: ", converted);
+            serviceData.serviceStartInSPTimeZone = converted.toISOString();
+            serviceData.serviceStartReadableFormat = converted.format("MMMM DD, YYYY, hh:mm A z");
+            // Service end time = +2 hours
+            const endTime = converted.clone().add(2, "hours");
+            console.log({ endTime });
+            // Add service end time in SP time zone
+            serviceData.serviceEndsInSPTimeZone = endTime.toISOString();
+            serviceData.serviceEndReadableFormat = endTime.format("MMMM DD, YYYY, hh:mm A z");
+        }
+        return (0, response_1.sendSuccessResponse)(res, 200, serviceRequestToFetch, "Service request retrieved successfully.");
+    }
 }));
 // Function to fetch associated customer with the service request
 const fetchAssociatedCustomer = (serviceId) => __awaiter(void 0, void 0, void 0, function* () {
@@ -1558,15 +1845,40 @@ exports.getJobByStatusByAgent = (0, asyncHandler_1.asyncHandler)((req, res) => _
         },
     }, "Service request retrieved successfully.");
 }));
+const fetchCalculatedServiceStartTime = (serviceId) => __awaiter(void 0, void 0, void 0, function* () {
+    const serviceDetails = yield service_model_1.default.findById(serviceId);
+    if (!serviceDetails) {
+        return new ApisErrors_1.ApiError(400, "Service id is required.");
+    }
+    const serviceStartDate = serviceDetails.serviceStartDate;
+    const serviceShift = serviceDetails.serviceShifftId;
+    const selectedSlot = serviceDetails.SelectedShiftTime;
+    const shiftTimeId = selectedSlot === null || selectedSlot === void 0 ? void 0 : selectedSlot.shiftTimeId;
+    const shiftDetails = yield shift_model_1.default.findById(serviceShift);
+    const slotArray = shiftDetails === null || shiftDetails === void 0 ? void 0 : shiftDetails.shiftTimes;
+    if (!slotArray) {
+        return new ApisErrors_1.ApiError(400, "Service Details is required.");
+    }
+    const selectedTimeRange = slotArray.filter((slot) => String(slot._id) == String(shiftTimeId));
+    const datePart = moment_timezone_1.default.utc(serviceStartDate).format("YYYY-MM-DD");
+    const timePart = moment_timezone_1.default
+        .utc(selectedTimeRange[0].startTime)
+        .format("HH:mm:ss");
+    const combinedDateTimeString = `${datePart}T${timePart}Z`;
+    const serviceCalculatedStartTime = moment_timezone_1.default
+        .utc(combinedDateTimeString)
+        .toDate();
+    console.log("Combined UTC timestamp:", serviceCalculatedStartTime);
+    return serviceCalculatedStartTime;
+});
 exports.assignJob = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c;
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     const userType = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userType;
     let serviceProviderId = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
     const { assignedAgentId, serviceId } = req.body;
     if (!serviceId) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service ID is required."));
     }
-    let isAssignable = true;
     if (userType === "TeamLead") {
         const permissions = yield permission_model_1.default.findOne({
             userId: (_c = req.user) === null || _c === void 0 ? void 0 : _c._id,
@@ -1581,9 +1893,26 @@ exports.assignJob = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
         // const agentUser = await UserModel.findById(assignedAgentId).select('userType');
         // isAssignable = agentUser?.userType === "FieldAgent" || agentUser?.userType === "TeamLead";
     }
-    // if (!isAssignable) {
-    //     return sendErrorResponse(res, new ApiError(403, "Assigned agent must be a FieldAgent."));
-    // };
+    const assignedServicesToAgent = yield service_model_1.default.aggregate([
+        {
+            $match: {
+                assignedAgentId: new mongoose_1.default.Types.ObjectId(assignedAgentId),
+            },
+        },
+    ]);
+    const AgentBookedTimeslot = yield Promise.all(assignedServicesToAgent.map((service) => __awaiter(void 0, void 0, void 0, function* () {
+        const time = yield fetchCalculatedServiceStartTime(service._id);
+        return time; // returns Date
+    })));
+    const incomingServiceCalculatedDate = yield fetchCalculatedServiceStartTime(serviceId);
+    console.log({ AgentBookedTimeslot });
+    console.log({ incomingServiceCalculatedDate });
+    const isConflict = AgentBookedTimeslot.filter((bookedTime) => String(bookedTime) == String(incomingServiceCalculatedDate));
+    console.log({ isConflict });
+    if (isConflict.length > 0) {
+        console.log("conflict due to same slot");
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Field agent is not avilable for this date and slot."));
+    }
     const updatedService = yield service_model_1.default.findByIdAndUpdate(serviceId, {
         $set: {
             assignedAgentId: new mongoose_1.default.Types.ObjectId(assignedAgentId),
@@ -1592,6 +1921,18 @@ exports.assignJob = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
     }, { new: true });
     if (!updatedService) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service not found for assigning."));
+    } //send notification to field agent when a job is assigned to him
+    const notificationContent = `You have been assigned a job by ${(_e = (_d = req.user) === null || _d === void 0 ? void 0 : _d.firstName) !== null && _e !== void 0 ? _e : "SP"} ${(_g = (_f = req.user) === null || _f === void 0 ? void 0 : _f.lastName) !== null && _g !== void 0 ? _g : ""}`;
+    yield (0, sendPushNotification_1.sendPushNotification)(assignedAgentId.toString(), "Job Assigned", notificationContent, {
+        senderId: (_h = req.user) === null || _h === void 0 ? void 0 : _h._id,
+        receiverId: assignedAgentId,
+        title: notificationContent,
+        notificationType: "Service Assigned",
+    });
+    const agentDetails = yield user_model_1.default.findById(assignedAgentId);
+    if (agentDetails) {
+        const agentPhoneNumber = agentDetails.phone;
+        yield (0, otp_controller_1.sendSMS)(agentPhoneNumber, notificationContent);
     }
     return (0, response_1.sendSuccessResponse)(res, 200, updatedService, "Job assigned to the agent successfully.");
 }));

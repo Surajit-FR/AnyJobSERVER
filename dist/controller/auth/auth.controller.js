@@ -29,41 +29,43 @@ const otp_controller_1 = require("../otp.controller");
 const otp_model_1 = __importDefault(require("../../models/otp.model"));
 const address_model_1 = __importDefault(require("../../models/address.model"));
 const userAdditionalInfo_model_1 = __importDefault(require("../../models/userAdditionalInfo.model"));
+const sendPushNotification_1 = require("../../utils/sendPushNotification");
+const firebase_admin_1 = __importDefault(require("firebase-admin"));
 // fetchUserData func.
 const fetchUserData = (userId) => __awaiter(void 0, void 0, void 0, function* () {
     const user = yield user_model_1.default.aggregate([
         {
             $match: {
                 isDeleted: false,
-                _id: userId
-            }
+                _id: userId,
+            },
         },
         {
             $lookup: {
                 from: "permissions",
                 foreignField: "userId",
                 localField: "_id",
-                as: "permission"
-            }
+                as: "permission",
+            },
         },
         {
             $unwind: {
                 preserveNullAndEmptyArrays: true,
-                path: "$permission"
-            }
+                path: "$permission",
+            },
         },
         {
             $project: {
-                'permission.userId': 0,
-                'permission.isDeleted': 0,
-                'permission.createdAt': 0,
-                'permission.updatedAt': 0,
-                'permission.__v': 0,
+                "permission.userId": 0,
+                "permission.isDeleted": 0,
+                "permission.createdAt": 0,
+                "permission.updatedAt": 0,
+                "permission.__v": 0,
                 password: 0,
                 rawPassword: 0,
-                refreshToken: 0
-            }
-        }
+                refreshToken: 0,
+            },
+        },
     ]);
     return user;
 });
@@ -73,7 +75,7 @@ exports.cookieOption = {
     httpOnly: true,
     secure: true,
     maxAge: 24 * 60 * 60 * 1000, // 1 Day
-    sameSite: 'strict'
+    sameSite: "strict",
 };
 // addAssociate controller
 exports.addAssociate = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -83,13 +85,16 @@ exports.addAssociate = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(
     const userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
     let serviceProviderId = userId;
     if (userType === "TeamLead") {
-        const permissions = yield permission_model_1.default.findOne({ userId }).select('fieldAgentManagement');
+        const permissions = yield permission_model_1.default.findOne({ userId }).select("fieldAgentManagement");
         if (!(permissions === null || permissions === void 0 ? void 0 : permissions.fieldAgentManagement)) {
-            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(403, 'Permission denied: Field Agent Management not granted.'));
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(403, "Permission denied: Field Agent Management not granted."));
         }
-        const team = yield teams_model_1.default.findOne({ isDeleted: false, fieldAgentIds: userId }).select('serviceProviderId');
+        const team = yield teams_model_1.default.findOne({
+            isDeleted: false,
+            fieldAgentIds: userId,
+        }).select("serviceProviderId");
         if (!team || !team.serviceProviderId) {
-            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, 'Service Provider ID not found in team.'));
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service Provider ID not found in team."));
         }
         serviceProviderId = team.serviceProviderId;
     }
@@ -112,10 +117,10 @@ exports.createAdminUsers = (0, asyncHandler_1.asyncHandler)((req, res) => __awai
 exports.registerUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const userData = req.body;
     const savedUser = yield (0, auth_1.addUser)(userData);
-    if (userData.userType === 'ServiceProvider') {
+    if (userData.userType === "ServiceProvider") {
         const newTeam = new teams_model_1.default({
             serviceProviderId: savedUser._id,
-            fieldAgents: []
+            fieldAgents: [],
         });
         const savedTeam = yield newTeam.save();
         if (!savedTeam) {
@@ -124,7 +129,8 @@ exports.registerUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(
     }
     const newUser = yield (0, exports.fetchUserData)(savedUser._id);
     const { accessToken, refreshToken } = yield (0, createTokens_1.generateAccessAndRefreshToken)(res, savedUser._id);
-    return res.status(200)
+    return res
+        .status(200)
         .cookie("accessToken", accessToken, exports.cookieOption)
         .cookie("refreshToken", refreshToken, exports.cookieOption)
         .json({
@@ -132,44 +138,39 @@ exports.registerUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(
         data: {
             user: newUser[0],
             accessToken,
-            refreshToken
+            refreshToken,
         },
         message: "User Registered Successfully",
-        success: true
+        success: true,
     });
 }));
 // login user controller
 exports.loginUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { email, password, userType, fcmToken, isAdminPanel } = req.body;
+    const { email, password, userType, fcmToken, isAdminPanel, } = req.body;
     // console.log(req.body.password, "password from body");
     // console.log(typeof (req.body.password));
     if (!email) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Email is required"));
     }
-    ;
-    const user = yield user_model_1.default.findOne({ email: email, isDeleted: false });
+    const user = yield user_model_1.default.findOne({ email, userType, isDeleted: false });
     if (!user) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "User does not exist"));
     }
-    ;
     if (userType && !userType.includes(user.userType)) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(403, "Access denied"));
     }
-    ;
     const userId = user._id;
     const isPasswordValid = yield user.isPasswordCorrect(password);
     console.log(isPasswordValid, "isPasswordValid");
     if (!isPasswordValid) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(403, "Invalid user credentials"));
     }
-    ;
     if (user.isDeleted) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(403, "Your account is banned from a AnyJob."));
     }
-    ;
-    // Check for admin panel access  
+    // Check for admin panel access
     if (isAdminPanel) {
-        const allowedAdminTypes = ['SuperAdmin', 'Admin', 'Finance'];
+        const allowedAdminTypes = ["SuperAdmin", "Admin", "Finance"];
         if (!allowedAdminTypes.includes(user.userType)) {
             return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(403, "Access denied. Only authorized users can log in to the admin panel."));
         }
@@ -193,9 +194,11 @@ exports.loginUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
     };
     if (user.userType === "ServiceProvider") {
         // Fetch additional info and address by userId
-        const userAddress = yield address_model_1.default.findOne({ userId: user._id }).select('_id userId zipCode addressType location ');
-        const userAdditionalInfo = yield userAdditionalInfo_model_1.default.findOne({ userId: user._id });
-        if (!userAddress && !userAdditionalInfo) {
+        const userAddress = yield address_model_1.default.findOne({ userId: user._id }).select("_id userId zipCode addressType location ");
+        const userAdditionalInfo = yield userAdditionalInfo_model_1.default.findOne({
+            userId: user._id,
+        });
+        if (!userAddress || !userAdditionalInfo) {
             return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(403, "Your account is created but please add address & your additional information.", [], { accessToken }));
         }
         if (!user.isVerified) {
@@ -203,12 +206,14 @@ exports.loginUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
         }
         // Include address and additional info in the response
         const loggedInUser = Object.assign(Object.assign({}, filteredUser), { address: userAddress || null, additionalInfo: userAdditionalInfo || null });
-        return res.status(200)
+        return res
+            .status(200)
             .cookie("accessToken", accessToken, exports.cookieOption)
             .cookie("refreshToken", refreshToken, exports.cookieOption)
             .json(new ApiResponse_1.ApiResponse(200, { user: loggedInUser, accessToken, refreshToken }, "User logged In successfully"));
     }
-    return res.status(200)
+    return res
+        .status(200)
         .cookie("accessToken", accessToken, exports.cookieOption)
         .cookie("refreshToken", refreshToken, exports.cookieOption)
         .json(new ApiResponse_1.ApiResponse(200, { user: filteredUser, accessToken, refreshToken }, "User logged In successfully"));
@@ -219,36 +224,52 @@ exports.saveFcmToken = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(
     const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
     const { fcmToken } = req.body;
     if (!fcmToken || !userId) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, 'Missing FCM token or user ID'));
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Missing FCM token or user ID"));
     }
     const user = yield user_model_1.default.findById(userId);
     if (!user) {
-        return (0, response_1.sendSuccessResponse)(res, 200, 'User does not exist');
+        return (0, response_1.sendSuccessResponse)(res, 200, "User does not exist");
     }
     user.fcmToken = fcmToken;
     yield user.save();
-    return (0, response_1.sendSuccessResponse)(res, 200, 'FCM token saved successfully');
+    return (0, response_1.sendSuccessResponse)(res, 200, "FCM token saved successfully");
 }));
 // logout user controller
 exports.logoutUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b;
-    if (!req.user || !((_a = req.user) === null || _a === void 0 ? void 0 : _a._id)) {
+    var _a;
+    if (!req.user || !req.user._id) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "User not found in request"));
     }
-    ;
-    const userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+    const userId = req.user._id.toString();
+    const { deviceId } = req.body;
+    if (!deviceId) {
+        return res.status(400).json({ message: "Device ID is required." });
+    }
+    // Remove the FCM token for the specific device
+    const userRef = sendPushNotification_1.firestore.collection("fcmTokens").doc(userId);
+    const doc = yield userRef.get();
+    if (doc.exists) {
+        const tokens = ((_a = doc.data()) === null || _a === void 0 ? void 0 : _a.tokens) || [];
+        const updatedTokens = tokens.filter((entry) => entry.deviceId !== deviceId);
+        yield userRef.update({
+            tokens: updatedTokens,
+            updatedAt: firebase_admin_1.default.firestore.FieldValue.serverTimestamp(),
+        });
+    }
+    // Clear the refresh token in DB
     yield user_model_1.default.findByIdAndUpdate(userId, {
         $set: {
             refreshToken: "",
-            fcmToken: ""
-        }
+        },
     }, { new: true });
+    // Clear auth cookies
     const cookieOptions = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
     };
-    return res.status(200)
+    return res
+        .status(200)
         .clearCookie("accessToken", cookieOptions)
         .clearCookie("refreshToken", cookieOptions)
         .json(new ApiResponse_1.ApiResponse(200, {}, "User logged out successfully"));
@@ -256,28 +277,28 @@ exports.logoutUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
 // refreshAccessToken controller
 exports.refreshAccessToken = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken || ((_a = req.header("Authorization")) === null || _a === void 0 ? void 0 : _a.replace("Bearer ", ""));
+    const incomingRefreshToken = req.cookies.refreshToken ||
+        req.body.refreshToken ||
+        ((_a = req.header("Authorization")) === null || _a === void 0 ? void 0 : _a.replace("Bearer ", ""));
     if (!incomingRefreshToken) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(401, "Unauthorized request"));
     }
-    ;
     try {
         const decodedToken = jsonwebtoken_1.default.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET);
         const user = yield user_model_1.default.findById(decodedToken === null || decodedToken === void 0 ? void 0 : decodedToken._id);
         if (!user) {
             return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(401, "Invalid refresh token"));
         }
-        ;
         if ((user === null || user === void 0 ? void 0 : user.refreshToken) !== incomingRefreshToken) {
             return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(401, "Refresh token is expired or used"));
         }
-        ;
         const cookieOption = {
             httpOnly: true,
-            secure: true
+            secure: true,
         };
         const { accessToken, refreshToken } = yield (0, createTokens_1.generateAccessAndRefreshToken)(res, user._id);
-        return res.status(200)
+        return res
+            .status(200)
             .cookie("accessToken", accessToken, cookieOption)
             .cookie("refreshToken", refreshToken, cookieOption)
             .json(new ApiResponse_1.ApiResponse(200, { accessToken, refreshToken }, "Access token refreshed"));
@@ -285,7 +306,6 @@ exports.refreshAccessToken = (0, asyncHandler_1.asyncHandler)((req, res) => __aw
     catch (exc) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(401, exc.message || "Invalid refresh token"));
     }
-    ;
 }));
 // Auth user (Social)
 exports.AuthUserSocial = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -294,20 +314,25 @@ exports.AuthUserSocial = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
         let user = req.user;
         // If user object is not attached, it means user needs to be fetched from req.body
         if (!user) {
-            const { email, uid, displayName, photoURL, phoneNumber, providerId, userType } = req.body;
+            const { email, uid, displayName, photoURL, phoneNumber, providerId, userType, } = req.body;
             // Check if user already exists in the database
-            user = yield user_model_1.default.findOne({ email: email });
+            user = yield user_model_1.default.findOne({ email, userType });
             if (!user) {
                 // If user doesn't exist, create a new one
                 if (providerId === "google.com") {
                     user = yield (0, socialAuth_1.GoogleAuth)(email, uid, displayName, photoURL, phoneNumber, userType);
                 }
                 else if (providerId === "facebook.com") {
-                    return res.status(400).json({ success: false, message: "Facebook login is not supported yet" });
+                    return res.status(400).json({
+                        success: false,
+                        message: "Facebook login is not supported yet",
+                    });
                 }
                 // Handle error while creating user
                 if (user.err) {
-                    return res.status(500).json({ success: false, message: user.message, error: user.err });
+                    return res
+                        .status(500)
+                        .json({ success: false, message: user.message, error: user.err });
                 }
             }
         }
@@ -339,22 +364,24 @@ exports.AuthUserSocial = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
     }
     catch (exc) {
         console.log(exc.message);
-        return res.status(500).json({ success: false, message: "Internal server error", error: exc.message });
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+            error: exc.message,
+        });
     }
 }));
 //---------------FORGET PASSWORD CONTROLLERS-------------//
-//-------------1.send verification code to given mail 
+//-------------1.send verification code to given mail
 exports.forgetPassword = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { email } = req.body;
-    if (!email) {
+    const { email, userType } = req.body;
+    if (!email || !userType) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Email is required"));
     }
-    ;
-    const checkEmail = yield user_model_1.default.findOne({ email });
+    const checkEmail = yield user_model_1.default.findOne({ email, userType });
     if (!checkEmail) {
         return (0, response_1.sendSuccessResponse)(res, 200, "Email does not exist");
     }
-    ;
     const receiverEmail = checkEmail.email;
     const verificationCode = (0, otp_controller_1.generateVerificationCode)(5);
     const expiredAt = new Date(Date.now() + 15 * 60 * 1000); // Expires in 15 minutes
@@ -362,7 +389,7 @@ exports.forgetPassword = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
         userId: checkEmail._id,
         email: receiverEmail,
         otp: verificationCode,
-        expiredAt
+        expiredAt,
     });
     const to = receiverEmail;
     const subject = "Verification code to reset password of your account";
@@ -373,22 +400,22 @@ exports.forgetPassword = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
     <b><h2 style="margin: 5px 0;">Verification Code: ${verificationCode}</h2></b>
   </div>`;
     yield (0, sendMail_1.sendMail)(to, subject, html);
-    return res.status(200).json(new ApiResponse_1.ApiResponse(200, "Verification code sent to given email successfully"));
+    return res
+        .status(200)
+        .json(new ApiResponse_1.ApiResponse(200, "Verification code sent to given email successfully"));
 }));
 //-------------2.verify otp
 //-------------3.Reset Password
 exports.resetPassword = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { email } = req.body;
+    const { email, userType } = req.body;
     // const userId = req.user?._id;
-    if (!email) {
+    if (!email || !userType) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "email is required"));
     }
-    ;
-    const userDetails = yield user_model_1.default.findOne({ email });
+    const userDetails = yield user_model_1.default.findOne({ email, userType });
     if (!userDetails) {
         return (0, response_1.sendSuccessResponse)(res, 200, "User not found");
     }
-    ;
     // Update the password
     userDetails.password = req.body.password;
     yield userDetails.save();
@@ -400,14 +427,13 @@ exports.sendOTPEmail = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(
     if (!email) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Email is required"));
     }
-    ;
     const verificationCode = (0, otp_controller_1.generateVerificationCode)(5);
     const expiredAt = new Date(Date.now() + 5 * 60 * 1000); // Expires in 5 minutes
     yield otp_model_1.default.create({
         // userId: email,
         email: email,
         otp: verificationCode,
-        expiredAt
+        expiredAt,
     });
     const to = email;
     const subject = "Verification code to reset password of your account";
@@ -418,5 +444,7 @@ exports.sendOTPEmail = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(
     <b><h2 style="margin: 5px 0;">Verification Code: ${verificationCode}</h2></b>
   </div>`;
     yield (0, sendMail_1.sendMail)(to, subject, html);
-    return res.status(200).json(new ApiResponse_1.ApiResponse(200, "Verification code sent to given email successfully"));
+    return res
+        .status(200)
+        .json(new ApiResponse_1.ApiResponse(200, "Verification code sent to given email successfully"));
 }));

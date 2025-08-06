@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.removeStaleFcmTokens = exports.storeFcmToken = void 0;
+exports.removeStaleFcmTokens = exports.storeFcmToken = exports.firestore = void 0;
 exports.sendPushNotification = sendPushNotification;
 const firebase_admin_1 = __importDefault(require("firebase-admin"));
 const notification_model_1 = require("../models/notification.model");
@@ -22,7 +22,7 @@ const serviceAccount = {
     type: config_1.FIREBASE_TYPE,
     project_id: config_1.FIREBASE_PROJECT_ID,
     private_key_id: config_1.FIREBASE_PRIVATE_KEY_ID,
-    private_key: config_1.FIREBASE_PRIVATE_KEY === null || config_1.FIREBASE_PRIVATE_KEY === void 0 ? void 0 : config_1.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    private_key: config_1.FIREBASE_PRIVATE_KEY === null || config_1.FIREBASE_PRIVATE_KEY === void 0 ? void 0 : config_1.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
     client_email: config_1.FIREBASE_CLIENT_EMAIL,
     client_id: config_1.FIREBASE_CLIENT_ID,
     auth_uri: config_1.FIREBASE_AUTH_URI,
@@ -34,30 +34,34 @@ const serviceAccount = {
 firebase_admin_1.default.initializeApp({
     credential: firebase_admin_1.default.credential.cert(serviceAccount),
 });
-const firestore = firebase_admin_1.default.firestore(); //Gets firebase store
+exports.firestore = firebase_admin_1.default.firestore(); //Gets firebase store
 // console.log(firestore,"firestore");
 // Store FCM token
 const storeFcmToken = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
-        const { userId, token } = req.body;
-        if (!userId || !token) {
-            return res.status(400).json({ message: "User ID and token are required." });
+        const { userId, token, deviceId } = req.body;
+        if (!userId || !token || !deviceId) {
+            return res
+                .status(400)
+                .json({ message: "User ID, token, and device ID are required." });
         }
-        const userRef = firestore.collection("fcmTokens").doc(userId);
+        const userRef = exports.firestore.collection("fcmTokens").doc(userId);
         const doc = yield userRef.get();
+        const newEntry = { token, deviceId };
         if (doc.exists) {
             const existingTokens = ((_a = doc.data()) === null || _a === void 0 ? void 0 : _a.tokens) || [];
-            if (!existingTokens.includes(token)) {
+            const alreadyExists = existingTokens.some((entry) => entry.token === token && entry.deviceId === deviceId);
+            if (!alreadyExists) {
                 yield userRef.update({
-                    tokens: [...existingTokens, token],
+                    tokens: [...existingTokens, newEntry],
                     updatedAt: firebase_admin_1.default.firestore.FieldValue.serverTimestamp(),
                 });
             }
         }
         else {
             yield userRef.set({
-                tokens: [token],
+                tokens: [newEntry],
                 updatedAt: firebase_admin_1.default.firestore.FieldValue.serverTimestamp(),
             });
         }
@@ -74,7 +78,7 @@ const removeStaleFcmTokens = () => __awaiter(void 0, void 0, void 0, function* (
     try {
         const oneMonthAgo = new Date();
         oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-        const snapshot = yield firestore.collection("fcmTokens").get();
+        const snapshot = yield exports.firestore.collection("fcmTokens").get();
         snapshot.forEach((doc) => __awaiter(void 0, void 0, void 0, function* () {
             const { updatedAt, tokens } = doc.data();
             if ((updatedAt === null || updatedAt === void 0 ? void 0 : updatedAt.toDate()) < oneMonthAgo) {
@@ -111,11 +115,12 @@ function sendPushNotification(userId, title, body, dbData) {
     return __awaiter(this, void 0, void 0, function* () {
         var _a;
         try {
-            const userRef = firestore.collection("fcmTokens").doc(userId);
+            const userRef = exports.firestore.collection("fcmTokens").doc(userId);
             const doc = yield userRef.get();
             if (!doc.exists)
                 return console.log("No FCM tokens found for user:", userId);
             let tokens = ((_a = doc.data()) === null || _a === void 0 ? void 0 : _a.tokens) || [];
+            console.log({ tokens });
             const message = {
                 notification: { body },
                 tokens: tokens,
@@ -124,7 +129,9 @@ function sendPushNotification(userId, title, body, dbData) {
             // Handle invalid tokens
             response.responses.forEach((res, index) => {
                 var _a, _b;
-                if (!res.success && (((_a = res.error) === null || _a === void 0 ? void 0 : _a.code) === "messaging/registration-token-not-registered" || ((_b = res.error) === null || _b === void 0 ? void 0 : _b.code) === "messaging/invalid-argument")) {
+                if (!res.success &&
+                    (((_a = res.error) === null || _a === void 0 ? void 0 : _a.code) === "messaging/registration-token-not-registered" ||
+                        ((_b = res.error) === null || _b === void 0 ? void 0 : _b.code) === "messaging/invalid-argument")) {
                     tokens.splice(index, 1);
                 }
             });
@@ -147,4 +154,3 @@ function sendPushNotification(userId, title, body, dbData) {
         }
     });
 }
-;

@@ -73,9 +73,11 @@ const stripeWebhook = (req, res) => __awaiter(void 0, void 0, void 0, function* 
 exports.stripeWebhook = stripeWebhook;
 //EVENT HANDLERS
 const handleCustomerCreated = (customer) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("WEBHOOK RUNS: CUSTOMER CREATED");
+    console.log("WEBHOOK RUNS: CUSTOMER CREATED", customer);
+    const userType = customer.metadata.appUserType;
+    const email = customer.email;
     // Store customer ID in database
-    yield user_model_1.default.findOneAndUpdate({ email: customer.email }, { stripeCustomerId: customer.id }, { new: true, upsert: true });
+    yield user_model_1.default.findOneAndUpdate({ email, userType }, { stripeCustomerId: customer.id }, { new: true, upsert: true });
 });
 const handlePaymentMethodAttached = (paymentMethod) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("WEBHOOK RUNS: ATTATCH PAYMENT METHOD");
@@ -245,13 +247,17 @@ const handleServiceIncentivePayment = (session) => __awaiter(void 0, void 0, voi
             amount: Math.ceil(session.amount_total / 100),
         };
         const savePurchaseData = yield new purchase_model_1.default(purchaseData).save();
-        const updatedService = yield service_model_1.default.findOneAndUpdate({
-            _id: session.metadata.serviceId,
-            userId: user === null || user === void 0 ? void 0 : user._id,
-        }, {
-            isIncentiveGiven: true,
-            incentiveAmount: Math.ceil(session.amount_total / 100),
-        }, { new: true });
+        // const updatedService = await ServiceModel.findOneAndUpdate(
+        //   {
+        //     _id: session.metadata.serviceId,
+        //     userId: user?._id,
+        //   },
+        //   {
+        //     isIncentiveGiven: true,
+        //     incentiveAmount: Math.ceil(session.amount_total / 100),
+        //   },
+        //   { new: true }
+        // );
     }
     catch (error) {
         console.error("❌ Error in handleCheckoutSessionCompleted:", error);
@@ -420,8 +426,9 @@ const handleServiceCancellationFee = (session) => __awaiter(void 0, void 0, void
         const transaction = {
             userId: user._id,
             type: "credit",
-            amount: Math.ceil((session.amount_total / 100) * 0.1),
+            amount: (session.amount_total / 100) * 0.25,
             description: "ServiceCancellationAmount",
+            stripeTransactionId: paymentIntent === null || paymentIntent === void 0 ? void 0 : paymentIntent.id,
             serviceId: session.metadata.serviceId,
         };
         yield new adminRevenue_model_1.default(transaction).save();

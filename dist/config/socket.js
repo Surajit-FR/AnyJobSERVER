@@ -22,8 +22,8 @@ const chat_model_1 = __importDefault(require("../models/chat.model"));
 const initSocket = (server) => {
     const io = new socket_io_1.Server(server, {
         cors: {
-            origin: '*',
-        }
+            origin: "*",
+        },
     });
     // Use the JWT authentication middleware for all socket connections
     io.use(socketAuth_1.socketAuthMiddleware);
@@ -65,7 +65,6 @@ const initSocket = (server) => {
                     requestId,
                 });
             }
-            ;
             // Handle service provider's location updates and send them to the customer
             socket.on("locationUpdate", (location) => __awaiter(void 0, void 0, void 0, function* () {
                 if (customerId && connectedCustomers[customerId]) {
@@ -83,10 +82,10 @@ const initSocket = (server) => {
                 // console.log(`Fetching nearby service requests `);
                 const date = new Date();
                 // Send the event back to the client
-                io.to('ProvidersRoom').emit("nearbyServicesUpdate", {
+                io.to("ProvidersRoom").emit("nearbyServicesUpdate", {
                     success: true,
                     message: "Service list is need a update",
-                    date: date
+                    date: date,
                 });
             }
             catch (error) {
@@ -102,10 +101,10 @@ const initSocket = (server) => {
                 // console.log(`Accepted service is assigned to field agent`);
                 const date = new Date();
                 // Send the event back to the client
-                io.to('ProvidersRoom').emit("jobListUpdate", {
+                io.to("ProvidersRoom").emit("jobListUpdate", {
                     success: true,
                     message: "Service list is need a update",
-                    date: date
+                    date: date,
                 });
             }
             catch (error) {
@@ -117,7 +116,7 @@ const initSocket = (server) => {
         }));
         // Mark user as online
         onlineUsers[userId] = true;
-        io.emit("userStatusUpdate", { userId, isOnline: true }); // Notify others about online status
+        io.emit("userStatusUpdate", { userId, isOnline: true });
         // Handle chat messages
         socket.on("chatMessage", (message) => __awaiter(void 0, void 0, void 0, function* () {
             const { toUserId, content } = message;
@@ -130,7 +129,9 @@ const initSocket = (server) => {
             const now = new Date();
             try {
                 // Identify recipient socket ID
-                const recipientSocketId = connectedProviders[toUserId] || connectedCustomers[toUserId] || connectedAgent[toUserId];
+                const recipientSocketId = connectedProviders[toUserId] ||
+                    connectedCustomers[toUserId] ||
+                    connectedAgent[toUserId];
                 let isRead = false;
                 if (recipientSocketId) {
                     // Recipient is online and will see the message now
@@ -169,7 +170,7 @@ const initSocket = (server) => {
             }
         }));
         // When a user opens a chat (marks messages as read)
-        socket.on('markMessagesRead', (_a) => __awaiter(void 0, [_a], void 0, function* ({ toUserId }) {
+        socket.on("markMessagesRead", (_a) => __awaiter(void 0, [_a], void 0, function* ({ toUserId }) {
             try {
                 yield chat_model_1.default.updateMany({ toUserId, isRead: false }, { $set: { isRead: true } });
                 console.log(`Marked messages as read for conversation: ${userId} `);

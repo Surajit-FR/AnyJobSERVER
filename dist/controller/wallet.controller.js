@@ -21,29 +21,29 @@ exports.fetchWalletBalance = (0, asyncHandler_1.asyncHandler)((req, res) => __aw
     const walletDetails = yield wallet_model_1.default.aggregate([
         {
             $match: {
-                userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id
-            }
+                userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id,
+            },
         },
         {
             $lookup: {
                 from: "users",
                 foreignField: "_id",
                 localField: "userId",
-                as: "userDetails"
-            }
+                as: "userDetails",
+            },
         },
         {
             $unwind: {
                 preserveNullAndEmptyArrays: true,
-                path: "$userDetails"
-            }
+                path: "$userDetails",
+            },
         },
         {
             $addFields: {
                 userName: {
-                    $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"]
+                    $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"],
                 },
-            }
+            },
         },
         {
             $project: {
@@ -53,8 +53,8 @@ exports.fetchWalletBalance = (0, asyncHandler_1.asyncHandler)((req, res) => __aw
                 currency: 1,
                 createdAt: 1,
                 updatedAt: 1,
-            }
-        }
+            },
+        },
     ]);
     return (0, response_1.sendSuccessResponse)(res, 200, walletDetails, "Wallet balance fetched successfully");
 }));
@@ -63,45 +63,60 @@ exports.fetchTransaction = (0, asyncHandler_1.asyncHandler)((req, res) => __awai
     const walletDetails = yield wallet_model_1.default.aggregate([
         {
             $match: {
-                userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id
-            }
+                userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id,
+            },
         },
         {
             $lookup: {
                 from: "users",
                 foreignField: "_id",
                 localField: "userId",
-                as: "userDetails"
-            }
+                as: "userDetails",
+            },
         },
         {
             $unwind: {
                 preserveNullAndEmptyArrays: true,
-                path: "$userDetails"
-            }
+                path: "$userDetails",
+            },
         },
         {
             $addFields: {
                 userName: {
-                    $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"]
+                    $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"],
                 },
-            }
+                transactions: {
+                    $map: {
+                        input: "$transactions",
+                        as: "transaction",
+                        in: {
+                            _id: {
+                                $cond: {
+                                    if: "$$transaction.stripeTransactionId",
+                                    then: "$$transaction.stripeTransactionId",
+                                    else: "$$transaction.stripeTransferId",
+                                },
+                            },
+                            type: "$$transaction.type",
+                            amount: "$$transaction.amount",
+                            description: "$$transaction.description",
+                            date: "$$transaction.date",
+                        },
+                    },
+                },
+            },
         },
         {
             $project: {
                 _id: 1,
                 userName: 1,
                 balance: 1,
-                'transactions.type': 1,
-                'transactions.amount': 1,
-                'transactions.description': 1,
-                'transactions.date': 1,
-                'transactions._id': 1,
+                transactions: 1,
                 currency: 1,
                 createdAt: 1,
                 updatedAt: 1,
-            }
-        }
+            },
+        },
     ]);
     return (0, response_1.sendSuccessResponse)(res, 200, walletDetails, "Wallet balance fetched successfully");
 }));

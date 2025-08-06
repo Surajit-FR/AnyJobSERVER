@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fetchAdminReceivedFund = exports.getCustomersTransaction = exports.getPaymentMethods = exports.updateUserPreference = exports.addBankDetails = exports.getIpLogs = exports.updateUser = exports.fetchIPlogs = exports.getAgentEngagementStatus = exports.assignTeamLead = exports.fetchAssociates = exports.banUser = exports.verifyServiceProvider = exports.getSingleUser = exports.getUsers = exports.getAdminUsersList = exports.getRegisteredCustomerList = exports.getServiceProviderList = exports.addAdditionalInfo = exports.addAddress = exports.getUser = void 0;
+exports.getDashboardCardsDetails = exports.fetchAdminAllTransactions = exports.fetchAdminReceivedFund = exports.getCustomersTransaction = exports.getPaymentMethods = exports.updateUserPreference = exports.addBankDetails = exports.getIpLogs = exports.updateUser = exports.fetchIPlogs = exports.getAgentEngagementStatus = exports.assignTeamLead = exports.fetchAssociates = exports.banUser = exports.verifyServiceProvider = exports.getSingleUser = exports.getUsers = exports.getAdminUsersList = exports.getRegisteredCustomerList = exports.getServiceProviderList = exports.addAdditionalInfo = exports.addAddress = exports.getUser = void 0;
 const user_model_1 = __importDefault(require("../models/user.model"));
 const address_model_1 = __importDefault(require("../models/address.model"));
 const userAdditionalInfo_model_1 = __importDefault(require("../models/userAdditionalInfo.model"));
@@ -33,6 +33,9 @@ const wallet_model_1 = __importDefault(require("../models/wallet.model"));
 const config_1 = require("../config/config");
 const libphonenumber_js_1 = require("libphonenumber-js");
 const stripe_1 = __importDefault(require("stripe"));
+const adminRevenue_model_1 = __importDefault(require("../models/adminRevenue.model"));
+const service_model_1 = __importDefault(require("../models/service.model"));
+const cancellationFee_model_1 = __importDefault(require("../models/cancellationFee.model"));
 const stripe = new stripe_1.default(config_1.STRIPE_SECRET_KEY, {
     apiVersion: "2024-09-30.acacia",
 });
@@ -1048,9 +1051,8 @@ exports.getAgentEngagementStatus = (0, asyncHandler_1.asyncHandler)((req, res) =
                 "teamMembers.email": 1,
                 "teamMembers.phone": 1,
                 "teamMembers.userType": 1,
-                "teamMembers.agentAvatar": 1,
+                "teamMembers.avatar": 1,
                 "teamMembers.isEngaged": 1,
-                //   "teamMembers.engagement": 1,
             },
         },
     ]);
@@ -1214,62 +1216,153 @@ const getPaymentMethods = (req, res) => __awaiter(void 0, void 0, void 0, functi
     }
 });
 exports.getPaymentMethods = getPaymentMethods;
+// export const getCustomersTransaction = async (
+//   req: CustomRequest,
+//   res: Response
+// ) => {
+//   try {
+//     const userId = req.user?._id;
+//     const transactionsDetails = await PurchaseModel.aggregate([
+//       {
+//         $match: {
+//           userId: userId,
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "cancellationfees",
+//           foreignField: "userId",
+//           localField: "userId",
+//           as: "cancellationDetails",
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "users",
+//           foreignField: "_id",
+//           localField: "userId",
+//           as: "userDetails",
+//         },
+//       },
+//       {
+//         $unwind: {
+//           preserveNullAndEmptyArrays: true,
+//           path: "$userDetails",
+//         },
+//       },
+//       {
+//         $addFields: {
+//           userName: {
+//             $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"],
+//           },
+//           userImage: "$userDetails.avatar",
+//         },
+//       },
+//       {
+//         $project: {
+//           _id: 1,
+//           userId: 1,
+//           userName: 1,
+//           userImage: 1,
+//           cancellationDetails: 1,
+//           serviceId: 1,
+//           paymentMethodDetails: 1,
+//           paymentIntentId: 1,
+//           currency: 1,
+//           amount: 1,
+//           status: 1,
+//           createdAt: 1,
+//           updatedAt: 1,
+//         },
+//       },
+//     ]);
+//     if (!transactionsDetails) {
+//       return res.status(404).json({ message: "No transaction was found" });
+//     }
+//     return sendSuccessResponse(
+//       res,
+//       200,
+//       transactionsDetails,
+//       "Transaction history fetched successfully"
+//     );
+//   } catch (error) {
+//     console.error("Error fetching payment methods:", error);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
 const getCustomersTransaction = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
         const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
-        const transactionsDetails = yield purchase_model_1.default.aggregate([
-            {
-                $match: {
-                    userId: userId,
-                },
-            },
-            {
-                $lookup: {
-                    from: "users",
-                    foreignField: "_id",
-                    localField: "userId",
-                    as: "userDetails",
-                },
-            },
-            {
-                $unwind: {
-                    preserveNullAndEmptyArrays: true,
-                    path: "$userDetails",
-                },
-            },
-            {
-                $addFields: {
-                    userName: {
-                        $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"],
+        const [purchases, cancellations] = yield Promise.all([
+            purchase_model_1.default.aggregate([
+                { $match: { userId } },
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "userId",
+                        foreignField: "_id",
+                        as: "userDetails",
                     },
-                    userImage: "$userDetails.avatar",
                 },
-            },
-            {
-                $project: {
-                    _id: 1,
-                    userId: 1,
-                    userName: 1,
-                    userImage: 1,
-                    serviceId: 1,
-                    paymentMethodDetails: 1,
-                    paymentIntentId: 1,
-                    currency: 1,
-                    amount: 1,
-                    status: 1,
-                    createdAt: 1,
-                    updatedAt: 1,
+                {
+                    $unwind: {
+                        path: "$userDetails",
+                        preserveNullAndEmptyArrays: true,
+                    },
                 },
-            },
+                {
+                    $addFields: {
+                        userName: {
+                            $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"],
+                        },
+                        userImage: "$userDetails.avatar",
+                        type: { $literal: "incentiveFee" },
+                    },
+                },
+                {
+                    $project: {
+                        userDetails: 0,
+                    },
+                },
+            ]),
+            cancellationFee_model_1.default.aggregate([
+                { $match: { userId } },
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "userId",
+                        foreignField: "_id",
+                        as: "userDetails",
+                    },
+                },
+                {
+                    $unwind: {
+                        path: "$userDetails",
+                        preserveNullAndEmptyArrays: true,
+                    },
+                },
+                {
+                    $addFields: {
+                        userName: {
+                            $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"],
+                        },
+                        userImage: "$userDetails.avatar",
+                        type: { $literal: "cancellationFee" },
+                    },
+                },
+                {
+                    $project: {
+                        userDetails: 0,
+                    },
+                },
+            ]),
         ]);
-        if (!transactionsDetails) {
-            return res.status(404).json({ message: "No transaction was found" });
-        }
-        return (0, response_1.sendSuccessResponse)(res, 200, transactionsDetails, "Transaction history fetched successfully");
+        const transactions = [...purchases, ...cancellations];
+        return (0, response_1.sendSuccessResponse)(res, 200, transactions, "Transaction history fetched successfully");
     }
     catch (error) {
-        console.error("Error fetching payment methods:", error);
+        console.error("Error fetching customer transactions:", error);
         res.status(500).json({ message: "Server error" });
     }
 });
@@ -1377,3 +1470,150 @@ const fetchAdminReceivedFund = (req, res) => __awaiter(void 0, void 0, void 0, f
     }
 });
 exports.fetchAdminReceivedFund = fetchAdminReceivedFund;
+exports.fetchAdminAllTransactions = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { page = "1", limit = "10", query = "" } = req.query;
+    const pageNumber = parseInt(page, 10) || 1;
+    const limitNumber = parseInt(limit, 10) || 10;
+    const skip = (pageNumber - 1) * limitNumber;
+    const searchQuery = Object.assign({ type: "credit" }, (query && {
+        $or: [
+            { stripeTransactionId: { $regex: query, $options: "i" } },
+            { customerName: { $regex: query, $options: "i" } },
+            { categoryName: { $regex: query, $options: "i" } },
+        ],
+    }));
+    const transactionsData = yield adminRevenue_model_1.default.aggregate([
+        {
+            $match: {
+                type: "credit",
+            },
+        },
+        {
+            $lookup: {
+                from: "services",
+                foreignField: "_id",
+                localField: "serviceId",
+                as: "serviceId",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "categories",
+                            foreignField: "_id",
+                            localField: "categoryId",
+                            as: "categoryId",
+                        },
+                    },
+                    {
+                        $unwind: {
+                            path: "$categoryId",
+                            preserveNullAndEmptyArrays: true,
+                        },
+                    },
+                    {
+                        $lookup: {
+                            from: "users",
+                            foreignField: "_id",
+                            localField: "serviceProviderId",
+                            as: "serviceProviderId",
+                        },
+                    },
+                    {
+                        $unwind: {
+                            path: "$serviceProviderId",
+                            preserveNullAndEmptyArrays: true,
+                        },
+                    },
+                ],
+            },
+        },
+        {
+            $unwind: {
+                path: "$serviceId",
+                preserveNullAndEmptyArrays: true,
+            },
+        },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "userId",
+                as: "userId",
+            },
+        },
+        {
+            $unwind: {
+                path: "$userId",
+                preserveNullAndEmptyArrays: true,
+            },
+        },
+        {
+            $addFields: {
+                serviceProviderName: {
+                    $concat: [
+                        "$serviceId.serviceProviderId.firstName",
+                        " ",
+                        "$serviceId.serviceProviderId.lastName",
+                    ],
+                },
+                customerName: {
+                    $concat: ["$userId.firstName", " ", "$userId.lastName"],
+                },
+                categoryName: "$serviceId.categoryId.name",
+                categoryCost: "$serviceId.categoryId.serviceCost",
+                serviceBookingDate: "$serviceId.serviceProviderId.createdAt",
+            },
+        },
+        { $sort: { createdAt: -1 } },
+        { $match: searchQuery },
+        { $skip: skip },
+        { $limit: limitNumber },
+        {
+            $project: {
+                _id: 1,
+                // userId:1,
+                type: 1,
+                currency: 1,
+                amount: 1,
+                description: 1,
+                stripeTransactionId: 1,
+                createdAt: 1,
+                updatedAt: 1,
+                serviceProviderName: 1,
+                customerName: 1,
+                categoryName: 1,
+                categoryCost: 1,
+            },
+        },
+    ]);
+    return (0, response_1.sendSuccessResponse)(res, 200, {
+        transactionsData,
+        pagination: {
+            page: pageNumber,
+            limit: limitNumber,
+        },
+    }, "Admin's all transactions fetched successfully");
+}));
+exports.getDashboardCardsDetails = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const totalCustomer = yield user_model_1.default.find({
+        userType: "Customer",
+        isDeleted: false,
+    }).countDocuments();
+    const totalServiceProvider = yield user_model_1.default.find({
+        userType: "ServiceProvider",
+        isVerified: true,
+        isDeleted: false,
+    }).countDocuments();
+    const totalGeneratedService = yield service_model_1.default.find({}).countDocuments();
+    const balance = yield stripe.balance.retrieve();
+    const avilable = balance.available[0].amount;
+    const pending = balance.pending[0].amount;
+    return (0, response_1.sendSuccessResponse)(res, 200, {
+        totalCustomer,
+        totalServiceProvider,
+        totalGeneratedService,
+        balance: {
+            avilable,
+            pending,
+        },
+    }, "Dashboard card details fetched successfully");
+}));

@@ -121,9 +121,11 @@ function sendPushNotification(userId, title, body, dbData) {
                 return console.log("No FCM tokens found for user:", userId);
             let tokens = ((_a = doc.data()) === null || _a === void 0 ? void 0 : _a.tokens) || [];
             console.log({ tokens });
+            const tokenArray = tokens.map((token) => token === null || token === void 0 ? void 0 : token.token);
+            console.log({ tokenArray });
             const message = {
                 notification: { body },
-                tokens: tokens,
+                tokens: tokenArray,
             };
             const response = yield (0, messaging_1.getMessaging)().sendEachForMulticast(message);
             // Handle invalid tokens

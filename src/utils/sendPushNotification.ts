@@ -138,6 +138,7 @@ export async function sendPushNotification(
       return console.log("No FCM tokens found for user:", userId);
 
     let tokens: string[] = doc.data()?.tokens || [];
+    console.log({ tokens });
 
     const message = {
       notification: { body },

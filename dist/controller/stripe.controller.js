@@ -58,8 +58,8 @@ function transferIncentiveToSP(serviceId) {
             throw new Error("Service not found");
         if (serviceData.isIncentiveGiven) {
             const givenIncentiveByCustomer = serviceData.incentiveAmount;
-            const spIncentiveAmt = givenIncentiveByCustomer * 0.9;
-            const adminIncentiveAmt = givenIncentiveByCustomer * 0.1;
+            const spIncentiveAmt = givenIncentiveByCustomer * 0.8;
+            const adminIncentiveAmt = givenIncentiveByCustomer * 0.2;
             const spId = serviceData.serviceProviderId;
             const spAccount = yield wallet_model_1.default.findOne({ userId: spId });
             if (!spAccount)

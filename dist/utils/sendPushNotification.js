@@ -120,6 +120,7 @@ function sendPushNotification(userId, title, body, dbData) {
             if (!doc.exists)
                 return console.log("No FCM tokens found for user:", userId);
             let tokens = ((_a = doc.data()) === null || _a === void 0 ? void 0 : _a.tokens) || [];
+            console.log({ tokens });
             const message = {
                 notification: { body },
                 tokens: tokens,

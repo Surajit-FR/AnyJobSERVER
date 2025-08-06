@@ -35,6 +35,7 @@ const libphonenumber_js_1 = require("libphonenumber-js");
 const stripe_1 = __importDefault(require("stripe"));
 const adminRevenue_model_1 = __importDefault(require("../models/adminRevenue.model"));
 const service_model_1 = __importDefault(require("../models/service.model"));
+const cancellationFee_model_1 = __importDefault(require("../models/cancellationFee.model"));
 const stripe = new stripe_1.default(config_1.STRIPE_SECRET_KEY, {
     apiVersion: "2024-09-30.acacia",
 });
@@ -1215,62 +1216,153 @@ const getPaymentMethods = (req, res) => __awaiter(void 0, void 0, void 0, functi
     }
 });
 exports.getPaymentMethods = getPaymentMethods;
+// export const getCustomersTransaction = async (
+//   req: CustomRequest,
+//   res: Response
+// ) => {
+//   try {
+//     const userId = req.user?._id;
+//     const transactionsDetails = await PurchaseModel.aggregate([
+//       {
+//         $match: {
+//           userId: userId,
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "cancellationfees",
+//           foreignField: "userId",
+//           localField: "userId",
+//           as: "cancellationDetails",
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "users",
+//           foreignField: "_id",
+//           localField: "userId",
+//           as: "userDetails",
+//         },
+//       },
+//       {
+//         $unwind: {
+//           preserveNullAndEmptyArrays: true,
+//           path: "$userDetails",
+//         },
+//       },
+//       {
+//         $addFields: {
+//           userName: {
+//             $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"],
+//           },
+//           userImage: "$userDetails.avatar",
+//         },
+//       },
+//       {
+//         $project: {
+//           _id: 1,
+//           userId: 1,
+//           userName: 1,
+//           userImage: 1,
+//           cancellationDetails: 1,
+//           serviceId: 1,
+//           paymentMethodDetails: 1,
+//           paymentIntentId: 1,
+//           currency: 1,
+//           amount: 1,
+//           status: 1,
+//           createdAt: 1,
+//           updatedAt: 1,
+//         },
+//       },
+//     ]);
+//     if (!transactionsDetails) {
+//       return res.status(404).json({ message: "No transaction was found" });
+//     }
+//     return sendSuccessResponse(
+//       res,
+//       200,
+//       transactionsDetails,
+//       "Transaction history fetched successfully"
+//     );
+//   } catch (error) {
+//     console.error("Error fetching payment methods:", error);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
 const getCustomersTransaction = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
         const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
-        const transactionsDetails = yield purchase_model_1.default.aggregate([
-            {
-                $match: {
-                    userId: userId,
-                },
-            },
-            {
-                $lookup: {
-                    from: "users",
-                    foreignField: "_id",
-                    localField: "userId",
-                    as: "userDetails",
-                },
-            },
-            {
-                $unwind: {
-                    preserveNullAndEmptyArrays: true,
-                    path: "$userDetails",
-                },
-            },
-            {
-                $addFields: {
-                    userName: {
-                        $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"],
+        const [purchases, cancellations] = yield Promise.all([
+            purchase_model_1.default.aggregate([
+                { $match: { userId } },
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "userId",
+                        foreignField: "_id",
+                        as: "userDetails",
                     },
-                    userImage: "$userDetails.avatar",
                 },
-            },
-            {
-                $project: {
-                    _id: 1,
-                    userId: 1,
-                    userName: 1,
-                    userImage: 1,
-                    serviceId: 1,
-                    paymentMethodDetails: 1,
-                    paymentIntentId: 1,
-                    currency: 1,
-                    amount: 1,
-                    status: 1,
-                    createdAt: 1,
-                    updatedAt: 1,
+                {
+                    $unwind: {
+                        path: "$userDetails",
+                        preserveNullAndEmptyArrays: true,
+                    },
                 },
-            },
+                {
+                    $addFields: {
+                        userName: {
+                            $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"],
+                        },
+                        userImage: "$userDetails.avatar",
+                        type: { $literal: "incentiveFee" },
+                    },
+                },
+                {
+                    $project: {
+                        userDetails: 0,
+                    },
+                },
+            ]),
+            cancellationFee_model_1.default.aggregate([
+                { $match: { userId } },
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "userId",
+                        foreignField: "_id",
+                        as: "userDetails",
+                    },
+                },
+                {
+                    $unwind: {
+                        path: "$userDetails",
+                        preserveNullAndEmptyArrays: true,
+                    },
+                },
+                {
+                    $addFields: {
+                        userName: {
+                            $concat: ["$userDetails.firstName", " ", "$userDetails.lastName"],
+                        },
+                        userImage: "$userDetails.avatar",
+                        type: { $literal: "cancellationFee" },
+                    },
+                },
+                {
+                    $project: {
+                        userDetails: 0,
+                    },
+                },
+            ]),
         ]);
-        if (!transactionsDetails) {
-            return res.status(404).json({ message: "No transaction was found" });
-        }
-        return (0, response_1.sendSuccessResponse)(res, 200, transactionsDetails, "Transaction history fetched successfully");
+        const transactions = [...purchases, ...cancellations];
+        return (0, response_1.sendSuccessResponse)(res, 200, transactions, "Transaction history fetched successfully");
     }
     catch (error) {
-        console.error("Error fetching payment methods:", error);
+        console.error("Error fetching customer transactions:", error);
         res.status(500).json({ message: "Server error" });
     }
 });
@@ -1521,7 +1613,7 @@ exports.getDashboardCardsDetails = (0, asyncHandler_1.asyncHandler)((req, res) =
         totalGeneratedService,
         balance: {
             avilable,
-            pending
+            pending,
         },
     }, "Dashboard card details fetched successfully");
 }));

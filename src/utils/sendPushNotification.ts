@@ -137,12 +137,15 @@ export async function sendPushNotification(
     if (!doc.exists)
       return console.log("No FCM tokens found for user:", userId);
 
-    let tokens: string[] = doc.data()?.tokens || [];
+    let tokens:any[] = doc.data()?.tokens || [];
     console.log({ tokens });
+    const tokenArray = tokens.map((token)=>token?.token)
+    console.log({tokenArray});
+    
 
     const message = {
       notification: { body },
-      tokens: tokens,
+      tokens: tokenArray,
     };
 
     const response = await getMessaging().sendEachForMulticast(message);

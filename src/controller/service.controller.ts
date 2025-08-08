@@ -1392,6 +1392,8 @@ export const fetchNearByServiceProvider = asyncHandler(
 export const fetchSingleServiceRequest = asyncHandler(
   async (req: CustomRequest, res: Response) => {
     const { serviceId } = req.params;
+    let SP_Timezone = "America/New_York";
+
     if (!serviceId) {
       return sendErrorResponse(
         res,
@@ -1406,10 +1408,25 @@ export const fetchSingleServiceRequest = asyncHandler(
         new ApiError(400, "Service deatils ID is required.")
       );
     }
+    if (req.user?.userType === "ServiceProvider") {
+      const address = await AddressModel.findOne({ userId: req.user?._id });
+      if (!address) {
+        return sendErrorResponse(
+          res,
+          new ApiError(400, "Address is not found.")
+        );
+      }
+      const longitude = address.longitude;
+      const latitude = address.latitude;
+      // Extract coordinates and validate
+      const serviceProviderLongitude: number = parseFloat(longitude);
+      const serviceProviderLatitude: number = parseFloat(latitude);
+
+      SP_Timezone = tzLookup(serviceProviderLatitude, serviceProviderLongitude);
+      console.log("Default sp timezone: ",SP_Timezone);
+    }
 
     const assignedSPId = serviceDeatils?.serviceProviderId;
-    let SP_Timezone = "America/New_York";
-    /////
     if (assignedSPId) {
       const address = await AddressModel.findOne({ userId: assignedSPId });
       if (!address) {

@@ -1408,24 +1408,25 @@ export const fetchSingleServiceRequest = asyncHandler(
     }
 
     const assignedSPId = serviceDeatils?.serviceProviderId;
+    let SP_Timezone = "America/New_York";
+    /////
+    if (assignedSPId) {
+      const address = await AddressModel.findOne({ userId: assignedSPId });
+      if (!address) {
+        return sendErrorResponse(
+          res,
+          new ApiError(400, "Address is not found.")
+        );
+      }
+      const longitude = address.longitude;
+      const latitude = address.latitude;
+      // Extract coordinates and validate
+      const serviceProviderLongitude: number = parseFloat(longitude);
+      const serviceProviderLatitude: number = parseFloat(latitude);
 
-    const address = await AddressModel.findOne({ userId: assignedSPId });
-    if (!address) {
-      return sendErrorResponse(res, new ApiError(400, "Address is not found."));
+      SP_Timezone = tzLookup(serviceProviderLatitude, serviceProviderLongitude);
+      console.log(SP_Timezone);
     }
-    const longitude = address.longitude;
-    const latitude = address.latitude;
-    // Extract coordinates and validate
-    const serviceProviderLongitude: number = parseFloat(longitude);
-    const serviceProviderLatitude: number = parseFloat(latitude);
-
-    const SP_Timezone = tzLookup(
-      serviceProviderLatitude,
-      serviceProviderLongitude
-    );
-    console.log(SP_Timezone);
-
-    //////////////////////////////////////////////////////////
 
     const serviceRequestToFetch = await ServiceModel.aggregate([
       {

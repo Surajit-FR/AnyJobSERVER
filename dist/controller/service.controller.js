@@ -957,8 +957,9 @@ exports.fetchNearByServiceProvider = (0, asyncHandler_1.asyncHandler)((req, res)
 }));
 // fetchSingleServiceRequest controller
 exports.fetchSingleServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b;
+    var _a, _b, _c, _d;
     const { serviceId } = req.params;
+    let SP_Timezone = "America/New_York";
     if (!serviceId) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service request ID is required."));
     }
@@ -967,9 +968,20 @@ exports.fetchSingleServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) 
     if (!serviceDeatils) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service deatils ID is required."));
     }
+    if (((_a = req.user) === null || _a === void 0 ? void 0 : _a.userType) === "ServiceProvider") {
+        const address = yield address_model_1.default.findOne({ userId: (_b = req.user) === null || _b === void 0 ? void 0 : _b._id });
+        if (!address) {
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Address is not found."));
+        }
+        const longitude = address.longitude;
+        const latitude = address.latitude;
+        // Extract coordinates and validate
+        const serviceProviderLongitude = parseFloat(longitude);
+        const serviceProviderLatitude = parseFloat(latitude);
+        SP_Timezone = (0, tz_lookup_1.default)(serviceProviderLatitude, serviceProviderLongitude);
+        console.log("Default sp timezone: ", SP_Timezone);
+    }
     const assignedSPId = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId;
-    let SP_Timezone = "America/New_York";
-    /////
     if (assignedSPId) {
         const address = yield address_model_1.default.findOne({ userId: assignedSPId });
         if (!address) {
@@ -1171,7 +1183,7 @@ exports.fetchSingleServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) 
     const serviceData = serviceRequestToFetch[0];
     // ✅ Timezone-aware conversion logic
     const serviceStartDate = serviceData.serviceStartDate;
-    const bookedTimeSlot = (_b = (_a = serviceData.bookedTimeSlot) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.startTime;
+    const bookedTimeSlot = (_d = (_c = serviceData.bookedTimeSlot) === null || _c === void 0 ? void 0 : _c[0]) === null || _d === void 0 ? void 0 : _d.startTime;
     if (serviceStartDate && bookedTimeSlot) {
         const combinedUtcDateTime = moment_timezone_1.default.utc(serviceStartDate).set({
             hour: moment_timezone_1.default.utc(bookedTimeSlot).hour(),

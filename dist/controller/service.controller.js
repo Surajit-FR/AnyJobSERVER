@@ -957,422 +957,237 @@ exports.fetchNearByServiceProvider = (0, asyncHandler_1.asyncHandler)((req, res)
 }));
 // fetchSingleServiceRequest controller
 exports.fetchSingleServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d;
+    var _a, _b;
     const { serviceId } = req.params;
-    console.log({ serviceId });
     if (!serviceId) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service request ID is required."));
     }
-    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
-    if (((_b = req.user) === null || _b === void 0 ? void 0 : _b.userType) !== "ServiceProvider") {
-        const serviceRequestToFetch = yield service_model_1.default.aggregate([
-            {
-                $match: {
-                    isDeleted: false,
-                    _id: new mongoose_1.default.Types.ObjectId(serviceId),
-                },
-            },
-            {
-                $lookup: {
-                    from: "categories",
-                    foreignField: "_id",
-                    localField: "categoryId",
-                    as: "categoryId",
-                },
-            },
-            {
-                $unwind: {
-                    // preserveNullAndEmptyArrays: true,
-                    path: "$categoryId",
-                },
-            },
-            {
-                $lookup: {
-                    from: "users",
-                    foreignField: "_id",
-                    localField: "userId",
-                    as: "userId",
-                    pipeline: [
-                        {
-                            $lookup: {
-                                from: "ratings",
-                                foreignField: "ratedTo",
-                                localField: "_id",
-                                as: "userRatings",
-                            },
-                        },
-                        {
-                            $addFields: {
-                                totalRatings: { $ifNull: [{ $size: "$userRatings" }, 0] },
-                                userAvgRating: {
-                                    $ifNull: [{ $avg: "$userRatings.rating" }, 0],
-                                },
-                            },
-                        },
-                    ],
-                },
-            },
-            {
-                $unwind: {
-                    preserveNullAndEmptyArrays: true,
-                    path: "$userId",
-                },
-            },
-            {
-                $lookup: {
-                    from: "users",
-                    foreignField: "_id",
-                    localField: "serviceProviderId",
-                    as: "serviceProviderId",
-                    pipeline: [
-                        {
-                            $lookup: {
-                                from: "additionalinfos",
-                                foreignField: "userId",
-                                localField: "_id",
-                                as: "providerAdditionalInfo",
-                            },
-                        },
-                    ],
-                },
-            },
-            {
-                $unwind: {
-                    preserveNullAndEmptyArrays: true,
-                    path: "$serviceProviderId",
-                },
-            },
-            {
-                $lookup: {
-                    from: "users",
-                    foreignField: "_id",
-                    localField: "assignedAgentId",
-                    as: "assignedAgentId",
-                },
-            },
-            {
-                $unwind: {
-                    preserveNullAndEmptyArrays: true,
-                    path: "$assignedAgentId",
-                },
-            },
-            {
-                $lookup: {
-                    from: "shifts",
-                    foreignField: "_id",
-                    localField: "serviceShifftId",
-                    as: "serviceShifftId",
-                },
-            },
-            {
-                $unwind: {
-                    preserveNullAndEmptyArrays: true,
-                    path: "$serviceShifftId",
-                },
-            },
-            {
-                $addFields: {
-                    bookedTimeSlot: {
-                        $filter: {
-                            input: "$serviceShifftId.shiftTimes",
-                            as: "shiftTime",
-                            cond: {
-                                $eq: ["$$shiftTime._id", "$SelectedShiftTime.shiftTimeId"],
-                            },
-                        },
-                    },
-                },
-            },
-            {
-                $project: {
-                    categoryName: "$categoryId.name",
-                    LeadGenerationFee: {
-                        $floor: {
-                            $multiply: [{ $toDouble: "$categoryId.serviceCost" }, 0.25],
-                        },
-                    },
-                    bookedServiceShift: "$serviceShifftId.shiftName",
-                    bookedTimeSlot: 1,
-                    serviceStartDate: 1,
-                    customerId: "$userId._id",
-                    customerName: {
-                        $concat: ["$userId.firstName", " ", "$userId.lastName"],
-                    },
-                    customerEmail: "$userId.email",
-                    customerAvatar: "$userId.avatar",
-                    customerPhone: "$userId.phone",
-                    totalCustomerRatings: "$userId.totalRatings",
-                    customerAvgRating: "$userId.userAvgRating",
-                    serviceProviderName: {
-                        $concat: [
-                            "$serviceProviderId.firstName",
-                            " ",
-                            "$serviceProviderId.lastName",
-                        ],
-                    },
-                    serviceProviderID: "$serviceProviderId._id",
-                    serviceProviderEmail: "$serviceProviderId.email",
-                    serviceProviderAvatar: "$serviceProviderId.avatar",
-                    serviceProviderPhone: "$serviceProviderId.phone",
-                    serviceProviderCompanyName: "$serviceProviderId.providerAdditionalInfo.companyName",
-                    serviceProviderCompanyDesc: "$serviceProviderId.providerAdditionalInfo.companyIntroduction",
-                    serviceProviderBusinessImage: "$serviceProviderId.providerAdditionalInfo.businessImage",
-                    assignedAgentName: {
-                        $concat: [
-                            "$assignedAgentId.firstName",
-                            " ",
-                            "$assignedAgentId.lastName",
-                        ],
-                    },
-                    assignedAgentID: "$assignedAgentId._id",
-                    assignedAgentEmail: "$assignedAgentId.email",
-                    assignedAgentAvatar: "$assignedAgentId.avatar",
-                    assignedAgentPhone: "$assignedAgentId.phone",
-                    serviceAddress: 1,
-                    answerArray: 1,
-                    serviceProductImage: 1,
-                    serviceDescription: "$otherInfo.serviceDescription",
-                    serviceProductSerialNumber: "$otherInfo.productSerialNumber",
-                    isReqAcceptedByServiceProvider: 1,
-                    requestProgress: 1,
-                    isIncentiveGiven: 1,
-                    incentiveAmount: 1,
-                    createdAt: 1,
-                    updatedAt: 1,
-                    serviceLatitude: 1,
-                    serviceLongitude: 1,
-                    startedAt: 1,
-                    completedAt: 1,
-                    acceptedAt: 1,
-                },
-            },
-        ]);
-        if (!serviceRequestToFetch.length) {
-            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, "Service request not found."));
-        }
-        return (0, response_1.sendSuccessResponse)(res, 200, serviceRequestToFetch, "Service request retrieved successfully.");
+    console.log({ serviceId });
+    const serviceDeatils = yield service_model_1.default.findById({ _id: serviceId });
+    if (!serviceDeatils) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service deatils ID is required."));
     }
-    else {
-        const address = yield address_model_1.default.findOne({ userId });
-        if (!address) {
-            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Address is not found."));
-        }
-        const longitude = address.longitude;
-        const latitude = address.latitude;
-        // Extract coordinates and validate
-        const serviceProviderLongitude = parseFloat(longitude);
-        const serviceProviderLatitude = parseFloat(latitude);
-        const SP_Timezone = (0, tz_lookup_1.default)(serviceProviderLatitude, serviceProviderLongitude);
-        console.log(SP_Timezone);
-        const serviceRequestToFetch = yield service_model_1.default.aggregate([
-            {
-                $match: {
-                    isDeleted: false,
-                    _id: new mongoose_1.default.Types.ObjectId(serviceId),
-                },
-            },
-            {
-                $lookup: {
-                    from: "categories",
-                    foreignField: "_id",
-                    localField: "categoryId",
-                    as: "categoryId",
-                },
-            },
-            {
-                $unwind: {
-                    // preserveNullAndEmptyArrays: true,
-                    path: "$categoryId",
-                },
-            },
-            {
-                $lookup: {
-                    from: "users",
-                    foreignField: "_id",
-                    localField: "userId",
-                    as: "userId",
-                    pipeline: [
-                        {
-                            $lookup: {
-                                from: "ratings",
-                                foreignField: "ratedTo",
-                                localField: "_id",
-                                as: "userRatings",
-                            },
-                        },
-                        {
-                            $addFields: {
-                                totalRatings: { $ifNull: [{ $size: "$userRatings" }, 0] },
-                                userAvgRating: {
-                                    $ifNull: [{ $avg: "$userRatings.rating" }, 0],
-                                },
-                            },
-                        },
-                    ],
-                },
-            },
-            {
-                $unwind: {
-                    preserveNullAndEmptyArrays: true,
-                    path: "$userId",
-                },
-            },
-            {
-                $lookup: {
-                    from: "users",
-                    foreignField: "_id",
-                    localField: "serviceProviderId",
-                    as: "serviceProviderId",
-                    pipeline: [
-                        {
-                            $lookup: {
-                                from: "additionalinfos",
-                                foreignField: "userId",
-                                localField: "_id",
-                                as: "providerAdditionalInfo",
-                            },
-                        },
-                    ],
-                },
-            },
-            {
-                $unwind: {
-                    preserveNullAndEmptyArrays: true,
-                    path: "$serviceProviderId",
-                },
-            },
-            {
-                $lookup: {
-                    from: "users",
-                    foreignField: "_id",
-                    localField: "assignedAgentId",
-                    as: "assignedAgentId",
-                },
-            },
-            {
-                $unwind: {
-                    preserveNullAndEmptyArrays: true,
-                    path: "$assignedAgentId",
-                },
-            },
-            {
-                $lookup: {
-                    from: "shifts",
-                    foreignField: "_id",
-                    localField: "serviceShifftId",
-                    as: "serviceShifftId",
-                },
-            },
-            {
-                $unwind: {
-                    preserveNullAndEmptyArrays: true,
-                    path: "$serviceShifftId",
-                },
-            },
-            {
-                $addFields: {
-                    bookedTimeSlot: {
-                        $filter: {
-                            input: "$serviceShifftId.shiftTimes",
-                            as: "shiftTime",
-                            cond: {
-                                $eq: ["$$shiftTime._id", "$SelectedShiftTime.shiftTimeId"],
-                            },
-                        },
-                    },
-                },
-            },
-            {
-                $project: {
-                    categoryName: "$categoryId.name",
-                    LeadGenerationFee: {
-                        $floor: {
-                            $multiply: [{ $toDouble: "$categoryId.serviceCost" }, 0.25],
-                        },
-                    },
-                    bookedServiceShift: "$serviceShifftId.shiftName",
-                    bookedTimeSlot: 1,
-                    serviceStartDate: 1,
-                    customerId: "$userId._id",
-                    customerName: {
-                        $concat: ["$userId.firstName", " ", "$userId.lastName"],
-                    },
-                    customerEmail: "$userId.email",
-                    customerAvatar: "$userId.avatar",
-                    customerPhone: "$userId.phone",
-                    totalCustomerRatings: "$userId.totalRatings",
-                    customerAvgRating: "$userId.userAvgRating",
-                    serviceProviderName: {
-                        $concat: [
-                            "$serviceProviderId.firstName",
-                            " ",
-                            "$serviceProviderId.lastName",
-                        ],
-                    },
-                    serviceProviderID: "$serviceProviderId._id",
-                    serviceProviderEmail: "$serviceProviderId.email",
-                    serviceProviderAvatar: "$serviceProviderId.avatar",
-                    serviceProviderPhone: "$serviceProviderId.phone",
-                    serviceProviderCompanyName: "$serviceProviderId.providerAdditionalInfo.companyName",
-                    serviceProviderCompanyDesc: "$serviceProviderId.providerAdditionalInfo.companyIntroduction",
-                    serviceProviderBusinessImage: "$serviceProviderId.providerAdditionalInfo.businessImage",
-                    assignedAgentName: {
-                        $concat: [
-                            "$assignedAgentId.firstName",
-                            " ",
-                            "$assignedAgentId.lastName",
-                        ],
-                    },
-                    assignedAgentID: "$assignedAgentId._id",
-                    assignedAgentEmail: "$assignedAgentId.email",
-                    assignedAgentAvatar: "$assignedAgentId.avatar",
-                    assignedAgentPhone: "$assignedAgentId.phone",
-                    serviceAddress: 1,
-                    answerArray: 1,
-                    serviceProductImage: 1,
-                    serviceDescription: "$otherInfo.serviceDescription",
-                    serviceProductSerialNumber: "$otherInfo.productSerialNumber",
-                    isReqAcceptedByServiceProvider: 1,
-                    requestProgress: 1,
-                    isIncentiveGiven: 1,
-                    incentiveAmount: 1,
-                    createdAt: 1,
-                    updatedAt: 1,
-                    serviceLatitude: 1,
-                    serviceLongitude: 1,
-                    startedAt: 1,
-                    completedAt: 1,
-                    acceptedAt: 1,
-                },
-            },
-        ]);
-        if (!serviceRequestToFetch.length) {
-            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, "Service request not found."));
-        }
-        const serviceData = serviceRequestToFetch[0];
-        // ✅ Timezone-aware conversion logic
-        const serviceStartDate = serviceData.serviceStartDate;
-        const bookedTimeSlot = (_d = (_c = serviceData.bookedTimeSlot) === null || _c === void 0 ? void 0 : _c[0]) === null || _d === void 0 ? void 0 : _d.startTime;
-        if (serviceStartDate && bookedTimeSlot) {
-            const combinedUtcDateTime = moment_timezone_1.default.utc(serviceStartDate).set({
-                hour: moment_timezone_1.default.utc(bookedTimeSlot).hour(),
-                minute: moment_timezone_1.default.utc(bookedTimeSlot).minute(),
-                second: 0,
-                millisecond: 0,
-            });
-            const converted = combinedUtcDateTime.clone().tz(SP_Timezone);
-            console.log("converted timezone: ", converted);
-            serviceData.serviceStartInSPTimeZone = converted.toISOString();
-            serviceData.serviceStartReadableFormat = converted.format("MMMM DD, YYYY, hh:mm A z");
-            // Service end time = +2 hours
-            const endTime = converted.clone().add(2, "hours");
-            console.log({ endTime });
-            // Add service end time in SP time zone
-            serviceData.serviceEndsInSPTimeZone = endTime.toISOString();
-            serviceData.serviceEndReadableFormat = endTime.format("MMMM DD, YYYY, hh:mm A z");
-        }
-        return (0, response_1.sendSuccessResponse)(res, 200, serviceRequestToFetch, "Service request retrieved successfully.");
+    const assignedSPId = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId;
+    const address = yield address_model_1.default.findOne({ userId: assignedSPId });
+    if (!address) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Address is not found."));
     }
+    const longitude = address.longitude;
+    const latitude = address.latitude;
+    // Extract coordinates and validate
+    const serviceProviderLongitude = parseFloat(longitude);
+    const serviceProviderLatitude = parseFloat(latitude);
+    const SP_Timezone = (0, tz_lookup_1.default)(serviceProviderLatitude, serviceProviderLongitude);
+    console.log(SP_Timezone);
+    //////////////////////////////////////////////////////////
+    const serviceRequestToFetch = yield service_model_1.default.aggregate([
+        {
+            $match: {
+                isDeleted: false,
+                _id: new mongoose_1.default.Types.ObjectId(serviceId),
+            },
+        },
+        {
+            $lookup: {
+                from: "categories",
+                foreignField: "_id",
+                localField: "categoryId",
+                as: "categoryId",
+            },
+        },
+        {
+            $unwind: {
+                // preserveNullAndEmptyArrays: true,
+                path: "$categoryId",
+            },
+        },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "userId",
+                as: "userId",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "ratings",
+                            foreignField: "ratedTo",
+                            localField: "_id",
+                            as: "userRatings",
+                        },
+                    },
+                    {
+                        $addFields: {
+                            totalRatings: { $ifNull: [{ $size: "$userRatings" }, 0] },
+                            userAvgRating: {
+                                $ifNull: [{ $avg: "$userRatings.rating" }, 0],
+                            },
+                        },
+                    },
+                ],
+            },
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$userId",
+            },
+        },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "serviceProviderId",
+                as: "serviceProviderId",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "additionalinfos",
+                            foreignField: "userId",
+                            localField: "_id",
+                            as: "providerAdditionalInfo",
+                        },
+                    },
+                ],
+            },
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$serviceProviderId",
+            },
+        },
+        {
+            $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "assignedAgentId",
+                as: "assignedAgentId",
+            },
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$assignedAgentId",
+            },
+        },
+        {
+            $lookup: {
+                from: "shifts",
+                foreignField: "_id",
+                localField: "serviceShifftId",
+                as: "serviceShifftId",
+            },
+        },
+        {
+            $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$serviceShifftId",
+            },
+        },
+        {
+            $addFields: {
+                bookedTimeSlot: {
+                    $filter: {
+                        input: "$serviceShifftId.shiftTimes",
+                        as: "shiftTime",
+                        cond: {
+                            $eq: ["$$shiftTime._id", "$SelectedShiftTime.shiftTimeId"],
+                        },
+                    },
+                },
+            },
+        },
+        {
+            $project: {
+                categoryName: "$categoryId.name",
+                LeadGenerationFee: {
+                    $floor: {
+                        $multiply: [{ $toDouble: "$categoryId.serviceCost" }, 0.25],
+                    },
+                },
+                bookedServiceShift: "$serviceShifftId.shiftName",
+                bookedTimeSlot: 1,
+                serviceStartDate: 1,
+                customerId: "$userId._id",
+                customerName: {
+                    $concat: ["$userId.firstName", " ", "$userId.lastName"],
+                },
+                customerEmail: "$userId.email",
+                customerAvatar: "$userId.avatar",
+                customerPhone: "$userId.phone",
+                totalCustomerRatings: "$userId.totalRatings",
+                customerAvgRating: "$userId.userAvgRating",
+                serviceProviderName: {
+                    $concat: [
+                        "$serviceProviderId.firstName",
+                        " ",
+                        "$serviceProviderId.lastName",
+                    ],
+                },
+                serviceProviderID: "$serviceProviderId._id",
+                serviceProviderEmail: "$serviceProviderId.email",
+                serviceProviderAvatar: "$serviceProviderId.avatar",
+                serviceProviderPhone: "$serviceProviderId.phone",
+                serviceProviderCompanyName: "$serviceProviderId.providerAdditionalInfo.companyName",
+                serviceProviderCompanyDesc: "$serviceProviderId.providerAdditionalInfo.companyIntroduction",
+                serviceProviderBusinessImage: "$serviceProviderId.providerAdditionalInfo.businessImage",
+                assignedAgentName: {
+                    $concat: [
+                        "$assignedAgentId.firstName",
+                        " ",
+                        "$assignedAgentId.lastName",
+                    ],
+                },
+                assignedAgentID: "$assignedAgentId._id",
+                assignedAgentEmail: "$assignedAgentId.email",
+                assignedAgentAvatar: "$assignedAgentId.avatar",
+                assignedAgentPhone: "$assignedAgentId.phone",
+                serviceAddress: 1,
+                answerArray: 1,
+                serviceProductImage: 1,
+                serviceDescription: "$otherInfo.serviceDescription",
+                serviceProductSerialNumber: "$otherInfo.productSerialNumber",
+                isReqAcceptedByServiceProvider: 1,
+                requestProgress: 1,
+                isIncentiveGiven: 1,
+                incentiveAmount: 1,
+                createdAt: 1,
+                updatedAt: 1,
+                serviceLatitude: 1,
+                serviceLongitude: 1,
+                startedAt: 1,
+                completedAt: 1,
+                acceptedAt: 1,
+            },
+        },
+    ]);
+    if (!serviceRequestToFetch.length) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(404, "Service request not found."));
+    }
+    const serviceData = serviceRequestToFetch[0];
+    // ✅ Timezone-aware conversion logic
+    const serviceStartDate = serviceData.serviceStartDate;
+    const bookedTimeSlot = (_b = (_a = serviceData.bookedTimeSlot) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.startTime;
+    if (serviceStartDate && bookedTimeSlot) {
+        const combinedUtcDateTime = moment_timezone_1.default.utc(serviceStartDate).set({
+            hour: moment_timezone_1.default.utc(bookedTimeSlot).hour(),
+            minute: moment_timezone_1.default.utc(bookedTimeSlot).minute(),
+            second: 0,
+            millisecond: 0,
+        });
+        const converted = combinedUtcDateTime.clone().tz(SP_Timezone);
+        console.log("converted timezone: ", converted);
+        serviceData.serviceStartInSPTimeZone = converted.toISOString();
+        serviceData.serviceStartReadableFormat = converted.format("MMMM DD, YYYY, hh:mm A z");
+        // Service end time = +2 hours
+        const endTime = converted.clone().add(2, "hours");
+        console.log({ endTime });
+        // Add service end time in SP time zone
+        serviceData.serviceEndsInSPTimeZone = endTime.toISOString();
+        serviceData.serviceEndReadableFormat = endTime.format("MMMM DD, YYYY, hh:mm A z");
+    }
+    return (0, response_1.sendSuccessResponse)(res, 200, serviceRequestToFetch, "Service request retrieved successfully.");
 }));
 // Function to fetch associated customer with the service request
 const fetchAssociatedCustomer = (serviceId) => __awaiter(void 0, void 0, void 0, function* () {

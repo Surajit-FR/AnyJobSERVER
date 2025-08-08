@@ -968,18 +968,21 @@ exports.fetchSingleServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) 
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Service deatils ID is required."));
     }
     const assignedSPId = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId;
-    const address = yield address_model_1.default.findOne({ userId: assignedSPId });
-    if (!address) {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Address is not found."));
+    let SP_Timezone = "America/New_York";
+    /////
+    if (assignedSPId) {
+        const address = yield address_model_1.default.findOne({ userId: assignedSPId });
+        if (!address) {
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Address is not found."));
+        }
+        const longitude = address.longitude;
+        const latitude = address.latitude;
+        // Extract coordinates and validate
+        const serviceProviderLongitude = parseFloat(longitude);
+        const serviceProviderLatitude = parseFloat(latitude);
+        SP_Timezone = (0, tz_lookup_1.default)(serviceProviderLatitude, serviceProviderLongitude);
+        console.log(SP_Timezone);
     }
-    const longitude = address.longitude;
-    const latitude = address.latitude;
-    // Extract coordinates and validate
-    const serviceProviderLongitude = parseFloat(longitude);
-    const serviceProviderLatitude = parseFloat(latitude);
-    const SP_Timezone = (0, tz_lookup_1.default)(serviceProviderLatitude, serviceProviderLongitude);
-    console.log(SP_Timezone);
-    //////////////////////////////////////////////////////////
     const serviceRequestToFetch = yield service_model_1.default.aggregate([
         {
             $match: {

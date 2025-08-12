@@ -84,29 +84,7 @@ exports.fetchShifs = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
             $project: {
                 _id: 1,
                 shiftName: 1,
-                shiftTimes: {
-                    $map: {
-                        input: "$shiftTimes",
-                        as: "shift",
-                        in: {
-                            startTime: {
-                                $dateToString: {
-                                    format: "%H:%M",
-                                    date: "$$shift.startTime",
-                                    timezone: "Asia/Kolkata",
-                                },
-                            },
-                            endTime: {
-                                $dateToString: {
-                                    format: "%H:%M",
-                                    date: "$$shift.endTime",
-                                    timezone: "Asia/Kolkata",
-                                },
-                            },
-                            _id: "$$shift._id",
-                        },
-                    },
-                },
+                shiftTimes: 1
             },
         },
     ]);

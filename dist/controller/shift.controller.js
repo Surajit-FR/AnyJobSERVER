@@ -22,15 +22,16 @@ const shift_model_1 = __importDefault(require("../models/shift.model"));
 exports.addShift = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     console.log("api hits");
-    const { shiftName, shiftTimes } = req.body;
+    const { shiftName, shiftTimes, } = req.body;
     //trimmed shiftName
     const trimmedShiftName = shiftName.trim().toLowerCase();
     //check for the duplicacy
-    const existinfShiftName = yield shift_model_1.default.findOne({ shiftName: trimmedShiftName });
+    const existinfShiftName = yield shift_model_1.default.findOne({
+        shiftName: trimmedShiftName,
+    });
     if (existinfShiftName) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Shift with the same name already exists."));
     }
-    ;
     // Function to convert readable time to UTC
     // const convertTimeToUTC = (time: string) => {
     //     const todayDate = moment().format("YYYY-MM-DD");
@@ -47,12 +48,11 @@ exports.addShift = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void
     const newShift = yield shift_model_1.default.create({
         shiftName: trimmedShiftName,
         shiftTimes: shiftTimes,
-        createdBy: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id
+        createdBy: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id,
     });
     if (!newShift) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(500, "Something went wrong while adding the Shift."));
     }
-    ;
     return (0, response_1.sendSuccessResponse)(res, 201, newShift, "Shift added Successfully");
 }));
 // fetchShiftbyId controller
@@ -61,15 +61,15 @@ exports.fetchShiftbyId = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
     const results = yield shift_model_1.default.aggregate([
         {
             $match: {
-                _id: new mongoose_1.default.Types.ObjectId(shiftId)
-            }
+                _id: new mongoose_1.default.Types.ObjectId(shiftId),
+            },
         },
         {
             $project: {
                 isDeleted: 0,
                 __v: 0,
-            }
-        }
+            },
+        },
     ]);
     const responseData = results.length
         ? (0, response_1.sendSuccessResponse)(res, 200, results[0], "Shift Timings retrieved successfully.")
@@ -93,22 +93,22 @@ exports.fetchShifs = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
                                 $dateToString: {
                                     format: "%H:%M",
                                     date: "$$shift.startTime",
-                                    timezone: "Asia/Kolkata"
-                                }
+                                    timezone: "Asia/Kolkata",
+                                },
                             },
                             endTime: {
                                 $dateToString: {
                                     format: "%H:%M",
                                     date: "$$shift.endTime",
-                                    timezone: "Asia/Kolkata"
-                                }
+                                    timezone: "Asia/Kolkata",
+                                },
                             },
-                            _id: "$$shift._id"
-                        }
-                    }
-                }
-            }
-        }
+                            _id: "$$shift._id",
+                        },
+                    },
+                },
+            },
+        },
     ]);
     if (results.length) {
         return (0, response_1.sendSuccessResponse)(res, 200, results, "Shift Timings retrieved successfully.");
@@ -117,112 +117,186 @@ exports.fetchShifs = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Shift not found."));
     }
 }));
+// export const fetchAvilableShifs = asyncHandler(
+//   async (req: CustomRequest, res: Response) => {
+//     // Get current time in EST
+//     // const currentESTTime = new Date(
+//     //   new Date().toLocaleString("en-US", { timeZone: "America/New_York" })
+//     // );
+//     const now = new Date(); // Current date and time in local timezone
+//     // Display in a specific timezone
+//     const formatter = new Intl.DateTimeFormat("en-US", {
+//       timeZone: "America/New_York",
+//       year: "numeric",
+//       month: "long",
+//       day: "numeric",
+//       hour: "numeric",
+//       minute: "numeric",
+//       second: "numeric",
+//     });
+//     console.log({ formatter });
+//     const currentESTTime = formatter.format(now);
+//     console.log({ currentESTTime });
+//     const { fetchingDate } = req.params;
+//     const providedDate = new Date(fetchingDate).getTime();
+//     console.log({ providedDate });
+//     // Get EST current date (midnight)
+//     const cleanString = currentESTTime.replace(" at", "");
+//     const currentDateEST = new Date(cleanString).getTime();
+//     console.log({ currentDateEST });
+//     // Check if fetchingDate is in the past (EST context)
+//     if (providedDate < currentDateEST) {
+//       return sendErrorResponse(
+//         res,
+//         new ApiError(400, "Booking date cannot be in the past.")
+//       );
+//     }
+//     // Check if booking is for today (EST)
+//     const isToday =
+//       new Date(providedDate).getDate() === new Date(currentDateEST).getDate();
+//     console.log("provided: ", new Date(providedDate).getDate());
+//     console.log("currentdate: ", new Date(currentDateEST).getDate());
+//     console.log({isToday});
+//     const currentHours = new Date(cleanString).getHours();
+//     const currentMinutes = new Date(cleanString).getMinutes();
+//     console.log({ currentHours });
+//     console.log({ currentMinutes });
+//     //////////////////////////////////
+//     const results = await ShiftModel.aggregate([
+//       { $match: { isDeleted: false } },
+//     //   {
+//     //     $addFields: {
+//     //       shiftTimes: {
+//     //         $filter: {
+//     //           input: {
+//     //             $map: {
+//     //               input: "$shiftTimes",
+//     //               as: "shift",
+//     //               in: {
+//     //                 endTime: {
+//     //                   $dateToString: {
+//     //                     format: "%H:%M",
+//     //                     date: "$$shift.endTime",
+//     //                     timezone: "America/New_York",
+//     //                   },
+//     //                 },
+//     //                 endHour: {
+//     //                   $hour: {
+//     //                     date: "$$shift.endTime",
+//     //                     timezone: "America/New_York",
+//     //                   },
+//     //                 },
+//     //                 endMinute: {
+//     //                   $minute: {
+//     //                     date: "$$shift.endTime",
+//     //                     timezone: "America/New_York",
+//     //                   },
+//     //                 },
+//     //                 _id: "$$shift._id",
+//     //               },
+//     //             },
+//     //           },
+//     //           as: "shift",
+//     //         },
+//     //       },
+//     //     },
+//     //   },
+//       {
+//         $project: {
+//           _id: 1,
+//           shiftName: 1,
+//           "shiftTimes._id": 1,
+//           "shiftTimes.startTime": 1,
+//           "shiftTimes.endTime": 1,
+//         },
+//       },
+//       {
+//         $match: {
+//           $expr: { $gt: [{ $size: "$shiftTimes" }, 0] },
+//         },
+//       },
+//     ]);
+//     if (results.length) {
+//       return sendSuccessResponse(
+//         res,
+//         200,
+//         results,
+//         "Available shift timings retrieved successfully."
+//       );
+//     } else {
+//       return sendErrorResponse(
+//         res,
+//         new ApiError(400, "No available shift timings.")
+//       );
+//     }
+//   }
+// );
 exports.fetchAvilableShifs = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const currentISTTime = new Date();
-    currentISTTime.setMinutes(currentISTTime.getMinutes() + 330);
-    const currentHours = currentISTTime.getUTCHours();
-    const currentMinutes = currentISTTime.getUTCMinutes();
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/New_York",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "numeric",
+        minute: "numeric",
+        second: "numeric",
+        hour12: false, // Use 24-hour format so 13:00 is clear
+    });
+    const currentESTString = formatter.format(now);
+    const cleanString = currentESTString.replace(" at", "");
+    const currentESTDateObj = new Date(cleanString);
     const { fetchingDate } = req.params;
-    const providedDate = new Date(fetchingDate);
-    const currentDateIST = new Date(currentISTTime.toISOString().split('T')[0]);
-    // Check if fetchingDate is in the past
-    if (providedDate < currentDateIST) {
+    const providedDate = new Date(fetchingDate).getTime();
+    const currentDateEST = new Date(cleanString).setHours(0, 0, 0, 0);
+    if (providedDate < currentDateEST) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Booking date cannot be in the past."));
     }
-    const isToday = providedDate.toISOString().split('T')[0] === currentDateIST.toISOString().split('T')[0];
-    const results = yield shift_model_1.default.aggregate([
-        { $match: { isDeleted: false } },
-        {
-            $addFields: {
-                shiftTimes: {
-                    $filter: {
-                        input: {
-                            $map: {
-                                input: "$shiftTimes",
-                                as: "shift",
-                                in: {
-                                    startTime: {
-                                        $dateToString: {
-                                            format: "%H:%M",
-                                            date: "$$shift.startTime",
-                                            timezone: "Asia/Kolkata"
-                                        }
-                                    },
-                                    endTime: {
-                                        $dateToString: {
-                                            format: "%H:%M",
-                                            date: "$$shift.endTime",
-                                            timezone: "Asia/Kolkata"
-                                        }
-                                    },
-                                    endHour: {
-                                        $cond: {
-                                            if: { $eq: [{ $hour: { $add: ["$$shift.endTime", 19800000] } }, 0] },
-                                            then: 24,
-                                            else: { $hour: { $add: ["$$shift.endTime", 19800000] } }
-                                        }
-                                    },
-                                    endMinute: { $minute: { $add: ["$$shift.endTime", 19800000] } },
-                                    _id: "$$shift._id"
-                                }
-                            }
-                        },
-                        as: "shift",
-                        cond: isToday ? {
-                            $or: [
-                                { $gt: ["$$shift.endHour", currentHours] },
-                                {
-                                    $and: [
-                                        { $eq: ["$$shift.endHour", currentHours] },
-                                        { $gt: ["$$shift.endMinute", currentMinutes] }
-                                    ]
-                                }
-                            ]
-                        } : {}
-                    },
-                }
-            }
-        },
-        {
-            $project: {
-                _id: 1,
-                shiftName: 1,
-                'shiftTimes._id': 1,
-                'shiftTimes.startTime': 1,
-                'shiftTimes.endTime': 1,
-            }
-        },
-        {
-            $match: {
-                $expr: { $gt: [{ $size: "$shiftTimes" }, 0] }
-            }
-        }
-    ]);
-    if (results.length) {
-        return (0, response_1.sendSuccessResponse)(res, 200, results, "Available shift timings retrieved successfully.");
+    const isToday = new Date(providedDate).getDate() === new Date(currentDateEST).getDate() &&
+        new Date(providedDate).getMonth() ===
+            new Date(currentDateEST).getMonth() &&
+        new Date(providedDate).getFullYear() ===
+            new Date(currentDateEST).getFullYear();
+    const currentHourEST = currentESTDateObj.getHours();
+    const currentMinuteEST = currentESTDateObj.getMinutes();
+    // Fetch all shifts
+    let shifts = yield shift_model_1.default.aggregate([{ $match: { isDeleted: false } }]);
+    // If today, filter shiftTimes to only future slots
+    if (isToday) {
+        shifts = shifts.map((shift) => {
+            const availableTimes = shift.shiftTimes.filter((timeSlot) => {
+                const slotHour = Number(timeSlot.startTime);
+                const slotEndHour = Number(timeSlot.endTime);
+                const currentFractionalHour = currentHourEST + currentMinuteEST / 60;
+                return currentFractionalHour < slotEndHour;
+                // If slot hour > current hour, it's in future
+                if (slotHour >= currentHourEST && currentHourEST < slotEndHour)
+                    return true;
+                // If slot hour == current hour, check minutes
+                if (slotHour >= currentHourEST)
+                    return true;
+                return false;
+            });
+            return Object.assign(Object.assign({}, shift), { shiftTimes: availableTimes });
+        });
     }
-    else {
-        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "No available shift timings."));
-    }
+    res.status(200).json({ isToday, shifts });
 }));
-// updateShift Controller
 exports.updateShift = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { shiftId } = req.params;
-    const { shiftName, shiftTimes } = req.body;
+    const { shiftName, shiftTimes, } = req.body;
     if (!shiftId) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Shift ID is required."));
     }
-    ;
     if (!mongoose_1.default.Types.ObjectId.isValid(shiftId)) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Invalid shift ID."));
     }
-    ;
     // Trim and convert name to lowercase for case-insensitive comparison
     const trimmedName = shiftName.trim();
     // Check if a category with the same name already exists, excluding the current category being updated
     const existingShift = yield shift_model_1.default.findOne({
         _id: { $ne: new mongoose_1.default.Types.ObjectId(shiftId) }, // Exclude the current category
-        shiftName: { $regex: new RegExp(`^${trimmedName}$`, 'i') } // Case-insensitive name comparison
+        shiftName: { $regex: new RegExp(`^${trimmedName}$`, "i") }, // Case-insensitive name comparison
     });
     if (existingShift) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Category with the same name already exists."));
@@ -231,13 +305,12 @@ exports.updateShift = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(v
     const updatedShift = yield shift_model_1.default.findByIdAndUpdate(new mongoose_1.default.Types.ObjectId(shiftId), {
         $set: {
             shiftName: trimmedName,
-            shiftTimes: shiftTimes
+            shiftTimes: shiftTimes,
         },
     }, { new: true });
     if (!updatedShift) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Shift not found for updating."));
     }
-    ;
     return (0, response_1.sendSuccessResponse)(res, 200, updatedShift, "Shift updated Successfully");
 }));
 // deleteShift controller
@@ -246,16 +319,13 @@ exports.deleteShift = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(v
     if (!shiftId) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Shift ID is required."));
     }
-    ;
     if (!mongoose_1.default.Types.ObjectId.isValid(shiftId)) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Invalid shift ID."));
     }
-    ;
-    // Delete the shift details 
+    // Delete the shift details
     const deletedShift = yield shift_model_1.default.findByIdAndDelete(new mongoose_1.default.Types.ObjectId(shiftId));
     if (!deletedShift) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Shift not found for deleting."));
     }
-    ;
     return (0, response_1.sendSuccessResponse)(res, 200, {}, "Shift deleted Successfully");
 }));

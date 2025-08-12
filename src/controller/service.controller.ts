@@ -135,6 +135,19 @@ export const addService = asyncHandler(
       };
     }
 
+    const Service_Requested_From_Timezone = tzLookup(
+      serviceLongitude,
+      serviceLatitude
+    );
+
+    const serviceCreatedAt = moment()
+      .clone()
+      .tz(Service_Requested_From_Timezone);
+
+    const serviceStartDateInCustomerTimezone = moment(serviceStartDate)
+      .clone()
+      .tz(Service_Requested_From_Timezone);
+
     // **Step 1: Check the count of unique pre-saved addresses for the user**
     const existingAddresses = await ServiceModel.aggregate([
       { $match: { userId: req.user?._id } },
@@ -244,7 +257,7 @@ export const addService = asyncHandler(
       categoryId,
       serviceShifftId,
       SelectedShiftTime,
-      serviceStartDate,
+      serviceStartDate:serviceStartDateInCustomerTimezone,
       useMyCurrentLocation,
       serviceZipCode,
       serviceLatitude: finalLatitude,
@@ -260,7 +273,10 @@ export const addService = asyncHandler(
       answerArray,
       serviceProductImage,
       userId: req.user?._id,
+      createdAt: serviceCreatedAt,
+      updatedAt: serviceCreatedAt,
     });
+    console.log("created service data : ", newService);
 
     if (userPhoneNumber) {
       const addNumber = await UserModel.findByIdAndUpdate(
@@ -1423,7 +1439,7 @@ export const fetchSingleServiceRequest = asyncHandler(
       const serviceProviderLatitude: number = parseFloat(latitude);
 
       SP_Timezone = tzLookup(serviceProviderLatitude, serviceProviderLongitude);
-      console.log("Default sp timezone: ",SP_Timezone);
+      console.log("Default sp timezone: ", SP_Timezone);
     }
 
     const assignedSPId = serviceDeatils?.serviceProviderId;

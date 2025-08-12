@@ -51,7 +51,7 @@ const storeFcmToken = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         const newEntry = { token, deviceId };
         if (doc.exists) {
             const existingTokens = ((_a = doc.data()) === null || _a === void 0 ? void 0 : _a.tokens) || [];
-            const alreadyExists = existingTokens.some((entry) => entry.token === token && entry.deviceId === deviceId);
+            const alreadyExists = existingTokens.some((entry) => entry.deviceId === deviceId && entry.token === token);
             if (!alreadyExists) {
                 yield userRef.update({
                     tokens: [...existingTokens, newEntry],

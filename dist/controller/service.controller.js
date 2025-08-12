@@ -91,6 +91,13 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
             coordinates: [finalLongitude, finalLatitude], // [longitude, latitude]
         };
     }
+    const Service_Requested_From_Timezone = (0, tz_lookup_1.default)(serviceLongitude, serviceLatitude);
+    const serviceCreatedAt = (0, moment_timezone_1.default)()
+        .clone()
+        .tz(Service_Requested_From_Timezone);
+    const serviceStartDateInCustomerTimezone = (0, moment_timezone_1.default)(serviceStartDate)
+        .clone()
+        .tz(Service_Requested_From_Timezone);
     // **Step 1: Check the count of unique pre-saved addresses for the user**
     const existingAddresses = yield service_model_1.default.aggregate([
         { $match: { userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id } },
@@ -156,7 +163,7 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
         categoryId,
         serviceShifftId,
         SelectedShiftTime,
-        serviceStartDate,
+        serviceStartDate: serviceStartDateInCustomerTimezone,
         useMyCurrentLocation,
         serviceZipCode,
         serviceLatitude: finalLatitude,
@@ -172,7 +179,10 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
         answerArray,
         serviceProductImage,
         userId: (_g = req.user) === null || _g === void 0 ? void 0 : _g._id,
+        createdAt: serviceCreatedAt,
+        updatedAt: serviceCreatedAt,
     });
+    console.log("created service data : ", newService);
     if (userPhoneNumber) {
         const addNumber = yield user_model_1.default.findByIdAndUpdate({
             userId: (_h = req.user) === null || _h === void 0 ? void 0 : _h._id,

@@ -218,8 +218,8 @@ interface IAnswer extends Document {
 
 export interface IShiftTimeSchema extends Document {
     _id: ObjectId;
-    startTime: Date;
-    endTime: Date;
+    startTime: string;
+    endTime: string;
 };
 
 export interface IShiftSchema extends Document {

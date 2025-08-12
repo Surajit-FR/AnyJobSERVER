@@ -84,7 +84,7 @@ exports.fetchShifs = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
             $project: {
                 _id: 1,
                 shiftName: 1,
-                shiftTimes: 1
+                shiftTimes: 1,
             },
         },
     ]);
@@ -257,7 +257,8 @@ exports.fetchAvilableShifs = (0, asyncHandler_1.asyncHandler)((req, res) => __aw
             return Object.assign(Object.assign({}, shift), { shiftTimes: availableTimes });
         });
     }
-    res.status(200).json({ isToday, shifts });
+    return (0, response_1.sendSuccessResponse)(res, 200, shifts, "Shift fetched Successfully");
+    // res.status(200).json({ isToday, shifts });
 }));
 exports.updateShift = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { shiftId } = req.params;

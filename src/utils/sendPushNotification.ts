@@ -57,7 +57,7 @@ export const storeFcmToken = async (req: Request, res: Response) => {
         doc.data()?.tokens || [];
 
       const alreadyExists = existingTokens.some(
-        (entry) => entry.token === token && entry.deviceId === deviceId
+        (entry) => entry.deviceId === deviceId && entry.token === token
       );
 
       if (!alreadyExists) {
@@ -137,11 +137,10 @@ export async function sendPushNotification(
     if (!doc.exists)
       return console.log("No FCM tokens found for user:", userId);
 
-    let tokens:any[] = doc.data()?.tokens || [];
+    let tokens: any[] = doc.data()?.tokens || [];
     console.log({ tokens });
-    const tokenArray = tokens.map((token)=>token?.token)
-    console.log({tokenArray});
-    
+    const tokenArray = tokens.map((token) => token?.token);
+    console.log({ tokenArray });
 
     const message = {
       notification: { body },

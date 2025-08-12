@@ -105,29 +105,7 @@ export const fetchShifs = asyncHandler(
         $project: {
           _id: 1,
           shiftName: 1,
-          shiftTimes: {
-            $map: {
-              input: "$shiftTimes",
-              as: "shift",
-              in: {
-                startTime: {
-                  $dateToString: {
-                    format: "%H:%M",
-                    date: "$$shift.startTime",
-                    timezone: "Asia/Kolkata",
-                  },
-                },
-                endTime: {
-                  $dateToString: {
-                    format: "%H:%M",
-                    date: "$$shift.endTime",
-                    timezone: "Asia/Kolkata",
-                  },
-                },
-                _id: "$$shift._id",
-              },
-            },
-          },
+          shiftTimes: 1
         },
       },
     ]);

@@ -1658,7 +1658,8 @@ export const fetchSingleServiceRequest = asyncHandler(
     // ✅ Timezone-aware conversion logic
     const serviceStartDate = serviceData.serviceStartDate;
     const bookedTimeSlot = serviceData.bookedTimeSlot?.[0]?.startTime;
-
+    console.log({bookedTimeSlot});
+    
     if (serviceStartDate && bookedTimeSlot) {
       const combinedUtcDateTime = moment.utc(serviceStartDate).set({
         hour: moment.utc(bookedTimeSlot).hour(),

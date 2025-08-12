@@ -248,12 +248,11 @@ exports.fetchAvilableShifs = (0, asyncHandler_1.asyncHandler)((req, res) => __aw
                 const currentFractionalHour = currentHourEST + currentMinuteEST / 60;
                 return currentFractionalHour < slotEndHour;
                 // If slot hour > current hour, it's in future
-                if (slotHour >= currentHourEST && currentHourEST < slotEndHour)
-                    return true;
+                // if (slotHour >= currentHourEST && currentHourEST < slotEndHour)
+                //   return true;
                 // If slot hour == current hour, check minutes
-                if (slotHour >= currentHourEST)
-                    return true;
-                return false;
+                // if (slotHour >= currentHourEST) return true;
+                // return false;
             });
             return Object.assign(Object.assign({}, shift), { shiftTimes: availableTimes });
         });

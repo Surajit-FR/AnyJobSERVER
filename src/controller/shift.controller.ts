@@ -301,13 +301,13 @@ export const fetchAvilableShifs = asyncHandler(
             return currentFractionalHour < slotEndHour;
 
             // If slot hour > current hour, it's in future
-            if (slotHour >= currentHourEST && currentHourEST < slotEndHour)
-              return true;
+            // if (slotHour >= currentHourEST && currentHourEST < slotEndHour)
+            //   return true;
 
             // If slot hour == current hour, check minutes
-            if (slotHour >= currentHourEST) return true;
+            // if (slotHour >= currentHourEST) return true;
 
-            return false;
+            // return false;
           }
         );
 

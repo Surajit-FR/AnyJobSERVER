@@ -105,7 +105,7 @@ export const fetchShifs = asyncHandler(
         $project: {
           _id: 1,
           shiftName: 1,
-          shiftTimes: 1
+          shiftTimes: 1,
         },
       },
     ]);
@@ -317,8 +317,14 @@ export const fetchAvilableShifs = asyncHandler(
         };
       });
     }
+    return sendSuccessResponse(
+      res,
+      200,
+      shifts,
+      "Shift fetched Successfully"
+    );
 
-    res.status(200).json({ isToday, shifts });
+    // res.status(200).json({ isToday, shifts });
   }
 );
 

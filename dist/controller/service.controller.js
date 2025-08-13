@@ -96,9 +96,9 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
         .clone()
         .tz(Service_Requested_From_Timezone);
     console.log({ Service_Requested_From_Timezone });
-    // const serviceStartDateInCustomerTimezone = moment(serviceStartDate)
-    //   .clone()
-    //   .tz(Service_Requested_From_Timezone);
+    const FormattedServiceStartDate = serviceStartDate
+        .toString()
+        .replace(/\.000\+00:00$/, "-04:00");
     // **Step 1: Check the count of unique pre-saved addresses for the user**
     const existingAddresses = yield service_model_1.default.aggregate([
         { $match: { userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id } },
@@ -164,7 +164,7 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
         categoryId,
         serviceShifftId,
         SelectedShiftTime,
-        serviceStartDate,
+        serviceStartDate: FormattedServiceStartDate,
         useMyCurrentLocation,
         serviceZipCode,
         serviceLatitude: finalLatitude,

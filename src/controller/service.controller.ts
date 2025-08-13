@@ -261,7 +261,7 @@ export const addService = asyncHandler(
       categoryId,
       serviceShifftId,
       SelectedShiftTime,
-      serviceStartDate: FormattedServiceStartDate,
+      serviceStartDate: tetsStartDate,
       useMyCurrentLocation,
       serviceZipCode,
       serviceLatitude: finalLatitude,

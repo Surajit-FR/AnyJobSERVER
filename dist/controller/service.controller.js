@@ -97,6 +97,9 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
         .tz(Service_Requested_From_Timezone);
     console.log({ Service_Requested_From_Timezone });
     const FormattedServiceStartDate = String(serviceStartDate).replace(/\.000\+00:00$/, "-04:00");
+    const tetsStartDate = new Date(`${serviceStartDate}T04:00:00Z`);
+    console.log("datestring_original", serviceStartDate);
+    console.log("test date string", tetsStartDate);
     console.log("datestring", String(serviceStartDate));
     console.log({ FormattedServiceStartDate });
     // **Step 1: Check the count of unique pre-saved addresses for the user**

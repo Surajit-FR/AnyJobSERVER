@@ -145,6 +145,7 @@ export const addService = asyncHandler(
     const FormattedServiceStartDate = serviceStartDate
       .toString()
       .replace(/\.000\+00:00$/, "-04:00");
+    console.log({ FormattedServiceStartDate });
 
     // **Step 1: Check the count of unique pre-saved addresses for the user**
     const existingAddresses = await ServiceModel.aggregate([

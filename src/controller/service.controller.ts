@@ -1658,6 +1658,9 @@ export const fetchSingleServiceRequest = asyncHandler(
     const bookedTimeSlot = serviceData.bookedTimeSlot?.[0]?.startTime;
     console.log({ bookedTimeSlot });
 
+    const m = moment.tz(serviceStartDate, "America/New_York");
+    console.log(m.format());
+
     if (serviceStartDate && bookedTimeSlot) {
       const combinedUtcDateTime = moment.utc(serviceStartDate).set({
         hour: moment.utc(bookedTimeSlot).hour(),
@@ -1683,6 +1686,7 @@ export const fetchSingleServiceRequest = asyncHandler(
       serviceData.serviceEndReadableFormat = endTime.format(
         "MMMM DD, YYYY, hh:mm A z"
       );
+      serviceData.serviceStartDate = m;
     }
     return sendSuccessResponse(
       res,

@@ -135,18 +135,16 @@ export const addService = asyncHandler(
       };
     }
 
-    const Service_Requested_From_Timezone = tzLookup(
-      serviceLongitude,
-      serviceLatitude
-    );
+    const Service_Requested_From_Timezone = "America/New_York";
 
     const serviceCreatedAt = moment()
       .clone()
       .tz(Service_Requested_From_Timezone);
+    console.log({ Service_Requested_From_Timezone });
 
-    const serviceStartDateInCustomerTimezone = moment(serviceStartDate)
-      .clone()
-      .tz(Service_Requested_From_Timezone);
+    // const serviceStartDateInCustomerTimezone = moment(serviceStartDate)
+    //   .clone()
+    //   .tz(Service_Requested_From_Timezone);
 
     // **Step 1: Check the count of unique pre-saved addresses for the user**
     const existingAddresses = await ServiceModel.aggregate([
@@ -257,7 +255,7 @@ export const addService = asyncHandler(
       categoryId,
       serviceShifftId,
       SelectedShiftTime,
-      serviceStartDate:serviceStartDateInCustomerTimezone,
+      serviceStartDate,
       useMyCurrentLocation,
       serviceZipCode,
       serviceLatitude: finalLatitude,
@@ -1658,8 +1656,8 @@ export const fetchSingleServiceRequest = asyncHandler(
     // ✅ Timezone-aware conversion logic
     const serviceStartDate = serviceData.serviceStartDate;
     const bookedTimeSlot = serviceData.bookedTimeSlot?.[0]?.startTime;
-    console.log({bookedTimeSlot});
-    
+    console.log({ bookedTimeSlot });
+
     if (serviceStartDate && bookedTimeSlot) {
       const combinedUtcDateTime = moment.utc(serviceStartDate).set({
         hour: moment.utc(bookedTimeSlot).hour(),

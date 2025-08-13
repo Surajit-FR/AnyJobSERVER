@@ -1196,6 +1196,8 @@ exports.fetchSingleServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) 
     const serviceStartDate = serviceData.serviceStartDate;
     const bookedTimeSlot = (_d = (_c = serviceData.bookedTimeSlot) === null || _c === void 0 ? void 0 : _c[0]) === null || _d === void 0 ? void 0 : _d.startTime;
     console.log({ bookedTimeSlot });
+    const m = moment_timezone_1.default.tz(serviceStartDate, "America/New_York");
+    console.log(m.format());
     if (serviceStartDate && bookedTimeSlot) {
         const combinedUtcDateTime = moment_timezone_1.default.utc(serviceStartDate).set({
             hour: moment_timezone_1.default.utc(bookedTimeSlot).hour(),
@@ -1213,6 +1215,7 @@ exports.fetchSingleServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) 
         // Add service end time in SP time zone
         serviceData.serviceEndsInSPTimeZone = endTime.toISOString();
         serviceData.serviceEndReadableFormat = endTime.format("MMMM DD, YYYY, hh:mm A z");
+        serviceData.serviceStartDate = m;
     }
     return (0, response_1.sendSuccessResponse)(res, 200, serviceRequestToFetch, "Service request retrieved successfully.");
 }));

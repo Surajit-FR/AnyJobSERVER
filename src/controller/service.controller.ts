@@ -146,6 +146,9 @@ export const addService = asyncHandler(
       /\.000\+00:00$/,
       "-04:00"
     );
+    const tetsStartDate = new Date(`${serviceStartDate}T04:00:00Z`);
+    console.log( "datestring_original", serviceStartDate );
+    console.log( "test date string", tetsStartDate );
     console.log( "datestring", String(serviceStartDate) );
     console.log({ FormattedServiceStartDate });
 

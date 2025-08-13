@@ -167,7 +167,7 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
         categoryId,
         serviceShifftId,
         SelectedShiftTime,
-        serviceStartDate: FormattedServiceStartDate,
+        serviceStartDate: tetsStartDate,
         useMyCurrentLocation,
         serviceZipCode,
         serviceLatitude: finalLatitude,

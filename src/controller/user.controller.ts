@@ -570,12 +570,27 @@ export const getRegisteredCustomerList = asyncHandler(
     // Fetch the filtered and paginated results
     const customers = await UserModel.aggregate([
       { $match: matchCriteria },
+
+      {
+        $lookup: {
+          from: "ratings",
+          foreignField: "ratedTo",
+          localField: "_id",
+          as: "userRating",
+        },
+      },
+      {
+        $addFields: {
+          customerAvgRating: { $round: [{ $avg: "$userRating.rating" }, 2] },
+        },
+      },
       {
         $project: {
           __v: 0,
           refreshToken: 0,
           password: 0,
           rawPassword: 0,
+          userRating: 0,
         },
       },
       { $sort: { [sortField]: sortDirection } },
@@ -1960,12 +1975,34 @@ export const fetchAdminAllTransactions = asyncHandler(
           foreignField: "_id",
           localField: "userId",
           as: "userId",
+          pipeline: [
+            {
+              $lookup: {
+                from: "additionalinfos",
+                foreignField: "userId",
+                localField: "_id",
+                as: "spCompanyDetails",
+              },
+            },
+            {
+              $unwind: {
+                preserveNullAndEmptyArrays: true,
+                path: "$spCompanyDetails",
+              },
+            },
+          ],
         },
       },
       {
         $unwind: {
           path: "$userId",
-          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $addFields: {
+          spCompanyName: {
+            $ifNull: ["$userId.spCompanyDetails.companyName", null],
+          },
         },
       },
       {
@@ -1982,7 +2019,7 @@ export const fetchAdminAllTransactions = asyncHandler(
           },
           categoryName: "$serviceId.categoryId.name",
           categoryCost: "$serviceId.categoryId.serviceCost",
-          serviceBookingDate: "$serviceId.serviceProviderId.createdAt",
+          // serviceBookingDate: "$serviceId.serviceProviderId.createdAt",
         },
       },
       { $sort: { createdAt: -1 } },
@@ -2005,6 +2042,7 @@ export const fetchAdminAllTransactions = asyncHandler(
           customerName: 1,
           categoryName: 1,
           categoryCost: 1,
+          spCompanyName: 1,
         },
       },
     ]);

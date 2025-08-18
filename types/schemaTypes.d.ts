@@ -61,6 +61,7 @@ export interface IUser extends Document {
     avatar: string;
     coverImage: string;
     isVerified: boolean;
+    isOtpPolicyAccepted: boolean;
     userType: string;
     refreshToken?: string;
     fcmToken?: string;

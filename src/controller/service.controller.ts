@@ -147,9 +147,9 @@ export const addService = asyncHandler(
       "-04:00"
     );
     const tetsStartDate = new Date(`${serviceStartDate}T04:00:00Z`);
-    console.log( "datestring_original", serviceStartDate );
-    console.log( "test date string", tetsStartDate );
-    console.log( "datestring", String(serviceStartDate) );
+    console.log("datestring_original", serviceStartDate);
+    console.log("test date string", tetsStartDate);
+    console.log("datestring", String(serviceStartDate));
     console.log({ FormattedServiceStartDate });
 
     // **Step 1: Check the count of unique pre-saved addresses for the user**

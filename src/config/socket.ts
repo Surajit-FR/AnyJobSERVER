@@ -5,6 +5,7 @@ import { fetchAssociatedCustomer } from "../controller/service.controller";
 import { saveChatMessage, updateChatList } from "../controller/chat.controller";
 
 import ChatModel from "../models/chat.model";
+import ChatListModel from "../models/chatList.model";
 
 // Function to initialize Socket.io
 export const initSocket = (server: HttpServer) => {
@@ -148,17 +149,17 @@ export const initSocket = (server: HttpServer) => {
 
           let isRead = false;
 
-          if (recipientSocketId) {
-            // Recipient is online and will see the message now
-            isRead = true;
-          }
+          // if (recipientSocketId) {
+          //   // Recipient is online and will see the message now
+          //   isRead = true;
+          // }
 
           // Save the chat message in the database
           await saveChatMessage({
             fromUserId: userId,
             toUserId,
             content,
-            isRead,
+            isRead:false,
             timestamp: now,
           });
 
@@ -196,13 +197,24 @@ export const initSocket = (server: HttpServer) => {
     );
 
     // When a user opens a chat (marks messages as read)
-    socket.on("markMessagesRead", async ({ toUserId }) => {
+    socket.on("markMessagesRead", async ({ toUserId, fromUserId }) => {
       try {
+        console.log({ toUserId });
+        console.log({ fromUserId });
+
         await ChatModel.updateMany(
-          { toUserId, isRead: false },
+          { toUserId, fromUserId, isRead: false },
+          { $set: { isRead: true } }
+        );
+        await ChatListModel.updateOne(
+          { userId: fromUserId, chatWithUserId: toUserId, isRead: false },
           { $set: { isRead: true } }
         );
         console.log(`Marked messages as read for conversation: ${userId} `);
+        io.to(toUserId).emit("markMessagesRead", {
+          success: true,
+          message: "Messages marked as read successfully",
+        });
       } catch (error) {
         console.error("Error marking messages as read:", error);
       }

@@ -1,6 +1,6 @@
 import express, { Router } from 'express';
 import { VerifyJWTToken, verifyUserType } from '../middlewares/auth/userAuth';
-import { addRating, deleteRating,addAppRating, fetchAppRatingAnalysis, fetchAppRating } from '../controller/rating.controller';
+import { addRating, deleteRating,addAppRating, fetchAppRatingAnalysis, fetchUserRatings } from '../controller/rating.controller';
 
 const router: Router = express.Router();
 router.use(VerifyJWTToken); 
@@ -16,8 +16,8 @@ router.route('/add-app-rating')
 router.route('/fetch-app-rating-analysis')
     .get(fetchAppRatingAnalysis); 
 
-router.route('/fetch-app-rating')
-    .get(fetchAppRating);    
+router.route('/fetch-user-ratings')
+    .get(fetchUserRatings);    
 
 
 export default router;

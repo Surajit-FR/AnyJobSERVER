@@ -436,11 +436,25 @@ exports.getRegisteredCustomerList = (0, asyncHandler_1.asyncHandler)((req, res) 
     const customers = yield user_model_1.default.aggregate([
         { $match: matchCriteria },
         {
+            $lookup: {
+                from: "ratings",
+                foreignField: "ratedTo",
+                localField: "_id",
+                as: "userRating",
+            },
+        },
+        {
+            $addFields: {
+                customerAvgRating: { $round: [{ $avg: "$userRating.rating" }, 2] },
+            },
+        },
+        {
             $project: {
                 __v: 0,
                 refreshToken: 0,
                 password: 0,
                 rawPassword: 0,
+                userRating: 0,
             },
         },
         { $sort: { [sortField]: sortDirection } },
@@ -1538,12 +1552,34 @@ exports.fetchAdminAllTransactions = (0, asyncHandler_1.asyncHandler)((req, res) 
                 foreignField: "_id",
                 localField: "userId",
                 as: "userId",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "additionalinfos",
+                            foreignField: "userId",
+                            localField: "_id",
+                            as: "spCompanyDetails",
+                        },
+                    },
+                    {
+                        $unwind: {
+                            preserveNullAndEmptyArrays: true,
+                            path: "$spCompanyDetails",
+                        },
+                    },
+                ],
             },
         },
         {
             $unwind: {
                 path: "$userId",
-                preserveNullAndEmptyArrays: true,
+            },
+        },
+        {
+            $addFields: {
+                spCompanyName: {
+                    $ifNull: ["$userId.spCompanyDetails.companyName", null],
+                },
             },
         },
         {
@@ -1560,7 +1596,7 @@ exports.fetchAdminAllTransactions = (0, asyncHandler_1.asyncHandler)((req, res) 
                 },
                 categoryName: "$serviceId.categoryId.name",
                 categoryCost: "$serviceId.categoryId.serviceCost",
-                serviceBookingDate: "$serviceId.serviceProviderId.createdAt",
+                // serviceBookingDate: "$serviceId.serviceProviderId.createdAt",
             },
         },
         { $sort: { createdAt: -1 } },
@@ -1582,6 +1618,7 @@ exports.fetchAdminAllTransactions = (0, asyncHandler_1.asyncHandler)((req, res) 
                 customerName: 1,
                 categoryName: 1,
                 categoryCost: 1,
+                spCompanyName: 1,
             },
         },
     ]);

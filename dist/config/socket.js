@@ -18,6 +18,7 @@ const socketAuth_1 = require("../middlewares/auth/socketAuth");
 const service_controller_1 = require("../controller/service.controller");
 const chat_controller_1 = require("../controller/chat.controller");
 const chat_model_1 = __importDefault(require("../models/chat.model"));
+const chatList_model_1 = __importDefault(require("../models/chatList.model"));
 // Function to initialize Socket.io
 const initSocket = (server) => {
     const io = new socket_io_1.Server(server, {
@@ -133,16 +134,16 @@ const initSocket = (server) => {
                     connectedCustomers[toUserId] ||
                     connectedAgent[toUserId];
                 let isRead = false;
-                if (recipientSocketId) {
-                    // Recipient is online and will see the message now
-                    isRead = true;
-                }
+                // if (recipientSocketId) {
+                //   // Recipient is online and will see the message now
+                //   isRead = true;
+                // }
                 // Save the chat message in the database
                 yield (0, chat_controller_1.saveChatMessage)({
                     fromUserId: userId,
                     toUserId,
                     content,
-                    isRead,
+                    isRead: false,
                     timestamp: now,
                 });
                 // Update chat lists for both users
@@ -170,10 +171,17 @@ const initSocket = (server) => {
             }
         }));
         // When a user opens a chat (marks messages as read)
-        socket.on("markMessagesRead", (_a) => __awaiter(void 0, [_a], void 0, function* ({ toUserId }) {
+        socket.on("markMessagesRead", (_a) => __awaiter(void 0, [_a], void 0, function* ({ toUserId, fromUserId }) {
             try {
-                yield chat_model_1.default.updateMany({ toUserId, isRead: false }, { $set: { isRead: true } });
+                console.log({ toUserId });
+                console.log({ fromUserId });
+                yield chat_model_1.default.updateMany({ toUserId, fromUserId, isRead: false }, { $set: { isRead: true } });
+                yield chatList_model_1.default.updateOne({ userId: fromUserId, chatWithUserId: toUserId, isRead: false }, { $set: { isRead: true } });
                 console.log(`Marked messages as read for conversation: ${userId} `);
+                io.to(toUserId).emit("markMessagesRead", {
+                    success: true,
+                    message: "Messages marked as read successfully",
+                });
             }
             catch (error) {
                 console.error("Error marking messages as read:", error);

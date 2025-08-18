@@ -27,7 +27,9 @@ exports.saveChatMessage = saveChatMessage;
 exports.fetchChatHistory = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { userId1, userId2 } = req.query;
     if (!userId1 || !userId2) {
-        return res.status(400).json({ error: "Both userId1 and userId2 are required" });
+        return res
+            .status(400)
+            .json({ error: "Both userId1 and userId2 are required" });
     }
     // Convert query IDs to ObjectId
     const userId1Obj = new mongoose_1.default.Types.ObjectId(userId1);
@@ -40,56 +42,56 @@ exports.fetchChatHistory = (0, asyncHandler_1.asyncHandler)((req, res) => __awai
                     { fromUserId: userId1Obj, toUserId: userId2Obj },
                     { fromUserId: userId2Obj, toUserId: userId1Obj },
                 ],
-            }
+            },
         },
         {
             $lookup: {
                 from: "users",
                 foreignField: "_id",
                 localField: "toUserId",
-                as: "toUserId"
-            }
+                as: "toUserId",
+            },
         },
         {
             $unwind: {
                 path: "$toUserId",
-                preserveNullAndEmptyArrays: true
-            }
+                preserveNullAndEmptyArrays: true,
+            },
         },
         {
             $lookup: {
                 from: "users",
                 foreignField: "_id",
                 localField: "fromUserId",
-                as: "fromUserId"
-            }
+                as: "fromUserId",
+            },
         },
         {
             $unwind: {
                 path: "$fromUserId",
-                preserveNullAndEmptyArrays: true
-            }
+                preserveNullAndEmptyArrays: true,
+            },
         },
         {
             $project: {
                 _id: 1,
                 content: 1,
                 createdAt: 1,
-                'toUserId._id': 1,
-                'toUserId.firstName': 1,
-                'toUserId.lastName': 1,
-                'toUserId.avatar': 1,
-                'fromUserId._id': 1,
-                'fromUserId.firstName': 1,
-                'fromUserId.lastName': 1,
-                'fromUserId.avatar': 1
-            }
+                "toUserId._id": 1,
+                "toUserId.firstName": 1,
+                "toUserId.lastName": 1,
+                "toUserId.avatar": 1,
+                "fromUserId._id": 1,
+                "fromUserId.firstName": 1,
+                "fromUserId.lastName": 1,
+                "fromUserId.avatar": 1,
+            },
         },
         {
             $sort: {
-                createdAt: -1
-            }
-        }
+                createdAt: -1,
+            },
+        },
     ]);
     // Return chat history
     return (0, response_1.sendSuccessResponse)(res, 200, chatHistory, "Chat history fetched successfully");
@@ -137,14 +139,14 @@ exports.fetchChatList = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
                 from: "users",
                 foreignField: "_id",
                 localField: "chatWithUserId",
-                as: "chatWithUserId"
-            }
+                as: "chatWithUserId",
+            },
         },
         {
             $unwind: {
                 path: "$chatWithUserId",
-                preserveNullAndEmptyArrays: true
-            }
+                preserveNullAndEmptyArrays: true,
+            },
         },
         {
             $project: {
@@ -152,12 +154,13 @@ exports.fetchChatList = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter
                 userId: 1,
                 lastMessage: 1,
                 lastMessageAt: 1,
-                'chatWithUserId._id': 1,
-                'chatWithUserId.firstName': 1,
-                'chatWithUserId.lastName': 1,
-                'chatWithUserId.avatar': 1
-            }
-        }
+                isRead: 1,
+                "chatWithUserId._id": 1,
+                "chatWithUserId.firstName": 1,
+                "chatWithUserId.lastName": 1,
+                "chatWithUserId.avatar": 1,
+            },
+        },
     ]);
     return (0, response_1.sendSuccessResponse)(res, 200, chatList, "Chat list fetched successfully");
 }));

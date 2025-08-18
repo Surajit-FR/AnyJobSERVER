@@ -16,6 +16,6 @@ router.route('/add-app-rating')
     .post(rating_controller_1.addAppRating);
 router.route('/fetch-app-rating-analysis')
     .get(rating_controller_1.fetchAppRatingAnalysis);
-router.route('/fetch-app-rating')
-    .get(rating_controller_1.fetchAppRating);
+router.route('/fetch-user-ratings')
+    .get(rating_controller_1.fetchUserRatings);
 exports.default = router;

@@ -61,11 +61,11 @@ const UserSchema = new mongoose_1.Schema({
         type: String,
         // unique: true,
         lowercase: true,
-        default: ""
+        default: "",
     },
     dob: {
         type: Date,
-        default: null
+        default: null,
     },
     phone: {
         type: String,
@@ -88,19 +88,31 @@ const UserSchema = new mongoose_1.Schema({
     },
     userType: {
         type: String,
-        enum: ["SuperAdmin", "ServiceProvider", "Customer", "FieldAgent", "TeamLead", "Admin", "Finance"],
-        default: ""
+        enum: [
+            "SuperAdmin",
+            "ServiceProvider",
+            "Customer",
+            "FieldAgent",
+            "TeamLead",
+            "Admin",
+            "Finance",
+        ],
+        default: "",
     },
     coverImage: {
         type: String,
     },
     isVerified: {
         type: Boolean,
-        default: false
+        default: false,
+    },
+    isOtpPolicyAccepted: {
+        type: Boolean,
+        default: false,
     },
     stripeCustomerId: {
         type: String,
-        default: ""
+        default: "",
     },
     paymentMethodId: {
         type: String,
@@ -165,7 +177,7 @@ UserSchema.methods.generateAccessToken = function () {
 };
 UserSchema.methods.generateRefreshToken = function () {
     return jsonwebtoken_1.default.sign({
-        _id: this._id
+        _id: this._id,
     }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: 864000 });
 };
 //adding geospatial index

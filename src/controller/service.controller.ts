@@ -256,6 +256,13 @@ export const addService = asyncHandler(
       };
     }
 
+    const geoUrlfindNeighbour = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${finalLatitude},${finalLongitude}&radius=10000&type=locality&key=${process.env.GOOGLE_API_KEY}`;
+    const findNeighbour = await axios.get(geoUrlfindNeighbour);
+
+    const neighbourLandmark = findNeighbour.data?.results
+      ? findNeighbour.data?.results[0]?.name
+      : "N/A";
+
     // Prepare the new service object
     const newService = await ServiceModel.create({
       categoryId,
@@ -266,6 +273,7 @@ export const addService = asyncHandler(
       serviceZipCode,
       serviceLatitude: finalLatitude,
       serviceLongitude: finalLongitude,
+      neighbourLandmark,
       serviceAddress: serviceAddress,
       serviceLandMark: serviceLandMark,
       location: finalLocation,
@@ -1647,6 +1655,7 @@ export const fetchSingleServiceRequest = asyncHandler(
           startedAt: 1,
           completedAt: 1,
           acceptedAt: 1,
+          neighbourLandmark:1
         },
       },
     ]);

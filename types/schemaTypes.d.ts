@@ -180,6 +180,7 @@ export interface IServiceSchema extends Document {
     acceptedAt?: Date;
     cancelledBy: ObjectId;
     cancellationReason: string;
+    neighbourLandmark: string;
     
 };
 

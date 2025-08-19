@@ -63,7 +63,7 @@ function isCancellationFeeApplicable(serviceId) {
 }
 // addService controller
 exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d, _e, _f, _g, _h;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
     let locationDetails, finalLongitude, finalLatitude, finalLocation;
     const { categoryId, serviceStartDate, serviceShifftId, SelectedShiftTime, serviceZipCode, serviceAddress, serviceLatitude, serviceLongitude, useMyCurrentLocation, serviceLandMark, userPhoneNumber, isIncentiveGiven, incentiveAmount, isTipGiven, tipAmount, otherInfo, serviceProductImage, answerArray, serviceAddressId, // Expecting answerArray instead of answers
      } = req.body;
@@ -162,6 +162,11 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
             coordinates: [finalLongitude, finalLatitude], // [longitude, latitude]
         };
     }
+    const geoUrlfindNeighbour = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${finalLatitude},${finalLongitude}&radius=10000&type=locality&key=${process.env.GOOGLE_API_KEY}`;
+    const findNeighbour = yield axios_1.default.get(geoUrlfindNeighbour);
+    const neighbourLandmark = ((_g = findNeighbour.data) === null || _g === void 0 ? void 0 : _g.results)
+        ? (_j = (_h = findNeighbour.data) === null || _h === void 0 ? void 0 : _h.results[0]) === null || _j === void 0 ? void 0 : _j.name
+        : "N/A";
     // Prepare the new service object
     const newService = yield service_model_1.default.create({
         categoryId,
@@ -172,6 +177,7 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
         serviceZipCode,
         serviceLatitude: finalLatitude,
         serviceLongitude: finalLongitude,
+        neighbourLandmark,
         serviceAddress: serviceAddress,
         serviceLandMark: serviceLandMark,
         location: finalLocation,
@@ -182,14 +188,14 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
         otherInfo,
         answerArray,
         serviceProductImage,
-        userId: (_g = req.user) === null || _g === void 0 ? void 0 : _g._id,
+        userId: (_k = req.user) === null || _k === void 0 ? void 0 : _k._id,
         createdAt: serviceCreatedAt,
         updatedAt: serviceCreatedAt,
     });
     console.log("created service data : ", newService);
     if (userPhoneNumber) {
         const addNumber = yield user_model_1.default.findByIdAndUpdate({
-            userId: (_h = req.user) === null || _h === void 0 ? void 0 : _h._id,
+            userId: (_l = req.user) === null || _l === void 0 ? void 0 : _l._id,
         }, {
             $set: {
                 phone: userPhoneNumber,
@@ -1188,6 +1194,7 @@ exports.fetchSingleServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) 
                 startedAt: 1,
                 completedAt: 1,
                 acceptedAt: 1,
+                neighbourLandmark: 1
             },
         },
     ]);

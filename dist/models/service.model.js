@@ -68,6 +68,10 @@ const ServiceSchema = new mongoose_1.Schema({
         type: String,
         // required: [true, "Service Zipcode is required"]
     },
+    neighbourLandmark: {
+        type: String,
+        // required: [true, "Service Zipcode is required"]
+    },
     serviceLatitude: {
         type: String,
         // required: [true, "Service Latitude is required"]

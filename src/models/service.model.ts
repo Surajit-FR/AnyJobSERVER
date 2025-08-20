@@ -54,6 +54,10 @@ const ServiceSchema: Schema<IServiceSchema> = new Schema({
         type: String,
         // required: [true, "Service Zipcode is required"]
     },
+    landmarkPostalcode: {
+        type: String,
+        // required: [true, "Service Zipcode is required"]
+    },
     serviceLatitude: {
         type: String,
         // required: [true, "Service Latitude is required"]

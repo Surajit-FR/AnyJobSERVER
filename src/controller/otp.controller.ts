@@ -14,6 +14,8 @@ import AdditionalInfoModel from "../models/userAdditionalInfo.model";
 import { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN } from "../config/config";
 import mongoose from "mongoose";
 import AddressModel from "../models/address.model";
+import { PhoneNumber } from "libphonenumber-js";
+import VerifiedOTPModel from "../models/verifiedOtp.model";
 
 authenticator.options = {
   step: 300,
@@ -168,6 +170,14 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
   if (!isOtpValid) {
     return sendSuccessResponse(res, 400, "Invalid OTP");
   } else {
+    //save verify otps
+    const verifiedOtpData = {
+      userId: otpEntry?.userId,
+      PhoneNumber: otpEntry?.phoneNumber,
+      otp: otpEntry?.otp,
+    };
+    new VerifiedOTPModel(verifiedOtpData);
+
     // Delete OTP after successful validation
     await OTPModel.deleteOne({ _id: otpEntry?._id });
   }

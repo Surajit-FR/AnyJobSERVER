@@ -263,6 +263,20 @@ export const addService = asyncHandler(
       ? findNeighbour.data?.results[0]?.name
       : "N/A";
 
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${finalLatitude},${finalLongitude}&key=${process.env.GOOGLE_API_KEY}`;
+
+    const response = await axios.get(url);
+    const results = response.data.results;
+    let landmarkPostalcode = "";
+
+    for (let result of results) {
+      for (let component of result.address_components) {
+        if (component.types.includes("postal_code")) {
+          landmarkPostalcode = component.long_name; // e.g. "110001"
+        }
+      }
+    }
+
     // Prepare the new service object
     const newService = await ServiceModel.create({
       categoryId,
@@ -274,6 +288,7 @@ export const addService = asyncHandler(
       serviceLatitude: finalLatitude,
       serviceLongitude: finalLongitude,
       neighbourLandmark,
+      landmarkPostalcode,
       serviceAddress: serviceAddress,
       serviceLandMark: serviceLandMark,
       location: finalLocation,
@@ -1265,6 +1280,8 @@ export const fetchServiceRequest = asyncHandler(
           userAvtar: "$userId.avatar",
           isUserBanned: "$userId.isDeleted",
           createdAt: 1,
+          neighbourLandmark: 1,
+          landmarkPostalcode: 1,
         },
       },
       {
@@ -1655,7 +1672,7 @@ export const fetchSingleServiceRequest = asyncHandler(
           startedAt: 1,
           completedAt: 1,
           acceptedAt: 1,
-          neighbourLandmark:1
+          neighbourLandmark: 1,
         },
       },
     ]);

@@ -181,6 +181,7 @@ export interface IServiceSchema extends Document {
     cancelledBy: ObjectId;
     cancellationReason: string;
     neighbourLandmark: string;
+    landmarkPostalcode: string;
     
 };
 

@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteSingleQuestion = exports.updateSingleQuestion = exports.fetchSingleQuestion = exports.fetchQuestions = exports.addQuestions = void 0;
+exports.deleteSpecificDerivedQuestionSet = exports.deleteSingleQuestion = exports.updateSingleQuestion = exports.fetchSingleQuestion = exports.fetchQuestions = exports.addQuestions = void 0;
 const question_model_1 = __importDefault(require("../models/question.model"));
 const response_1 = require("../utils/response");
 const asyncHandler_1 = require("../utils/asyncHandler");
@@ -21,7 +21,9 @@ const ApisErrors_1 = require("../utils/ApisErrors");
 // addQuestions controller
 exports.addQuestions = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { categoryId, questionArray } = req.body;
-    const parsedQuestionArray = typeof questionArray === 'string' ? JSON.parse(questionArray) : questionArray;
+    const parsedQuestionArray = typeof questionArray === "string"
+        ? JSON.parse(questionArray)
+        : questionArray;
     const saveQuestions = (questionData, categoryId) => __awaiter(void 0, void 0, void 0, function* () {
         var _a;
         const optionsMap = new Map(Object.entries(questionData.options));
@@ -29,13 +31,13 @@ exports.addQuestions = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(
             option: derivedQuestion.option,
             question: derivedQuestion.question,
             options: new Map(Object.entries(derivedQuestion.options)),
-            derivedQuestions: derivedQuestion.derivedQuestions || []
+            derivedQuestions: derivedQuestion.derivedQuestions || [],
         }))) || [];
         const mainQuestion = yield question_model_1.default.create({
             categoryId,
             question: questionData.question,
             options: optionsMap,
-            derivedQuestions
+            derivedQuestions,
         });
         return mainQuestion._id;
     });
@@ -106,7 +108,7 @@ exports.addQuestions = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(
 exports.fetchQuestions = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const categoryId = req.query.categoryId; // Get categoryId from query parameters
     const matchCriteria = {
-        isDeleted: false
+        isDeleted: false,
     };
     // Add categoryId to match criteria if it exists
     if (categoryId) {
@@ -114,35 +116,35 @@ exports.fetchQuestions = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
     }
     const results = yield question_model_1.default.aggregate([
         {
-            $match: matchCriteria // Use the built match criteria
+            $match: matchCriteria, // Use the built match criteria
         },
         {
             $lookup: {
                 from: "categories",
                 foreignField: "_id",
                 localField: "categoryId",
-                as: "categoryId"
-            }
+                as: "categoryId",
+            },
         },
         {
             $unwind: {
                 path: "$categoryId",
-                preserveNullAndEmptyArrays: true
-            }
+                preserveNullAndEmptyArrays: true,
+            },
         },
         {
             $project: {
                 isDeleted: 0,
                 __v: 0,
-                'categoryId.isDeleted': 0,
-                'categoryId.__v': 0,
-            }
+                "categoryId.isDeleted": 0,
+                "categoryId.__v": 0,
+            },
         },
         {
             $sort: {
-                createdAt: 1
-            }
-        }
+                createdAt: 1,
+            },
+        },
     ]);
     const groupedResults = {};
     results.forEach((question) => {
@@ -153,7 +155,7 @@ exports.fetchQuestions = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
                 name: question.categoryId.name,
                 categoryImage: question.categoryId.categoryImage,
                 owner: question.categoryId.owner,
-                questions: []
+                questions: [],
             };
         }
         groupedResults[categoryKey].questions.push({
@@ -162,7 +164,7 @@ exports.fetchQuestions = (0, asyncHandler_1.asyncHandler)((req, res) => __awaite
             options: question.options,
             derivedQuestions: question.derivedQuestions,
             createdAt: question.createdAt,
-            updatedAt: question.updatedAt
+            updatedAt: question.updatedAt,
         });
     });
     // Convert groupedResults object into an array
@@ -176,58 +178,56 @@ exports.fetchSingleQuestion = (0, asyncHandler_1.asyncHandler)((req, res) => __a
     if (!categoryId && !questionId) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Both CategoryId ID and Question ID are required."));
     }
-    ;
     const results = yield question_model_1.default.aggregate([
         {
             $match: {
                 categoryId: new mongoose_1.default.Types.ObjectId(categoryId),
                 _id: new mongoose_1.default.Types.ObjectId(questionId),
-                isDeleted: false
-            }
+                isDeleted: false,
+            },
         },
         {
             $lookup: {
                 from: "categories",
                 foreignField: "_id",
                 localField: "categoryId",
-                as: "categoryId"
-            }
+                as: "categoryId",
+            },
         },
         {
             $unwind: {
                 path: "$categoryId",
-                preserveNullAndEmptyArrays: true
-            }
+                preserveNullAndEmptyArrays: true,
+            },
         },
         {
             $project: {
                 isDeleted: 0,
                 __v: 0,
-                'categoryId.isDeleted': 0,
-                'categoryId.__v': 0,
-            }
+                "categoryId.isDeleted": 0,
+                "categoryId.__v": 0,
+            },
         },
     ]);
     if (!results) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Question not found."));
     }
-    ;
     if (results.length) {
         let category = results[0].categoryId;
-        const questions = results.map(question => ({
+        const questions = results.map((question) => ({
             _id: question._id,
             question: question.question,
             options: question.options,
             derivedQuestions: question.derivedQuestions,
             createdAt: question.createdAt,
-            updatedAt: question.updatedAt
+            updatedAt: question.updatedAt,
         }));
         finalResult = {
             _id: category._id,
             name: category.name,
             categoryImage: category.categoryImage,
             owner: category.owner,
-            questions: questions
+            questions: questions,
         };
     }
     return (0, response_1.sendSuccessResponse)(res, 200, finalResult, "Questions retrieved successfully .");
@@ -240,7 +240,10 @@ exports.updateSingleQuestion = (0, asyncHandler_1.asyncHandler)((req, res) => __
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Both Category ID and Question ID are required."));
     }
     // Find and update the question by subcategoryId and questionId
-    const updatedQuestion = yield question_model_1.default.findOneAndUpdate({ _id: new mongoose_1.default.Types.ObjectId(questionId), categoryId: new mongoose_1.default.Types.ObjectId(categoryId), }, { $set: updates }, { new: true, }).select('-isDeleted -__v');
+    const updatedQuestion = yield question_model_1.default.findOneAndUpdate({
+        _id: new mongoose_1.default.Types.ObjectId(questionId),
+        categoryId: new mongoose_1.default.Types.ObjectId(categoryId),
+    }, { $set: updates }, { new: true }).select("-isDeleted -__v");
     if (!updatedQuestion) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Question not found."));
     }
@@ -253,9 +256,30 @@ exports.deleteSingleQuestion = (0, asyncHandler_1.asyncHandler)((req, res) => __
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Question ID are required."));
     }
     // Find and update the question by subcategoryId and questionId
-    const deletedQuestion = yield question_model_1.default.findByIdAndDelete({ _id: new mongoose_1.default.Types.ObjectId(questionId), });
+    const deletedQuestion = yield question_model_1.default.findByIdAndDelete({
+        _id: new mongoose_1.default.Types.ObjectId(questionId),
+    });
     if (!deletedQuestion) {
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Question not found."));
     }
     return (0, response_1.sendSuccessResponse)(res, 200, {}, "Question deleted successfully.");
+}));
+exports.deleteSpecificDerivedQuestionSet = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { questionId, derivedQuestionId } = req.body;
+    if (!questionId) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Question ID is required."));
+    }
+    if (!derivedQuestionId) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "Derived question ID is required."));
+    }
+    const updatedQuestionSet = yield question_model_1.default.findOneAndUpdate({ _id: new mongoose_1.default.Types.ObjectId(questionId) }, {
+        $pull: {
+            derivedQuestions: {
+                _id: new mongoose_1.default.Types.ObjectId(derivedQuestionId),
+            },
+        },
+    }, { new: true });
+    return (0, response_1.sendSuccessResponse)(res, 200, {}, 
+    //   updatedQuestionSet,
+    "Derived question deleted successfully.");
 }));

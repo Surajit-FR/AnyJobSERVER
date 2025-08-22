@@ -167,6 +167,17 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
     const neighbourLandmark = ((_g = findNeighbour.data) === null || _g === void 0 ? void 0 : _g.results)
         ? (_j = (_h = findNeighbour.data) === null || _h === void 0 ? void 0 : _h.results[0]) === null || _j === void 0 ? void 0 : _j.name
         : "N/A";
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${finalLatitude},${finalLongitude}&key=${process.env.GOOGLE_API_KEY}`;
+    const response = yield axios_1.default.get(url);
+    const results = response.data.results;
+    let landmarkPostalcode = "";
+    for (let result of results) {
+        for (let component of result.address_components) {
+            if (component.types.includes("postal_code")) {
+                landmarkPostalcode = component.long_name; // e.g. "110001"
+            }
+        }
+    }
     // Prepare the new service object
     const newService = yield service_model_1.default.create({
         categoryId,
@@ -178,6 +189,7 @@ exports.addService = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
         serviceLatitude: finalLatitude,
         serviceLongitude: finalLongitude,
         neighbourLandmark,
+        landmarkPostalcode,
         serviceAddress: serviceAddress,
         serviceLandMark: serviceLandMark,
         location: finalLocation,
@@ -876,6 +888,8 @@ exports.fetchServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) => __a
                 userAvtar: "$userId.avatar",
                 isUserBanned: "$userId.isDeleted",
                 createdAt: 1,
+                neighbourLandmark: 1,
+                landmarkPostalcode: 1,
             },
         },
         {
@@ -1194,7 +1208,7 @@ exports.fetchSingleServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) 
                 startedAt: 1,
                 completedAt: 1,
                 acceptedAt: 1,
-                neighbourLandmark: 1
+                neighbourLandmark: 1,
             },
         },
     ]);

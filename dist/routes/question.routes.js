@@ -8,13 +8,19 @@ const userAuth_1 = require("../middlewares/auth/userAuth");
 const question_controller_1 = require("../controller/question.controller");
 const router = express_1.default.Router();
 router.use(userAuth_1.VerifyJWTToken);
-router.route('/')
-    .post((0, userAuth_1.verifyUserType)(['SuperAdmin']), question_controller_1.addQuestions)
+router
+    .route("/")
+    .post((0, userAuth_1.verifyUserType)(["SuperAdmin"]), question_controller_1.addQuestions)
     .get(question_controller_1.fetchQuestions);
 // router.route('/:categoryId').get(fetchQuestionsCategorywise);
-router.route('/q/:categoryId/:questionId')
+router
+    .route("/q/:categoryId/:questionId")
     .get(question_controller_1.fetchSingleQuestion)
     .patch((0, userAuth_1.verifyUserType)(["SuperAdmin"]), question_controller_1.updateSingleQuestion);
-router.route('/q/:questionId')
+router
+    .route("/q/:questionId")
     .delete((0, userAuth_1.verifyUserType)(["SuperAdmin"]), question_controller_1.deleteSingleQuestion);
+router
+    .route("/delete-derived-question")
+    .delete((0, userAuth_1.verifyUserType)(["SuperAdmin"]), question_controller_1.deleteSpecificDerivedQuestionSet);
 exports.default = router;

@@ -248,6 +248,14 @@ export interface IOTPSchema extends Document {
     updatedAt?: Date;
     isVerified?: boolean;
 };
+export interface IVerifiedOTPSchema extends Document {
+    _id: ObjectId;
+    userId: ObjectId;
+    phoneNumber: string;
+    otp: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+};
 
 export interface IRatingSchema extends Document {
     _id: ObjectId;

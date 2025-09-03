@@ -1673,6 +1673,7 @@ export const fetchSingleServiceRequest = asyncHandler(
           completedAt: 1,
           acceptedAt: 1,
           neighbourLandmark: 1,
+          landmarkPostalcode: 1,
         },
       },
     ]);

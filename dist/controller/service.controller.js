@@ -1209,6 +1209,7 @@ exports.fetchSingleServiceRequest = (0, asyncHandler_1.asyncHandler)((req, res) 
                 completedAt: 1,
                 acceptedAt: 1,
                 neighbourLandmark: 1,
+                landmarkPostalcode: 1,
             },
         },
     ]);

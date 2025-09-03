@@ -28,6 +28,7 @@ const userAdditionalInfo_model_1 = __importDefault(require("../models/userAdditi
 const config_1 = require("../config/config");
 const mongoose_1 = __importDefault(require("mongoose"));
 const address_model_1 = __importDefault(require("../models/address.model"));
+const verifiedOtp_model_1 = __importDefault(require("../models/verifiedOtp.model"));
 otplib_1.authenticator.options = {
     step: 300,
 };
@@ -142,6 +143,13 @@ exports.verifyOTP = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
         return (0, response_1.sendSuccessResponse)(res, 400, "Invalid OTP");
     }
     else {
+        //save verify otps
+        const verifiedOtpData = {
+            userId: otpEntry === null || otpEntry === void 0 ? void 0 : otpEntry.userId,
+            PhoneNumber: otpEntry === null || otpEntry === void 0 ? void 0 : otpEntry.phoneNumber,
+            otp: otpEntry === null || otpEntry === void 0 ? void 0 : otpEntry.otp,
+        };
+        new verifiedOtp_model_1.default(verifiedOtpData);
         // Delete OTP after successful validation
         yield otp_model_1.default.deleteOne({ _id: otpEntry === null || otpEntry === void 0 ? void 0 : otpEntry._id });
     }

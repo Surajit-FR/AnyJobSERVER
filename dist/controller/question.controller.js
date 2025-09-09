@@ -279,6 +279,7 @@ exports.deleteSpecificDerivedQuestionSet = (0, asyncHandler_1.asyncHandler)((req
             },
         },
     }, { new: true });
+    console.log({ updatedQuestionSet });
     return (0, response_1.sendSuccessResponse)(res, 200, {}, 
     //   updatedQuestionSet,
     "Derived question deleted successfully.");

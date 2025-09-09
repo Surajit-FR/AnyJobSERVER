@@ -807,6 +807,12 @@ exports.verifyServiceProvider = (0, asyncHandler_1.asyncHandler)((req, res) => _
                     month: dob.getMonth() + 1,
                     year: dob.getFullYear(),
                 },
+                verification: {
+                    document: {
+                        front: additionalInfo === null || additionalInfo === void 0 ? void 0 : additionalInfo.driverLicenseImages[0],
+                        back: additionalInfo === null || additionalInfo === void 0 ? void 0 : additionalInfo.driverLicenseImages[1],
+                    },
+                },
             },
             business_profile: {
                 url: "https://your-test-business.com",

@@ -1021,11 +1021,18 @@ export const verifyServiceProvider = asyncHandler(
             month: dob.getMonth() + 1,
             year: dob.getFullYear(),
           },
+          verification: {
+            document: {
+              front: additionalInfo?.driverLicenseImages[0], 
+              back: additionalInfo?.driverLicenseImages[1], 
+            },
+          },
         },
         business_profile: {
           url: "https://your-test-business.com",
           mcc: "5818",
         },
+
         // external_account: 'btok_us_verified',
         external_account: {
           object: "bank_account",

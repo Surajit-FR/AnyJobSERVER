@@ -9,6 +9,8 @@ import CancellationFeeModel from "../models/cancellationFee.model";
 import ServiceModel from "../models/service.model";
 import mongoose from "mongoose";
 import AdminRevenueModel from "../models/adminRevenue.model";
+import { ApiError } from "../utils/ApisErrors";
+import { sendErrorResponse } from "../utils/response";
 const stripe = new Stripe(STRIPE_SECRET_KEY as string, {
   apiVersion: "2024-09-30.acacia" as any,
 });
@@ -76,37 +78,47 @@ export const stripeWebhook = async (req: Request, res: Response) => {
 
 //EVENT HANDLERS
 const handleCustomerCreated = async (customer: any) => {
-  console.log("WEBHOOK RUNS: CUSTOMER CREATED", customer);
-  const userType = customer.metadata.appUserType;
-  const email = customer.email;
-  // Store customer ID in database
-  await UserModel.findOneAndUpdate(
-    { email, userType },
-    { stripeCustomerId: customer.id },
-    { new: true, upsert: true }
-  );
+  try {
+    console.log("WEBHOOK RUNS: CUSTOMER CREATED", customer);
+    const userType = customer.metadata.appUserType;
+    const email = customer.email;
+    // Store customer ID in database
+    await UserModel.findOneAndUpdate(
+      { email, userType },
+      { stripeCustomerId: customer.id },
+      { new: true, upsert: true }
+    );
+  } catch (err) {
+    console.error("❌ Error in handleCustomerCreated:", err);
+    return new ApiError(400, "Something went wrong,please try again later");
+  }
 };
 
 const handlePaymentMethodAttached = async (paymentMethod: any) => {
-  console.log("WEBHOOK RUNS: ATTATCH PAYMENT METHOD");
+  try {
+    console.log("WEBHOOK RUNS: ATTATCH PAYMENT METHOD");
 
-  // Attach the new payment method to the Stripe customer
-  const attach = await stripe.paymentMethods.attach(paymentMethod.id, {
-    customer: paymentMethod.customer,
-  });
-  console.log("ATTATCH PAYMENT METHOD: ", attach);
+    // Attach the new payment method to the Stripe customer
+    const attach = await stripe.paymentMethods.attach(paymentMethod.id, {
+      customer: paymentMethod.customer,
+    });
+    console.log("ATTATCH PAYMENT METHOD: ", attach);
 
-  // Set the payment method as the default for future payments
-  await stripe.customers.update(paymentMethod.customer, {
-    invoice_settings: { default_payment_method: paymentMethod.id },
-  });
+    // Set the payment method as the default for future payments
+    await stripe.customers.update(paymentMethod.customer, {
+      invoice_settings: { default_payment_method: paymentMethod.id },
+    });
 
-  await UserModel.findOneAndUpdate(
-    { stripeCustomerId: paymentMethod.customer },
-    { paymentMethodId: paymentMethod.id },
-    { new: true }
-  );
-  console.log("Payment Method Attached:", paymentMethod.id);
+    await UserModel.findOneAndUpdate(
+      { stripeCustomerId: paymentMethod.customer },
+      { paymentMethodId: paymentMethod.id },
+      { new: true }
+    );
+    console.log("Payment Method Attached:", paymentMethod.id);
+  } catch (err) {
+    console.error("❌ Error in handlePaymentMethodAttached:", err);
+    return new ApiError(400, "Something went wrong,please try again later");
+  }
 };
 
 const handlePaymentMethodUpdated = async (paymentMethod: any) => {
@@ -116,48 +128,68 @@ const handlePaymentMethodUpdated = async (paymentMethod: any) => {
 };
 
 const handlePaymentMethodDeleted = async (paymentMethod: any) => {
-  console.log("Payment Method Deleted:", paymentMethod.id);
+  try {
+    console.log("Payment Method Deleted:", paymentMethod.id);
 
-  await UserModel.findOneAndUpdate(
-    { stripeCustomerId: paymentMethod.customer },
-    { $pull: { paymentMethods: paymentMethod.id } }, // Remove from the array
-    { new: true }
-  );
+    await UserModel.findOneAndUpdate(
+      { stripeCustomerId: paymentMethod.customer },
+      { $pull: { paymentMethods: paymentMethod.id } }, // Remove from the array
+      { new: true }
+    );
+  } catch (err) {
+    console.error("❌ Error in handlePaymentSuccess:", err);
+    return new ApiError(400, "Something went wrong,please try again later");
+  }
 };
 
 const handlePaymentSuccess = async (paymentIntent: any) => {
-  console.log("WEBHOOK RUNS: CHECKING PAYMENT SUCCESS");
+  try {
+    console.log("WEBHOOK RUNS: CHECKING PAYMENT SUCCESS");
 
-  const charges = await stripe.charges.list({
-    payment_intent: paymentIntent.id,
-  });
-  console.log("Webhook runs: paymnet status updated :)");
+    const charges = await stripe.charges.list({
+      payment_intent: paymentIntent.id,
+    });
+    console.log("Webhook runs: paymnet status updated :)");
+  } catch (err) {
+    console.error("❌ Error in handlePaymentSuccess:", err);
+    return new ApiError(400, "Something went wrong,please try again later");
+  }
 };
 
 const handlePaymentDelayed = async (paymentIntent: any) => {
-  console.log("WEBHOOK RUNS: CHECKING PAYMENT DELAY");
+  try {
+    console.log("WEBHOOK RUNS: CHECKING PAYMENT DELAY");
 
-  await PurchaseModel.findOneAndUpdate(
-    {
-      stripeCustomerId: paymentIntent.customer,
-      paymentIntentId: paymentIntent.id,
-    },
-    { lastPendingPaymentIntentId: paymentIntent.id },
-    { new: true }
-  );
+    await PurchaseModel.findOneAndUpdate(
+      {
+        stripeCustomerId: paymentIntent.customer,
+        paymentIntentId: paymentIntent.id,
+      },
+      { lastPendingPaymentIntentId: paymentIntent.id },
+      { new: true }
+    );
+  } catch (err) {
+    console.error("❌ Error in handlePaymentDelayed:", err);
+    return new ApiError(400, "Something went wrong,please try again later");
+  }
 };
 
 const handlePaymentCanceled = async (paymentIntent: any) => {
-  console.log("WEBHOOK RUNS: CHECKING PAYMENT FALIURE");
+  try {
+    console.log("WEBHOOK RUNS: CHECKING PAYMENT FALIURE");
 
-  await PurchaseModel.findOneAndUpdate(
-    {
-      stripeCustomerId: paymentIntent.customer,
-      paymentIntentId: paymentIntent.id,
-    },
-    { status: "failed", lastPendingPaymentIntentId: "" },
-    { new: true }
-  );
+    await PurchaseModel.findOneAndUpdate(
+      {
+        stripeCustomerId: paymentIntent.customer,
+        paymentIntentId: paymentIntent.id,
+      },
+      { status: "failed", lastPendingPaymentIntentId: "" },
+      { new: true }
+    );
+  } catch (err) {
+    console.error("❌ Error in handlePaymentCanceled:", err);
+    return new ApiError(400, "Something went wrong,please try again later");
+  }
 };
 
 const handleCheckoutSessionCompleted = async (session: any) => {
@@ -243,6 +275,7 @@ const handleCheckoutSessionCompleted = async (session: any) => {
     // const savePurchaseData = await new PurchaseModel(purchaseData).save();
   } catch (err) {
     console.error("❌ Error in handleCheckoutSessionCompleted:", err);
+    return new ApiError(400, "Something went wrong,please try again later");
   }
 };
 
@@ -327,48 +360,54 @@ const handleServiceIncentivePayment = async (session: any) => {
     //   { new: true }
     // );
   } catch (error: any) {
-    console.error("❌ Error in handleCheckoutSessionCompleted:", error);
+    console.error("❌ Error in handleServiceIncentivePayment:", error);
+    return new ApiError(400, "Something went wrong,please try again later");
   }
 };
 
 //when add fund is initiated
 const handleWalletTopUp = async (session: any) => {
-  console.log("WEBHOOK RUNS: WALLET ADD FUND CHECKOUT SESSION ", session);
+  try {
+    console.log("WEBHOOK RUNS: WALLET ADD FUND CHECKOUT SESSION ", session);
 
-  const customerId = session.customer;
-  const amount = session.amount_total / 100;
+    const customerId = session.customer;
+    const amount = session.amount_total / 100;
 
-  const user = await UserModel.findOne({ stripeCustomerId: customerId });
-  const wallet = await WalletModel.findOne({ userId: user?._id });
-  if (!user || !wallet) {
-    console.log("User or wallet not found for customerId:", customerId);
-    return;
-  }
-
-  // transfer added wallet amount in sp's wallet---------------------------------
-  const transfer = await stripe.transfers.create({
-    amount: session.amount_total,
-    currency: "usd",
-    destination: wallet.stripeConnectedAccountId,
-  });
-  // -----------------------------------------------------------------------------
-
-  // Update the wallet after successful add money (wallet credited)----------------
-  const transaction = {
-    type: "credit",
-    amount,
-    description: "AddMoney",
-    stripeTransactionId: transfer.id,
-  };
-
-  await WalletModel.findOneAndUpdate(
-    { userId: user._id },
-    {
-      $push: { transactions: transaction },
-      $inc: { balance: amount },
-      updatedAt: Date.now(),
+    const user = await UserModel.findOne({ stripeCustomerId: customerId });
+    const wallet = await WalletModel.findOne({ userId: user?._id });
+    if (!user || !wallet) {
+      console.log("User or wallet not found for customerId:", customerId);
+      return;
     }
-  );
+
+    // transfer added wallet amount in sp's wallet---------------------------------
+    const transfer = await stripe.transfers.create({
+      amount: session.amount_total,
+      currency: "usd",
+      destination: wallet.stripeConnectedAccountId,
+    });
+    // -----------------------------------------------------------------------------
+
+    // Update the wallet after successful add money (wallet credited)----------------
+    const transaction = {
+      type: "credit",
+      amount,
+      description: "AddMoney",
+      stripeTransactionId: transfer.id,
+    };
+
+    await WalletModel.findOneAndUpdate(
+      { userId: user._id },
+      {
+        $push: { transactions: transaction },
+        $inc: { balance: amount },
+        updatedAt: Date.now(),
+      }
+    );
+  } catch (err) {
+    console.error("❌ Error in handleWalletTopUp:", err);
+    return new ApiError(400, "Something went wrong,please try again later");
+  }
 };
 // wallet update complete-------------------------------------------------------------
 
@@ -429,9 +468,10 @@ const handleLeadGenerationFee = async (session: any) => {
     // -----------------------------------------------------------------------------------------
   } catch (error: any) {
     console.error(
-      "❌ Error in handleCheckoutSessionCompleted (Lead Generation Fee):",
+      "❌ Error in handleLeadGenerationFee (Lead Generation Fee):",
       error
     );
+    return new ApiError(400, "Something went wrong,please try again later");
   }
 };
 
@@ -549,9 +589,10 @@ const handleServiceCancellationFee = async (session: any) => {
     // -----------------------------------------------------------------------------------------------------------
   } catch (error: any) {
     console.error(
-      "❌ Error in handleCheckoutSessionCompleted (Lead Generation Fee):",
+      "❌ Error in handleServiceCancellationFee (Lead Generation Fee):",
       error
     );
+    return new ApiError(400, "Something went wrong,please try again later");
   }
 };
 
@@ -617,5 +658,6 @@ const handleTransferCreated = async (transfer: any) => {
     }
   } catch (error: any) {
     console.error("Error in handleTransferCreated:", error.message);
+    return new ApiError(400, "Something went wrong,please try again later");
   }
 };

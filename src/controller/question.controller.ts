@@ -377,12 +377,13 @@ export const deleteSpecificDerivedQuestionSet = asyncHandler(
       },
       { new: true }
     );
+    console.log({ updatedQuestionSet });
 
     return sendSuccessResponse(
       res,
       200,
       {},
-    //   updatedQuestionSet,
+      //   updatedQuestionSet,
       "Derived question deleted successfully."
     );
   }

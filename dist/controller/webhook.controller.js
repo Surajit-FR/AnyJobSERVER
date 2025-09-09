@@ -23,7 +23,6 @@ const cancellationFee_model_1 = __importDefault(require("../models/cancellationF
 const service_model_1 = __importDefault(require("../models/service.model"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const adminRevenue_model_1 = __importDefault(require("../models/adminRevenue.model"));
-const ApisErrors_1 = require("../utils/ApisErrors");
 const stripe = new stripe_1.default(config_1.STRIPE_SECRET_KEY, {
     apiVersion: "2024-09-30.acacia",
 });
@@ -68,7 +67,7 @@ const stripeWebhook = (req, res) => __awaiter(void 0, void 0, void 0, function* 
     }
     catch (error) {
         console.error("Webhook Error:", error.message);
-        res.status(400).send(`Webhook Error: ${error.message}`);
+        return res.status(400).send(`Webhook Error: ${error.message}`);
     }
 });
 exports.stripeWebhook = stripeWebhook;
@@ -83,7 +82,8 @@ const handleCustomerCreated = (customer) => __awaiter(void 0, void 0, void 0, fu
     }
     catch (err) {
         console.error("❌ Error in handleCustomerCreated:", err);
-        return new ApisErrors_1.ApiError(400, "Something went wrong,please try again later");
+        throw err;
+        // return new ApiError(400, "Something went wrong,please try again later");
     }
 });
 const handlePaymentMethodAttached = (paymentMethod) => __awaiter(void 0, void 0, void 0, function* () {
@@ -103,7 +103,7 @@ const handlePaymentMethodAttached = (paymentMethod) => __awaiter(void 0, void 0,
     }
     catch (err) {
         console.error("❌ Error in handlePaymentMethodAttached:", err);
-        return new ApisErrors_1.ApiError(400, "Something went wrong,please try again later");
+        throw err;
     }
 });
 const handlePaymentMethodUpdated = (paymentMethod) => __awaiter(void 0, void 0, void 0, function* () {
@@ -118,7 +118,7 @@ const handlePaymentMethodDeleted = (paymentMethod) => __awaiter(void 0, void 0, 
     }
     catch (err) {
         console.error("❌ Error in handlePaymentSuccess:", err);
-        return new ApisErrors_1.ApiError(400, "Something went wrong,please try again later");
+        throw err;
     }
 });
 const handlePaymentSuccess = (paymentIntent) => __awaiter(void 0, void 0, void 0, function* () {
@@ -131,7 +131,7 @@ const handlePaymentSuccess = (paymentIntent) => __awaiter(void 0, void 0, void 0
     }
     catch (err) {
         console.error("❌ Error in handlePaymentSuccess:", err);
-        return new ApisErrors_1.ApiError(400, "Something went wrong,please try again later");
+        throw err;
     }
 });
 const handlePaymentDelayed = (paymentIntent) => __awaiter(void 0, void 0, void 0, function* () {
@@ -144,7 +144,7 @@ const handlePaymentDelayed = (paymentIntent) => __awaiter(void 0, void 0, void 0
     }
     catch (err) {
         console.error("❌ Error in handlePaymentDelayed:", err);
-        return new ApisErrors_1.ApiError(400, "Something went wrong,please try again later");
+        throw err;
     }
 });
 const handlePaymentCanceled = (paymentIntent) => __awaiter(void 0, void 0, void 0, function* () {
@@ -157,7 +157,7 @@ const handlePaymentCanceled = (paymentIntent) => __awaiter(void 0, void 0, void 
     }
     catch (err) {
         console.error("❌ Error in handlePaymentCanceled:", err);
-        return new ApisErrors_1.ApiError(400, "Something went wrong,please try again later");
+        throw err;
     }
 });
 const handleCheckoutSessionCompleted = (session) => __awaiter(void 0, void 0, void 0, function* () {
@@ -230,7 +230,7 @@ const handleCheckoutSessionCompleted = (session) => __awaiter(void 0, void 0, vo
     }
     catch (err) {
         console.error("❌ Error in handleCheckoutSessionCompleted:", err);
-        return new ApisErrors_1.ApiError(400, "Something went wrong,please try again later");
+        throw err;
     }
 });
 const handleServiceIncentivePayment = (session) => __awaiter(void 0, void 0, void 0, function* () {
@@ -299,7 +299,7 @@ const handleServiceIncentivePayment = (session) => __awaiter(void 0, void 0, voi
     }
     catch (error) {
         console.error("❌ Error in handleServiceIncentivePayment:", error);
-        return new ApisErrors_1.ApiError(400, "Something went wrong,please try again later");
+        throw error;
     }
 });
 //when add fund is initiated
@@ -336,7 +336,7 @@ const handleWalletTopUp = (session) => __awaiter(void 0, void 0, void 0, functio
     }
     catch (err) {
         console.error("❌ Error in handleWalletTopUp:", err);
-        return new ApisErrors_1.ApiError(400, "Something went wrong,please try again later");
+        throw err;
     }
 });
 // wallet update complete-------------------------------------------------------------
@@ -386,7 +386,7 @@ const handleLeadGenerationFee = (session) => __awaiter(void 0, void 0, void 0, f
     }
     catch (error) {
         console.error("❌ Error in handleLeadGenerationFee (Lead Generation Fee):", error);
-        return new ApisErrors_1.ApiError(400, "Something went wrong,please try again later");
+        throw error;
     }
 });
 const handleServiceCancellationFee = (session) => __awaiter(void 0, void 0, void 0, function* () {
@@ -482,7 +482,7 @@ const handleServiceCancellationFee = (session) => __awaiter(void 0, void 0, void
     }
     catch (error) {
         console.error("❌ Error in handleServiceCancellationFee (Lead Generation Fee):", error);
-        return new ApisErrors_1.ApiError(400, "Something went wrong,please try again later");
+        throw error;
     }
 });
 const handleTransferCreated = (transfer) => __awaiter(void 0, void 0, void 0, function* () {
@@ -539,6 +539,6 @@ const handleTransferCreated = (transfer) => __awaiter(void 0, void 0, void 0, fu
     }
     catch (error) {
         console.error("Error in handleTransferCreated:", error.message);
-        return new ApisErrors_1.ApiError(400, "Something went wrong,please try again later");
+        throw error;
     }
 });

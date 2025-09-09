@@ -72,7 +72,7 @@ export const stripeWebhook = async (req: Request, res: Response) => {
     res.json({ received: true });
   } catch (error: any) {
     console.error("Webhook Error:", error.message);
-    res.status(400).send(`Webhook Error: ${error.message}`);
+    return res.status(400).send(`Webhook Error: ${error.message}`);
   }
 };
 
@@ -90,7 +90,8 @@ const handleCustomerCreated = async (customer: any) => {
     );
   } catch (err) {
     console.error("❌ Error in handleCustomerCreated:", err);
-    return new ApiError(400, "Something went wrong,please try again later");
+    throw err;
+    // return new ApiError(400, "Something went wrong,please try again later");
   }
 };
 
@@ -117,7 +118,7 @@ const handlePaymentMethodAttached = async (paymentMethod: any) => {
     console.log("Payment Method Attached:", paymentMethod.id);
   } catch (err) {
     console.error("❌ Error in handlePaymentMethodAttached:", err);
-    return new ApiError(400, "Something went wrong,please try again later");
+    throw err;
   }
 };
 
@@ -138,7 +139,7 @@ const handlePaymentMethodDeleted = async (paymentMethod: any) => {
     );
   } catch (err) {
     console.error("❌ Error in handlePaymentSuccess:", err);
-    return new ApiError(400, "Something went wrong,please try again later");
+    throw err;
   }
 };
 
@@ -152,7 +153,7 @@ const handlePaymentSuccess = async (paymentIntent: any) => {
     console.log("Webhook runs: paymnet status updated :)");
   } catch (err) {
     console.error("❌ Error in handlePaymentSuccess:", err);
-    return new ApiError(400, "Something went wrong,please try again later");
+    throw err;
   }
 };
 
@@ -170,7 +171,7 @@ const handlePaymentDelayed = async (paymentIntent: any) => {
     );
   } catch (err) {
     console.error("❌ Error in handlePaymentDelayed:", err);
-    return new ApiError(400, "Something went wrong,please try again later");
+    throw err;
   }
 };
 
@@ -188,7 +189,7 @@ const handlePaymentCanceled = async (paymentIntent: any) => {
     );
   } catch (err) {
     console.error("❌ Error in handlePaymentCanceled:", err);
-    return new ApiError(400, "Something went wrong,please try again later");
+    throw err;
   }
 };
 
@@ -275,7 +276,7 @@ const handleCheckoutSessionCompleted = async (session: any) => {
     // const savePurchaseData = await new PurchaseModel(purchaseData).save();
   } catch (err) {
     console.error("❌ Error in handleCheckoutSessionCompleted:", err);
-    return new ApiError(400, "Something went wrong,please try again later");
+    throw err;
   }
 };
 
@@ -361,7 +362,7 @@ const handleServiceIncentivePayment = async (session: any) => {
     // );
   } catch (error: any) {
     console.error("❌ Error in handleServiceIncentivePayment:", error);
-    return new ApiError(400, "Something went wrong,please try again later");
+    throw error;
   }
 };
 
@@ -406,7 +407,7 @@ const handleWalletTopUp = async (session: any) => {
     );
   } catch (err) {
     console.error("❌ Error in handleWalletTopUp:", err);
-    return new ApiError(400, "Something went wrong,please try again later");
+    throw err;
   }
 };
 // wallet update complete-------------------------------------------------------------
@@ -471,7 +472,7 @@ const handleLeadGenerationFee = async (session: any) => {
       "❌ Error in handleLeadGenerationFee (Lead Generation Fee):",
       error
     );
-    return new ApiError(400, "Something went wrong,please try again later");
+    throw error;
   }
 };
 
@@ -592,7 +593,7 @@ const handleServiceCancellationFee = async (session: any) => {
       "❌ Error in handleServiceCancellationFee (Lead Generation Fee):",
       error
     );
-    return new ApiError(400, "Something went wrong,please try again later");
+    throw error;
   }
 };
 
@@ -658,6 +659,6 @@ const handleTransferCreated = async (transfer: any) => {
     }
   } catch (error: any) {
     console.error("Error in handleTransferCreated:", error.message);
-    return new ApiError(400, "Something went wrong,please try again later");
+    throw error;
   }
 };

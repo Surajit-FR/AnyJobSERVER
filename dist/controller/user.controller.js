@@ -237,7 +237,7 @@ exports.addAddress = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
 }));
 exports.addAdditionalInfo = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c, _d, _e, _f, _g;
-    const { companyName, companyIntroduction, DOB, driverLicense, EIN, socialSecurity, companyLicense, insurancePolicy, businessName, phone, totalYearExperience, } = req.body;
+    const { companyName, companyIntroduction, DOB, driverLicense, EIN, socialSecurity, companyLicense, insurancePolicy, businessName, phone, totalYearExperience, routing_number, account_number, account_holder_name, account_holder_type, } = req.body;
     // Check if additional info already exists for the user
     const existingAdditionalInfo = yield userAdditionalInfo_model_1.default.findOne({
         userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id,
@@ -271,6 +271,12 @@ exports.addAdditionalInfo = (0, asyncHandler_1.asyncHandler)((req, res) => __awa
             (0, multer_middleware_1.deleteUploadedFiles)(files);
         }
         return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "All files are required, including two driver license images"));
+    }
+    if (!routing_number ||
+        !account_number ||
+        !account_holder_name ||
+        !account_holder_type) {
+        return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "All banking details like routing_number,account_number,account_holder_name,account_holder_type are required"));
     }
     // Upload driver license images to Cloudinary
     const uploadedDriverLicenseImages = [];
@@ -313,6 +319,10 @@ exports.addAdditionalInfo = (0, asyncHandler_1.asyncHandler)((req, res) => __awa
         licenseProofImage: licenseProofImage.secure_url,
         businessLicenseImage: businessLicenseImage.secure_url,
         businessImage: businessImage.secure_url,
+        routing_number,
+        account_number,
+        account_holder_name,
+        account_holder_type
     });
     // Save the new additional info record
     const savedAdditionalInfo = yield newAdditionalInfo.save();
@@ -823,10 +833,10 @@ exports.verifyServiceProvider = (0, asyncHandler_1.asyncHandler)((req, res) => _
                 object: "bank_account",
                 country: "US",
                 currency: "usd",
-                routing_number: "110000000",
-                account_number: "000123456789",
-                account_holder_name: "Jane Doe",
-                account_holder_type: "individual",
+                routing_number: additionalInfo === null || additionalInfo === void 0 ? void 0 : additionalInfo.routing_number,
+                account_number: additionalInfo === null || additionalInfo === void 0 ? void 0 : additionalInfo.account_number,
+                account_holder_name: additionalInfo === null || additionalInfo === void 0 ? void 0 : additionalInfo.account_holder_name,
+                account_holder_type: additionalInfo === null || additionalInfo === void 0 ? void 0 : additionalInfo.account_holder_type,
             },
             tos_acceptance: {
                 date: Math.floor(Date.now() / 1000),

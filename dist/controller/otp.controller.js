@@ -36,7 +36,7 @@ const accountSid = config_1.TWILIO_ACCOUNT_SID;
 const authToken = config_1.TWILIO_AUTH_TOKEN;
 // const accountSid = "";
 // const authToken = "";
-const TWILIO_PHONE_NUMBERS = "+18286722687";
+const TWILIO_PHONE_NUMBERS = "+18664784246";
 let client = (0, twilio_1.default)(accountSid, authToken);
 const generateVerificationCode = (length) => {
     if (length <= 0) {
@@ -143,13 +143,14 @@ exports.verifyOTP = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
         return (0, response_1.sendSuccessResponse)(res, 400, "Invalid OTP");
     }
     else {
+        console.log("verifiedOtpData");
         //save verify otps
         const verifiedOtpData = {
             userId: otpEntry === null || otpEntry === void 0 ? void 0 : otpEntry.userId,
             PhoneNumber: otpEntry === null || otpEntry === void 0 ? void 0 : otpEntry.phoneNumber,
             otp: otpEntry === null || otpEntry === void 0 ? void 0 : otpEntry.otp,
         };
-        new verifiedOtp_model_1.default(verifiedOtpData);
+        new verifiedOtp_model_1.default(verifiedOtpData).save();
         // Delete OTP after successful validation
         yield otp_model_1.default.deleteOne({ _id: otpEntry === null || otpEntry === void 0 ? void 0 : otpEntry._id });
     }

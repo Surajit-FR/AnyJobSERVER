@@ -18,7 +18,7 @@ const IP_model_1 = __importDefault(require("../models/IP.model"));
 exports.captureIP = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { ipAddress, country, region, latitude, longitude, userAgent, route, userId, userType, } = req.body;
-        if (!ipAddress || !userAgent || !route) {
+        if (!ipAddress || !userAgent) {
             return res.status(400).json({ message: "All required fields must be provided." });
         }
         // Create a new IPLog document

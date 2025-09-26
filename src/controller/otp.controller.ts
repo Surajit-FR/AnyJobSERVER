@@ -27,7 +27,7 @@ const authToken = TWILIO_AUTH_TOKEN;
 // const accountSid = "";
 
 // const authToken = "";
-const TWILIO_PHONE_NUMBERS = "+18286722687";
+const TWILIO_PHONE_NUMBERS = "+18664784246";
 let client = twilio(accountSid, authToken);
 
 export const generateVerificationCode = (length: number): number => {

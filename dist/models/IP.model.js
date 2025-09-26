@@ -30,7 +30,7 @@ const IPLogSchema = new mongoose_1.Schema({
     //     enum: ["IPv4", "IPv6", "Unknown"],
     //     required: true
     // },
-    route: { type: String, required: true },
+    route: { type: String, },
     userId: { type: mongoose_1.Schema.Types.ObjectId, },
     userType: { type: String, },
     timestamp: {

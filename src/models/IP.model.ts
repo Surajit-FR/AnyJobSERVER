@@ -29,7 +29,7 @@ const IPLogSchema = new Schema({
     //     enum: ["IPv4", "IPv6", "Unknown"],
     //     required: true
     // },
-    route: { type: String, required: true },
+    route: { type: String,  },
     userId: { type: Schema.Types.ObjectId, },
     userType: { type: String, },
     timestamp: {

@@ -170,13 +170,15 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
   if (!isOtpValid) {
     return sendSuccessResponse(res, 400, "Invalid OTP");
   } else {
+    console.log("verifiedOtpData");
+    
     //save verify otps
     const verifiedOtpData = {
       userId: otpEntry?.userId,
       PhoneNumber: otpEntry?.phoneNumber,
       otp: otpEntry?.otp,
     };
-    new VerifiedOTPModel(verifiedOtpData);
+    new VerifiedOTPModel(verifiedOtpData).save();
 
     // Delete OTP after successful validation
     await OTPModel.deleteOne({ _id: otpEntry?._id });

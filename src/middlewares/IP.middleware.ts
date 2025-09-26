@@ -20,7 +20,7 @@ export const captureIP = asyncHandler(async (req: Request, res: Response) => {
             userType,
         } = req.body;
 
-        if (!ipAddress || !userAgent || !route) {
+        if (!ipAddress || !userAgent ) {
             return res.status(400).json({ message: "All required fields must be provided." });
         }
 

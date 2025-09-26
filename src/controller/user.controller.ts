@@ -273,6 +273,10 @@ export const addAdditionalInfo = asyncHandler(
       businessName,
       phone,
       totalYearExperience,
+      routing_number,
+      account_number,
+      account_holder_name,
+      account_holder_type,
     } = req.body;
 
     // Check if additional info already exists for the user
@@ -329,6 +333,20 @@ export const addAdditionalInfo = asyncHandler(
         new ApiError(
           400,
           "All files are required, including two driver license images"
+        )
+      );
+    }
+    if (
+      !routing_number ||
+      !account_number ||
+      !account_holder_name ||
+      !account_holder_type
+    ) {
+      return sendErrorResponse(
+        res,
+        new ApiError(
+          400,
+          "All banking details like routing_number,account_number,account_holder_name,account_holder_type are required"
         )
       );
     }
@@ -396,6 +414,10 @@ export const addAdditionalInfo = asyncHandler(
       licenseProofImage: licenseProofImage.secure_url,
       businessLicenseImage: businessLicenseImage.secure_url,
       businessImage: businessImage.secure_url,
+      routing_number,
+      account_number,
+      account_holder_name,
+      account_holder_type
     });
 
     // Save the new additional info record
@@ -1023,8 +1045,8 @@ export const verifyServiceProvider = asyncHandler(
           },
           verification: {
             document: {
-              front: additionalInfo?.driverLicenseImages[0], 
-              back: additionalInfo?.driverLicenseImages[1], 
+              front: additionalInfo?.driverLicenseImages[0],
+              back: additionalInfo?.driverLicenseImages[1],
             },
           },
         },
@@ -1038,10 +1060,10 @@ export const verifyServiceProvider = asyncHandler(
           object: "bank_account",
           country: "US",
           currency: "usd",
-          routing_number: "110000000",
-          account_number: "000123456789",
-          account_holder_name: "Jane Doe",
-          account_holder_type: "individual",
+          routing_number: additionalInfo?.routing_number as string,
+          account_number: additionalInfo?.account_number as string,
+          account_holder_name: additionalInfo?.account_holder_name,
+          account_holder_type: additionalInfo?.account_holder_type,
         },
         tos_acceptance: {
           date: Math.floor(Date.now() / 1000),

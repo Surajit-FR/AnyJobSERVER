@@ -91,6 +91,10 @@ export interface IAdditionalUserInfo extends Document {
     businessLicenseImage: string;
     businessImage: string;
     businessName: string;
+    routing_number: string;//bank account details
+    account_number: string;//bank account details
+    account_holder_name: string;//bank account details
+    account_holder_type: string;//bank account details
     isReadAggrement: boolean;
     isAnyArrivalFee?: boolean;
     arrivalFee: number;

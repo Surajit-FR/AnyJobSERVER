@@ -23,9 +23,41 @@ import Stripe from "stripe";
 import AdminRevenueModel from "../models/adminRevenue.model";
 import ServiceModel from "../models/service.model";
 import CancellationFeeModel from "../models/cancellationFee.model";
+import axios from "axios";
 const stripe = new Stripe(STRIPE_SECRET_KEY, {
   apiVersion: "2024-09-30.acacia" as any,
 });
+
+async function uploadToStripeFromCloudinary(imageUrl: any) {
+  const response = await axios.get(imageUrl, { responseType: "arraybuffer" });
+
+  //  Convert it to a Buffer
+  const imageBuffer = Buffer.from(response.data);
+  console.log({imageBuffer});
+  
+
+  const stripeFile = await stripe.files.create({
+    purpose: "identity_document",
+    file: {
+      data: imageBuffer,
+      name: "id.jpg",
+      type: "image/jpeg",
+    },
+  });
+  // console.log({stripeFile});
+  
+
+  return stripeFile.id;
+}
+
+
+ const test =  typeof(uploadToStripeFromCloudinary(
+    "https://res.cloudinary.com/dhj5yyosd/image/upload/v1760008955/fyv6wvnqaoyz5f85xlyx.png"
+  ))
+  console.log({test});
+  
+  
+
 
 // get loggedin user
 export const getUser = asyncHandler(
@@ -278,6 +310,7 @@ export const addAdditionalInfo = asyncHandler(
       account_holder_name,
       account_holder_type,
     } = req.body;
+    console.log("addAdditionalInfo payload:", req.body);
 
     // Check if additional info already exists for the user
     const existingAdditionalInfo = await additionalInfoModel.findOne({
@@ -417,7 +450,7 @@ export const addAdditionalInfo = asyncHandler(
       routing_number,
       account_number,
       account_holder_name,
-      account_holder_type
+      account_holder_type,
     });
 
     // Save the new additional info record
@@ -1045,8 +1078,8 @@ export const verifyServiceProvider = asyncHandler(
           },
           verification: {
             document: {
-              front: additionalInfo?.driverLicenseImages[0],
-              back: additionalInfo?.driverLicenseImages[1],
+              front: await uploadToStripeFromCloudinary(additionalInfo?.driverLicenseImages[0]),
+              back: await uploadToStripeFromCloudinary(additionalInfo?.driverLicenseImages[1]),
             },
           },
         },

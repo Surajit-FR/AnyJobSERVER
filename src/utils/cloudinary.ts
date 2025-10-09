@@ -15,7 +15,7 @@ export const uploadOnCloudinary = async (localFilePath: string): Promise<UploadA
 
         // Upload the file to Cloudinary with secure URLs
         const response: UploadApiResponse = await cloudinary.uploader.upload(localFilePath, {
-            resource_type: "raw",
+            resource_type: "image",
             secure: true, // Ensure the URL is HTTPS
         });
 

@@ -28,7 +28,7 @@ const uploadOnCloudinary = (localFilePath) => __awaiter(void 0, void 0, void 0, 
             return null;
         // Upload the file to Cloudinary with secure URLs
         const response = yield cloudinary_1.v2.uploader.upload(localFilePath, {
-            resource_type: "raw",
+            resource_type: "image",
             secure: true, // Ensure the URL is HTTPS
         });
         // Remove the locally saved temporary file

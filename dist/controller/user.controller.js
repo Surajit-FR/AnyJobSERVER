@@ -36,9 +36,30 @@ const stripe_1 = __importDefault(require("stripe"));
 const adminRevenue_model_1 = __importDefault(require("../models/adminRevenue.model"));
 const service_model_1 = __importDefault(require("../models/service.model"));
 const cancellationFee_model_1 = __importDefault(require("../models/cancellationFee.model"));
+const axios_1 = __importDefault(require("axios"));
 const stripe = new stripe_1.default(config_1.STRIPE_SECRET_KEY, {
     apiVersion: "2024-09-30.acacia",
 });
+function uploadToStripeFromCloudinary(imageUrl) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const response = yield axios_1.default.get(imageUrl, { responseType: "arraybuffer" });
+        //  Convert it to a Buffer
+        const imageBuffer = Buffer.from(response.data);
+        console.log({ imageBuffer });
+        const stripeFile = yield stripe.files.create({
+            purpose: "identity_document",
+            file: {
+                data: imageBuffer,
+                name: "id.jpg",
+                type: "image/jpeg",
+            },
+        });
+        // console.log({stripeFile});
+        return stripeFile.id;
+    });
+}
+const test = typeof (uploadToStripeFromCloudinary("https://res.cloudinary.com/dhj5yyosd/image/upload/v1760008955/fyv6wvnqaoyz5f85xlyx.png"));
+console.log({ test });
 // get loggedin user
 exports.getUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
@@ -238,6 +259,7 @@ exports.addAddress = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(vo
 exports.addAdditionalInfo = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c, _d, _e, _f, _g;
     const { companyName, companyIntroduction, DOB, driverLicense, EIN, socialSecurity, companyLicense, insurancePolicy, businessName, phone, totalYearExperience, routing_number, account_number, account_holder_name, account_holder_type, } = req.body;
+    console.log("addAdditionalInfo payload:", req.body);
     // Check if additional info already exists for the user
     const existingAdditionalInfo = yield userAdditionalInfo_model_1.default.findOne({
         userId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id,
@@ -322,7 +344,7 @@ exports.addAdditionalInfo = (0, asyncHandler_1.asyncHandler)((req, res) => __awa
         routing_number,
         account_number,
         account_holder_name,
-        account_holder_type
+        account_holder_type,
     });
     // Save the new additional info record
     const savedAdditionalInfo = yield newAdditionalInfo.save();
@@ -819,8 +841,8 @@ exports.verifyServiceProvider = (0, asyncHandler_1.asyncHandler)((req, res) => _
                 },
                 verification: {
                     document: {
-                        front: additionalInfo === null || additionalInfo === void 0 ? void 0 : additionalInfo.driverLicenseImages[0],
-                        back: additionalInfo === null || additionalInfo === void 0 ? void 0 : additionalInfo.driverLicenseImages[1],
+                        front: yield uploadToStripeFromCloudinary(additionalInfo === null || additionalInfo === void 0 ? void 0 : additionalInfo.driverLicenseImages[0]),
+                        back: yield uploadToStripeFromCloudinary(additionalInfo === null || additionalInfo === void 0 ? void 0 : additionalInfo.driverLicenseImages[1]),
                     },
                 },
             },

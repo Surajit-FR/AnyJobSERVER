@@ -58,8 +58,10 @@ function uploadToStripeFromCloudinary(imageUrl) {
         return stripeFile.id;
     });
 }
-const test = typeof (uploadToStripeFromCloudinary("https://res.cloudinary.com/dhj5yyosd/image/upload/v1760008955/fyv6wvnqaoyz5f85xlyx.png"));
-console.log({ test });
+//  const test =  typeof(uploadToStripeFromCloudinary(
+//     "https://res.cloudinary.com/dhj5yyosd/image/upload/v1760008955/fyv6wvnqaoyz5f85xlyx.png"
+//   ))
+//   console.log({test});
 // get loggedin user
 exports.getUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
@@ -348,6 +350,83 @@ exports.addAdditionalInfo = (0, asyncHandler_1.asyncHandler)((req, res) => __awa
     });
     // Save the new additional info record
     const savedAdditionalInfo = yield newAdditionalInfo.save();
+    //Create the stripe connected account
+    if (savedAdditionalInfo) {
+        const userWallet = yield wallet_model_1.default.findOne({ userId: savedAdditionalInfo === null || savedAdditionalInfo === void 0 ? void 0 : savedAdditionalInfo.userId });
+        if (userWallet === null || userWallet === void 0 ? void 0 : userWallet.stripeConnectedAccountId) {
+            return res.status(200).json({
+                message: "Account already exists",
+            });
+        }
+        const dob = updateUser === null || updateUser === void 0 ? void 0 : updateUser.dob;
+        if (!dob || !(dob instanceof Date)) {
+            return res.status(400).json({ error: "Invalid date of birth" });
+        }
+        const phoneNumber = (0, libphonenumber_js_1.parsePhoneNumberFromString)((updateUser === null || updateUser === void 0 ? void 0 : updateUser.phone) || "");
+        const localPhone = phoneNumber ? phoneNumber.nationalNumber : "";
+        console.log({ localPhone });
+        const accountParams = {
+            type: "custom",
+            country: "US",
+            email: updateUser === null || updateUser === void 0 ? void 0 : updateUser.email,
+            business_type: "individual",
+            capabilities: {
+                transfers: { requested: true },
+            },
+            individual: {
+                first_name: updateUser === null || updateUser === void 0 ? void 0 : updateUser.firstName,
+                last_name: updateUser === null || updateUser === void 0 ? void 0 : updateUser.lastName,
+                email: updateUser === null || updateUser === void 0 ? void 0 : updateUser.email,
+                phone: localPhone,
+                ssn_last_4: savedAdditionalInfo === null || savedAdditionalInfo === void 0 ? void 0 : savedAdditionalInfo.socialSecurity,
+                dob: {
+                    day: dob.getDate(),
+                    month: dob.getMonth() + 1,
+                    year: dob.getFullYear(),
+                },
+                verification: {
+                    document: {
+                        front: yield uploadToStripeFromCloudinary(savedAdditionalInfo === null || savedAdditionalInfo === void 0 ? void 0 : savedAdditionalInfo.driverLicenseImages[0]),
+                        back: yield uploadToStripeFromCloudinary(savedAdditionalInfo === null || savedAdditionalInfo === void 0 ? void 0 : savedAdditionalInfo.driverLicenseImages[1]),
+                    },
+                },
+            },
+            business_profile: {
+                url: "https://your-test-business.com",
+                mcc: "5818",
+            },
+            // external_account: 'btok_us_verified',
+            external_account: {
+                object: "bank_account",
+                country: "US",
+                currency: "usd",
+                routing_number: savedAdditionalInfo === null || savedAdditionalInfo === void 0 ? void 0 : savedAdditionalInfo.routing_number,
+                account_number: savedAdditionalInfo === null || savedAdditionalInfo === void 0 ? void 0 : savedAdditionalInfo.account_number,
+                account_holder_name: savedAdditionalInfo === null || savedAdditionalInfo === void 0 ? void 0 : savedAdditionalInfo.account_holder_name,
+                account_holder_type: savedAdditionalInfo === null || savedAdditionalInfo === void 0 ? void 0 : savedAdditionalInfo.account_holder_type,
+            },
+            tos_acceptance: {
+                date: Math.floor(Date.now() / 1000),
+                ip: req.ip || "127.0.0.1",
+            },
+        };
+        const account = yield stripe.accounts.create(accountParams);
+        yield stripe.accounts.update(account.id, {
+            settings: {
+                payouts: {
+                    schedule: {
+                        interval: "manual",
+                    },
+                },
+            },
+        });
+        yield new wallet_model_1.default({
+            userId: updateUser === null || updateUser === void 0 ? void 0 : updateUser._id,
+            stripeConnectedAccountId: account.id,
+            balance: 0,
+        }).save();
+        console.log("Stripe account created successfully:", account.id);
+    }
     return (0, response_1.sendSuccessResponse)(res, 201, savedAdditionalInfo, "Additional info added successfully");
 }));
 //get serviceProvider List
@@ -806,82 +885,82 @@ exports.verifyServiceProvider = (0, asyncHandler_1.asyncHandler)((req, res) => _
     const additionalInfo = yield userAdditionalInfo_model_1.default.findOne({
         userId: serviceProviderId,
     });
-    if (isVerified && results.userType === "ServiceProvider") {
-        const userWallet = yield wallet_model_1.default.findOne({ userId: results === null || results === void 0 ? void 0 : results._id });
-        if (userWallet === null || userWallet === void 0 ? void 0 : userWallet.stripeConnectedAccountId) {
-            return res.status(200).json({
-                message: "Account already exists",
-            });
-        }
-        const dob = results === null || results === void 0 ? void 0 : results.dob;
-        if (!dob || !(dob instanceof Date)) {
-            return res.status(400).json({ error: "Invalid date of birth" });
-        }
-        const phoneNumber = (0, libphonenumber_js_1.parsePhoneNumberFromString)((results === null || results === void 0 ? void 0 : results.phone) || "");
-        const localPhone = phoneNumber ? phoneNumber.nationalNumber : "";
-        console.log({ localPhone });
-        const accountParams = {
-            type: "custom",
-            country: "US",
-            email: results === null || results === void 0 ? void 0 : results.email,
-            business_type: "individual",
-            capabilities: {
-                transfers: { requested: true },
-            },
-            individual: {
-                first_name: results === null || results === void 0 ? void 0 : results.firstName,
-                last_name: results === null || results === void 0 ? void 0 : results.lastName,
-                email: results === null || results === void 0 ? void 0 : results.email,
-                phone: localPhone,
-                ssn_last_4: additionalInfo === null || additionalInfo === void 0 ? void 0 : additionalInfo.socialSecurity,
-                dob: {
-                    day: dob.getDate(),
-                    month: dob.getMonth() + 1,
-                    year: dob.getFullYear(),
-                },
-                verification: {
-                    document: {
-                        front: yield uploadToStripeFromCloudinary(additionalInfo === null || additionalInfo === void 0 ? void 0 : additionalInfo.driverLicenseImages[0]),
-                        back: yield uploadToStripeFromCloudinary(additionalInfo === null || additionalInfo === void 0 ? void 0 : additionalInfo.driverLicenseImages[1]),
-                    },
-                },
-            },
-            business_profile: {
-                url: "https://your-test-business.com",
-                mcc: "5818",
-            },
-            // external_account: 'btok_us_verified',
-            external_account: {
-                object: "bank_account",
-                country: "US",
-                currency: "usd",
-                routing_number: additionalInfo === null || additionalInfo === void 0 ? void 0 : additionalInfo.routing_number,
-                account_number: additionalInfo === null || additionalInfo === void 0 ? void 0 : additionalInfo.account_number,
-                account_holder_name: additionalInfo === null || additionalInfo === void 0 ? void 0 : additionalInfo.account_holder_name,
-                account_holder_type: additionalInfo === null || additionalInfo === void 0 ? void 0 : additionalInfo.account_holder_type,
-            },
-            tos_acceptance: {
-                date: Math.floor(Date.now() / 1000),
-                ip: req.ip || "127.0.0.1",
-            },
-        };
-        const account = yield stripe.accounts.create(accountParams);
-        yield stripe.accounts.update(account.id, {
-            settings: {
-                payouts: {
-                    schedule: {
-                        interval: "manual",
-                    },
-                },
-            },
-        });
-        yield new wallet_model_1.default({
-            userId: results === null || results === void 0 ? void 0 : results._id,
-            stripeConnectedAccountId: account.id,
-            balance: 0,
-        }).save();
-        console.log("Stripe account created successfully:", account.id);
-    }
+    // if (isVerified && results.userType === "ServiceProvider") {
+    //   const userWallet = await WalletModel.findOne({ userId: results?._id });
+    //   if (userWallet?.stripeConnectedAccountId) {
+    //     return res.status(200).json({
+    //       message: "Account already exists",
+    //     });
+    //   }
+    //   const dob = results?.dob;
+    //   if (!dob || !(dob instanceof Date)) {
+    //     return res.status(400).json({ error: "Invalid date of birth" });
+    //   }
+    //   const phoneNumber = parsePhoneNumberFromString(results?.phone || "");
+    //   const localPhone = phoneNumber ? phoneNumber.nationalNumber : "";
+    //   console.log({ localPhone });
+    //   const accountParams: Stripe.AccountCreateParams = {
+    //     type: "custom",
+    //     country: "US",
+    //     email: results?.email,
+    //     business_type: "individual",
+    //     capabilities: {
+    //       transfers: { requested: true },
+    //     },
+    //     individual: {
+    //       first_name: results?.firstName,
+    //       last_name: results?.lastName,
+    //       email: results?.email,
+    //       phone: localPhone,
+    //       ssn_last_4: additionalInfo?.socialSecurity,
+    //       dob: {
+    //         day: dob.getDate(),
+    //         month: dob.getMonth() + 1,
+    //         year: dob.getFullYear(),
+    //       },
+    //       verification: {
+    //         document: {
+    //           front: await uploadToStripeFromCloudinary(additionalInfo?.driverLicenseImages[0]),
+    //           back: await uploadToStripeFromCloudinary(additionalInfo?.driverLicenseImages[1]),
+    //         },
+    //       },
+    //     },
+    //     business_profile: {
+    //       url: "https://your-test-business.com",
+    //       mcc: "5818",
+    //     },
+    //     // external_account: 'btok_us_verified',
+    //     external_account: {
+    //       object: "bank_account",
+    //       country: "US",
+    //       currency: "usd",
+    //       routing_number: additionalInfo?.routing_number as string,
+    //       account_number: additionalInfo?.account_number as string,
+    //       account_holder_name: additionalInfo?.account_holder_name,
+    //       account_holder_type: additionalInfo?.account_holder_type,
+    //     },
+    //     tos_acceptance: {
+    //       date: Math.floor(Date.now() / 1000),
+    //       ip: req.ip || "127.0.0.1",
+    //     },
+    //   };
+    //   const account = await stripe.accounts.create(accountParams);
+    //   await stripe.accounts.update(account.id, {
+    //     settings: {
+    //       payouts: {
+    //         schedule: {
+    //           interval: "manual",
+    //         },
+    //       },
+    //     },
+    //   });
+    //   await new WalletModel({
+    //     userId: results?._id,
+    //     stripeConnectedAccountId: account.id,
+    //     balance: 0,
+    //   }).save();
+    //   console.log("Stripe account created successfully:", account.id);
+    // }
     const message = isVerified
         ? "Service Provider profile verified successfully."
         : "Service Provider profile made unverified.";

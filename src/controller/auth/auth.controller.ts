@@ -12,7 +12,7 @@ import { IUser } from "../../../types/schemaTypes";
 import { GoogleAuth } from "../../utils/socialAuth";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import TeamModel from "../../models/teams.model";
-import { ObjectId } from "mongoose";
+import mongoose, { ObjectId } from "mongoose";
 import PermissionModel from "../../models/permission.model";
 import { sendMail } from "../../utils/sendMail";
 import { generateVerificationCode } from "../otp.controller";
@@ -428,7 +428,6 @@ export const logoutUser = asyncHandler(
   }
 );
 
-
 // refreshAccessToken controller
 export const refreshAccessToken = asyncHandler(
   async (req: CustomRequest, res: Response) => {
@@ -679,5 +678,35 @@ export const sendOTPEmail = asyncHandler(
           "Verification code sent to given email successfully"
         )
       );
+  }
+);
+
+// addAssociate controller
+export const deleteUser = asyncHandler(
+  async (req: CustomRequest, res: Response) => {
+    const { userId } = req.body;
+
+    const userDetails = await UserModel.findById({ _id: userId });
+    const userType = userDetails?.userType;
+    if (userType === "ServiceProvider") {
+      const clearAdditionalInfo = await AdditionalInfoModel.findOneAndDelete(
+        userId
+      );
+      const clearAddress = await AddressModel.findOneAndDelete(userId);
+      const clearSP = await UserModel.findOneAndDelete({
+        _id: new mongoose.Types.ObjectId(userId),
+      });
+    } else {
+      const clearCustomer = await UserModel.findOneAndDelete({
+        _id: new mongoose.Types.ObjectId(userId),
+      });
+    }
+
+    return sendSuccessResponse(
+      res,
+      200,
+      {},
+      `User deleted successfully.`
+    );
   }
 );

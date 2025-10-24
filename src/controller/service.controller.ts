@@ -20,6 +20,7 @@ import { sendSMS } from "./otp.controller";
 import tzLookup from "tz-lookup";
 import moment from "moment-timezone";
 import ShiftModel from "../models/shift.model";
+import AdditionalInfoModel from "../models/userAdditionalInfo.model";
 const testFcm =
   "fVSB8tntRb2ufrLcySfGxs:APA91bH3CCLoxCPSmRuTo4q7j0aAxWLCdu6WtAdBWogzo79j69u8M_qFwcNygw7LIGrLYBXFqz2SUZI-4js8iyHxe12BMe-azVy2v7d22o4bvxy2pzTZ4kE";
 
@@ -2407,6 +2408,7 @@ export const assignJob = asyncHandler(
     if (agentDetails) {
       const agentPhoneNumber = agentDetails.phone;
       await sendSMS(agentPhoneNumber, notificationContent);
+      await sendSMS(agentPhoneNumber, notificationContent);
     }
 
     return sendSuccessResponse(
@@ -2685,5 +2687,59 @@ export const fetchIncentiveDetails = asyncHandler(
       { results, totalRequest: results.length },
       "Incentive details retrieved successfully."
     );
+  }
+);
+
+export const sendCustomerNotification = asyncHandler(
+  async (req: CustomRequest, res: Response) => {
+    const userType = req.user?.userType;
+    const { serviceId } = req.body;
+    const serviceDeatils = await ServiceModel.findById({
+      _id: serviceId,
+    });
+    console.log({serviceDeatils});
+    
+
+    //notify customer
+    const customerId = serviceDeatils?.userId;
+    let technician, customerNotiContent;
+    if (userType === "ServiceProvider") {
+      const spFullName = await UserModel.findById({ _id: req.user?._id });
+      console.log({spFullName});
+      
+
+      technician = `${spFullName?.firstName} ${spFullName?.lastName}`;
+
+      const spCompanyDetails = await AdditionalInfoModel.findOne({
+        userId: req.user?._id,
+      });
+
+      customerNotiContent = `The service technician ${technician} from ${spCompanyDetails?.companyName} ${spCompanyDetails?.companyLicense} is on their way!
+Please feel free to communicate with your service technician through the AnyJob app.Thank you for using AnyJob!`;
+    } else {
+      const agentFullName = await UserModel.findById({ _id: req.user?._id });
+
+      technician = `${agentFullName?.firstName}  ${agentFullName?.lastName}`;
+      customerNotiContent = `The service technician,${technician} is on their way!
+Please feel free to communicate with your service technician through the AnyJob app.Thank you for using AnyJob!`;
+    }
+
+    await sendPushNotification(
+      customerId?.toString() as string,
+      "Job Assigned",
+      customerNotiContent,
+      {
+        senderId: req.user?._id,
+        receiverId: customerId,
+        title: customerNotiContent,
+        notificationType: "Service Assigned",
+      }
+    );
+
+    const customerDetails = await UserModel.findById({ _id: customerId });
+
+    await sendSMS(customerDetails?.phone || "", customerNotiContent);
+
+    return sendSuccessResponse(res, 200, {}, "Customer notified successfully.");
   }
 );

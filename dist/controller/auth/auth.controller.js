@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendOTPEmail = exports.resetPassword = exports.forgetPassword = exports.AuthUserSocial = exports.refreshAccessToken = exports.logoutUser = exports.saveFcmToken = exports.loginUser = exports.registerUser = exports.createAdminUsers = exports.addAssociate = exports.cookieOption = exports.fetchUserData = void 0;
+exports.deleteUser = exports.sendOTPEmail = exports.resetPassword = exports.forgetPassword = exports.AuthUserSocial = exports.refreshAccessToken = exports.logoutUser = exports.saveFcmToken = exports.loginUser = exports.registerUser = exports.createAdminUsers = exports.addAssociate = exports.cookieOption = exports.fetchUserData = void 0;
 const user_model_1 = __importDefault(require("../../models/user.model"));
 const ApisErrors_1 = require("../../utils/ApisErrors");
 const auth_1 = require("../../utils/auth");
@@ -23,6 +23,7 @@ const asyncHandler_1 = require("../../utils/asyncHandler");
 const socialAuth_1 = require("../../utils/socialAuth");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const teams_model_1 = __importDefault(require("../../models/teams.model"));
+const mongoose_1 = __importDefault(require("mongoose"));
 const permission_model_1 = __importDefault(require("../../models/permission.model"));
 const sendMail_1 = require("../../utils/sendMail");
 const otp_controller_1 = require("../otp.controller");
@@ -447,4 +448,23 @@ exports.sendOTPEmail = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(
     return res
         .status(200)
         .json(new ApiResponse_1.ApiResponse(200, "Verification code sent to given email successfully"));
+}));
+// addAssociate controller
+exports.deleteUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { userId } = req.body;
+    const userDetails = yield user_model_1.default.findById({ _id: userId });
+    const userType = userDetails === null || userDetails === void 0 ? void 0 : userDetails.userType;
+    if (userType === "ServiceProvider") {
+        const clearAdditionalInfo = yield userAdditionalInfo_model_1.default.findOneAndDelete(userId);
+        const clearAddress = yield address_model_1.default.findOneAndDelete(userId);
+        const clearSP = yield user_model_1.default.findOneAndDelete({
+            _id: new mongoose_1.default.Types.ObjectId(userId),
+        });
+    }
+    else {
+        const clearCustomer = yield user_model_1.default.findOneAndDelete({
+            _id: new mongoose_1.default.Types.ObjectId(userId),
+        });
+    }
+    return (0, response_1.sendSuccessResponse)(res, 200, {}, `User deleted successfully.`);
 }));

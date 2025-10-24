@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fetchIncentiveDetails = exports.fetchServiceAddressHistory = exports.getCompletedService = exports.fetchAssignedserviceProvider = exports.totalJobCount = exports.assignJob = exports.getJobByStatusByAgent = exports.getJobByStatus = exports.getServiceRequestByStatus = exports.fetchAssociatedCustomer = exports.fetchSingleServiceRequest = exports.fetchNearByServiceProvider = exports.fetchServiceRequest = exports.deleteService = exports.handleServiceRequestState = exports.addorUpdateIncentive = exports.cancelServiceRequest = exports.getAcceptedServiceRequestInJobQueue = exports.getServiceRequestList = exports.addService = void 0;
+exports.sendCustomerNotification = exports.fetchIncentiveDetails = exports.fetchServiceAddressHistory = exports.getCompletedService = exports.fetchAssignedserviceProvider = exports.totalJobCount = exports.assignJob = exports.getJobByStatusByAgent = exports.getJobByStatus = exports.getServiceRequestByStatus = exports.fetchAssociatedCustomer = exports.fetchSingleServiceRequest = exports.fetchNearByServiceProvider = exports.fetchServiceRequest = exports.deleteService = exports.handleServiceRequestState = exports.addorUpdateIncentive = exports.cancelServiceRequest = exports.getAcceptedServiceRequestInJobQueue = exports.getServiceRequestList = exports.addService = void 0;
 exports.isCancellationFeeApplicable = isCancellationFeeApplicable;
 const service_model_1 = __importDefault(require("../models/service.model"));
 const address_model_1 = __importDefault(require("../models/address.model"));
@@ -31,6 +31,7 @@ const otp_controller_1 = require("./otp.controller");
 const tz_lookup_1 = __importDefault(require("tz-lookup"));
 const moment_timezone_1 = __importDefault(require("moment-timezone"));
 const shift_model_1 = __importDefault(require("../models/shift.model"));
+const userAdditionalInfo_model_1 = __importDefault(require("../models/userAdditionalInfo.model"));
 const testFcm = "fVSB8tntRb2ufrLcySfGxs:APA91bH3CCLoxCPSmRuTo4q7j0aAxWLCdu6WtAdBWogzo79j69u8M_qFwcNygw7LIGrLYBXFqz2SUZI-4js8iyHxe12BMe-azVy2v7d22o4bvxy2pzTZ4kE";
 //is cancellation fee is applicable or not
 function isCancellationFeeApplicable(serviceId) {
@@ -1803,6 +1804,7 @@ exports.assignJob = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
     if (agentDetails) {
         const agentPhoneNumber = agentDetails.phone;
         yield (0, otp_controller_1.sendSMS)(agentPhoneNumber, notificationContent);
+        yield (0, otp_controller_1.sendSMS)(agentPhoneNumber, notificationContent);
     }
     return (0, response_1.sendSuccessResponse)(res, 200, updatedService, "Job assigned to the agent successfully.");
 }));
@@ -2023,4 +2025,41 @@ exports.fetchIncentiveDetails = (0, asyncHandler_1.asyncHandler)((req, res) => _
         },
     ]);
     return (0, response_1.sendSuccessResponse)(res, 200, { results, totalRequest: results.length }, "Incentive details retrieved successfully.");
+}));
+exports.sendCustomerNotification = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c, _d, _e;
+    const userType = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userType;
+    const { serviceId } = req.body;
+    const serviceDeatils = yield service_model_1.default.findById({
+        _id: serviceId,
+    });
+    console.log({ serviceDeatils });
+    //notify customer
+    const customerId = serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.userId;
+    let technician, customerNotiContent;
+    if (userType === "ServiceProvider") {
+        const spFullName = yield user_model_1.default.findById({ _id: (_b = req.user) === null || _b === void 0 ? void 0 : _b._id });
+        console.log({ spFullName });
+        technician = `${spFullName === null || spFullName === void 0 ? void 0 : spFullName.firstName} ${spFullName === null || spFullName === void 0 ? void 0 : spFullName.lastName}`;
+        const spCompanyDetails = yield userAdditionalInfo_model_1.default.findOne({
+            userId: (_c = req.user) === null || _c === void 0 ? void 0 : _c._id,
+        });
+        customerNotiContent = `The service technician ${technician} from ${spCompanyDetails === null || spCompanyDetails === void 0 ? void 0 : spCompanyDetails.companyName} ${spCompanyDetails === null || spCompanyDetails === void 0 ? void 0 : spCompanyDetails.companyLicense} is on their way!
+Please feel free to communicate with your service technician through the AnyJob app.Thank you for using AnyJob!`;
+    }
+    else {
+        const agentFullName = yield user_model_1.default.findById({ _id: (_d = req.user) === null || _d === void 0 ? void 0 : _d._id });
+        technician = `${agentFullName === null || agentFullName === void 0 ? void 0 : agentFullName.firstName}  ${agentFullName === null || agentFullName === void 0 ? void 0 : agentFullName.lastName}`;
+        customerNotiContent = `The service technician,${technician} is on their way!
+Please feel free to communicate with your service technician through the AnyJob app.Thank you for using AnyJob!`;
+    }
+    yield (0, sendPushNotification_1.sendPushNotification)(customerId === null || customerId === void 0 ? void 0 : customerId.toString(), "Job Assigned", customerNotiContent, {
+        senderId: (_e = req.user) === null || _e === void 0 ? void 0 : _e._id,
+        receiverId: customerId,
+        title: customerNotiContent,
+        notificationType: "Service Assigned",
+    });
+    const customerDetails = yield user_model_1.default.findById({ _id: customerId });
+    yield (0, otp_controller_1.sendSMS)((customerDetails === null || customerDetails === void 0 ? void 0 : customerDetails.phone) || "", customerNotiContent);
+    return (0, response_1.sendSuccessResponse)(res, 200, {}, "Customer notified successfully.");
 }));

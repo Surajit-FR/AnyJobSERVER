@@ -28,11 +28,11 @@ import {
 
 const router: Router = express.Router();
 
-router.route("/store-fcm-token").post(storeFcmToken);
+router.route("/demo/api/v1/store-fcm-token").post(storeFcmToken);
 
 //sign-up
 router
-  .route("/signup")
+  .route("/demo/api/v1/signup")
   .post(
     rateLimiter,
     upload.fields([{ name: "avatar", maxCount: 1 }]),
@@ -41,14 +41,14 @@ router
 
 // Auth user (social)
 router.post(
-  "/user/social",
+  "/demo/api/v1/user/social",
   rateLimiter,
   [HandleSocialAuthError],
   AuthUserSocial
 );
 
 //login or sign-in route
-router.route("/signin").post(rateLimiter, loginUser);
+router.route("/demo/api/v1/signin").post(rateLimiter, loginUser);
 
 /***************************** secured routes *****************************/
 // Logout
@@ -75,16 +75,16 @@ router
   );
 
 // Refresh token routes
-router.route("/refresh-token").post(rateLimiter, refreshAccessToken);
+router.route("/demo/api/v1/refresh-token").post(rateLimiter, refreshAccessToken);
 
-router.route("/forget-password").post(forgetPassword);
-router.route("/reset-password").post(resetPassword);
+router.route("/demo/api/v1/forget-password").post(forgetPassword);
+router.route("/demo/api/v1/reset-password").post(resetPassword);
 
 //check-token-expiration
-router.route("/check-token-expiration").get(CheckJWTTokenExpiration);
+router.route("/demo/api/v1/check-token-expiration").get(CheckJWTTokenExpiration);
 
 //emial verification
-router.route("/send-code-email").post(sendOTPEmail);
+router.route("/demo/api/v1/send-code-email").post(sendOTPEmail);
 
 // User Delete
 router

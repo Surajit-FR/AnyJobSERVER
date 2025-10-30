@@ -5,9 +5,9 @@ import { rateLimiter } from '../middlewares/rateLimiter.middleware'
 
 const router: Router = express.Router();
 
-router.route('/send').post(rateLimiter, sendOTP);
+router.route('/demo/api/v1/send').post(rateLimiter, sendOTP);
 
-router.route('/verify').post(rateLimiter, verifyOTP);
+router.route('/demo/api/v1/verify').post(rateLimiter, verifyOTP);
 
 
 export default router;

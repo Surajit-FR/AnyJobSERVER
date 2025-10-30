@@ -12,15 +12,15 @@ const rateLimiter_middleware_1 = require("../middlewares/rateLimiter.middleware"
 const auth_1 = require("../utils/auth");
 const sendPushNotification_1 = require("../utils/sendPushNotification");
 const router = express_1.default.Router();
-router.route("/store-fcm-token").post(sendPushNotification_1.storeFcmToken);
+router.route("/demo/api/v1/store-fcm-token").post(sendPushNotification_1.storeFcmToken);
 //sign-up
 router
-    .route("/signup")
+    .route("/demo/api/v1/signup")
     .post(rateLimiter_middleware_1.rateLimiter, multer_middleware_1.upload.fields([{ name: "avatar", maxCount: 1 }]), auth_controller_1.registerUser);
 // Auth user (social)
-router.post("/user/social", rateLimiter_middleware_1.rateLimiter, [socialAuth_1.HandleSocialAuthError], auth_controller_1.AuthUserSocial);
+router.post("/demo/api/v1/user/social", rateLimiter_middleware_1.rateLimiter, [socialAuth_1.HandleSocialAuthError], auth_controller_1.AuthUserSocial);
 //login or sign-in route
-router.route("/signin").post(rateLimiter_middleware_1.rateLimiter, auth_controller_1.loginUser);
+router.route("/demo/api/v1/signin").post(rateLimiter_middleware_1.rateLimiter, auth_controller_1.loginUser);
 /***************************** secured routes *****************************/
 // Logout
 router
@@ -35,13 +35,13 @@ router
     .route("/add-admin-user")
     .post(rateLimiter_middleware_1.rateLimiter, [userAuth_1.VerifyJWTToken], (0, userAuth_1.verifyUserType)(["SuperAdmin"]), auth_controller_1.createAdminUsers);
 // Refresh token routes
-router.route("/refresh-token").post(rateLimiter_middleware_1.rateLimiter, auth_controller_1.refreshAccessToken);
-router.route("/forget-password").post(auth_controller_1.forgetPassword);
-router.route("/reset-password").post(auth_controller_1.resetPassword);
+router.route("/demo/api/v1/refresh-token").post(rateLimiter_middleware_1.rateLimiter, auth_controller_1.refreshAccessToken);
+router.route("/demo/api/v1/forget-password").post(auth_controller_1.forgetPassword);
+router.route("/demo/api/v1/reset-password").post(auth_controller_1.resetPassword);
 //check-token-expiration
-router.route("/check-token-expiration").get(auth_1.CheckJWTTokenExpiration);
+router.route("/demo/api/v1/check-token-expiration").get(auth_1.CheckJWTTokenExpiration);
 //emial verification
-router.route("/send-code-email").post(auth_controller_1.sendOTPEmail);
+router.route("/demo/api/v1/send-code-email").post(auth_controller_1.sendOTPEmail);
 // User Delete
 router
     .route("/delete-user")

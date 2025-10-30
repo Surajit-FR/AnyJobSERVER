@@ -5,7 +5,7 @@ import { DBInfo } from "../../types/commonType";
 const connectDB = async (): Promise<void> => {
   try {
     const connectionInstance = await mongoose.connect(
-      `${process.env.MONGODB_URI}/${DB_NAME}`
+      "mongodb+srv://georgesteve31019:g4yoassTjrhxnMdl@ariprodesigns.zohzg3t.mongodb.net/anyjob"
     );
     //current date and time
     const currentDate = new Date().toLocaleString();

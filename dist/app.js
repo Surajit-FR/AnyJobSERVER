@@ -40,7 +40,7 @@ app.use((0, cors_1.default)({
     credentials: true,
 }));
 // ✅ 2. Raw Body Middleware for Stripe Webhook
-app.use("/demo/api/v1/stripe", express_1.default.raw({ type: "application/json" }), webhook_routes_1.default);
+app.use("/stripe", express_1.default.raw({ type: "application/json" }), webhook_routes_1.default);
 // ✅ 3. General Middleware 
 app.use((0, morgan_1.default)("dev"));
 app.use(express_1.default.json({ limit: constants_1.EXPRESS_CONFIG_LIMIT })); // JSON Parsing for Other Routes
@@ -69,7 +69,7 @@ app.use("/demo/api/v1/customer", user_routes_2.default);
 app.use("/demo/api/v1/otp", otp_routes_1.default);
 app.use("/demo/api/v1/rating", rating_routes_1.default);
 // ✅ 7. Ping Route for Health Check
-app.get("/ping", (req, res) => {
+app.get("/demo/api/v1/ping", (req, res) => {
     res.send("Hi!...I am server, Happy to see you boss...");
 });
 // ✅ 8. Internal Server Error Handling

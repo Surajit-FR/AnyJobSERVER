@@ -40,7 +40,7 @@ app.use(
 );
 
 // ✅ 2. Raw Body Middleware for Stripe Webhook
-app.use("/demo/api/v1/stripe", express.raw({ type: "application/json" }), webhookRouter);
+app.use("/stripe", express.raw({ type: "application/json" }), webhookRouter);
 
 // ✅ 3. General Middleware 
 app.use(morgan("dev"));
@@ -74,7 +74,7 @@ app.use("/demo/api/v1/otp", otpRouter);
 app.use("/demo/api/v1/rating", ratingRouter);
 
 // ✅ 7. Ping Route for Health Check
-app.get("/ping", (req: Request, res: Response) => {
+app.get("/demo/api/v1/ping", (req: Request, res: Response) => {
     res.send("Hi!...I am server, Happy to see you boss...");
 });
 

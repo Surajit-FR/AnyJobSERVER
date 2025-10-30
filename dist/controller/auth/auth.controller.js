@@ -200,7 +200,17 @@ exports.loginUser = (0, asyncHandler_1.asyncHandler)((req, res) => __awaiter(voi
             userId: user._id,
         });
         if (!userAddress || !userAdditionalInfo) {
-            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(403, "Your account is created but please add address & your additional information.", [], { accessToken }));
+            const deleteUser = yield user_model_1.default.findOneAndDelete({ _id: user === null || user === void 0 ? void 0 : user._id });
+            return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(400, "User does not exist"));
+            // return sendErrorResponse(
+            //   res,
+            //   new ApiError(
+            //     403,
+            //     "Your account is created but please add address & your additional information.",
+            //     [],
+            //     { accessToken }
+            //   )
+            // );
         }
         if (!user.isVerified) {
             return (0, response_1.sendErrorResponse)(res, new ApisErrors_1.ApiError(403, "Your account verification is under process. Please wait for confirmation.", [], { accessToken }));

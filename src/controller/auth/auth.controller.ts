@@ -284,15 +284,17 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
     });
 
     if (!userAddress || !userAdditionalInfo) {
-      return sendErrorResponse(
-        res,
-        new ApiError(
-          403,
-          "Your account is created but please add address & your additional information.",
-          [],
-          { accessToken }
-        )
-      );
+      const deleteUser = await UserModel.findOneAndDelete({ _id: user?._id });
+      return sendErrorResponse(res, new ApiError(400, "User does not exist"));
+      // return sendErrorResponse(
+      //   res,
+      //   new ApiError(
+      //     403,
+      //     "Your account is created but please add address & your additional information.",
+      //     [],
+      //     { accessToken }
+      //   )
+      // );
     }
 
     if (!user.isVerified) {
@@ -702,11 +704,6 @@ export const deleteUser = asyncHandler(
       });
     }
 
-    return sendSuccessResponse(
-      res,
-      200,
-      {},
-      `User deleted successfully.`
-    );
+    return sendSuccessResponse(res, 200, {}, `User deleted successfully.`);
   }
 );

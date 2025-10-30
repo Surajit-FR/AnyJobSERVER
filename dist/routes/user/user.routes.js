@@ -13,34 +13,34 @@ const contactUs_controller_1 = require("../../controller/contactUs.controller");
 const router = express_1.default.Router();
 //without token
 //Categories
-router.route("/get-all-categories").get(category_controller_1.getCategories);
+router.route("/demo/api/v1/get-all-categories").get(category_controller_1.getCategories);
 //questions
-router.route("/fetch-all-question").get(question_controller_1.fetchQuestions);
-router.route("/q/:categoryId/:questionId").get(question_controller_1.fetchSingleQuestion);
+router.route("/demo/api/v1/fetch-all-question").get(question_controller_1.fetchQuestions);
+router.route("/demo/api/v1/q/:categoryId/:questionId").get(question_controller_1.fetchSingleQuestion);
 //Shifts
-router.route("/get-all-shifts").get(shift_controller_1.fetchShifs);
-router.route("/fetch-shift/:shiftId").get(shift_controller_1.fetchShiftbyId);
+router.route("/demo/api/v1/get-all-shifts").get(shift_controller_1.fetchShifs);
+router.route("/demo/api/v1/fetch-shift/:shiftId").get(shift_controller_1.fetchShiftbyId);
 router
-    .route("/nearby-services-providers/:serviceRequestId")
+    .route("/demo/api/v1/nearby-services-providers/:serviceRequestId")
     .get(service_controller_1.fetchNearByServiceProvider);
 // protected customer routes------------
 router.use(userAuth_1.VerifyJWTToken);
 router
-    .route("/get-service-request")
+    .route("/demo/api/v1/get-service-request")
     .post((0, userAuth_1.verifyUserType)(["Customer"]), service_controller_1.getServiceRequestByStatus);
 router
-    .route("/fetch-assigned-sp/:serviceId")
+    .route("/demo/api/v1/fetch-assigned-sp/:serviceId")
     .get((0, userAuth_1.verifyUserType)(["Customer"]), service_controller_1.fetchAssignedserviceProvider);
 router
-    .route("/send-query-message")
+    .route("/demo/api/v1/send-query-message")
     .post((0, userAuth_1.verifyUserType)(["Customer"]), contactUs_controller_1.sendQueryMessage);
 router
-    .route("/cancel-service")
+    .route("/demo/api/v1/cancel-service")
     .put((0, userAuth_1.verifyUserType)(["Customer"]), service_controller_1.cancelServiceRequest);
 router
-    .route("/add-incentive")
+    .route("/demo/api/v1/add-incentive")
     .put((0, userAuth_1.verifyUserType)(["Customer"]), service_controller_1.addorUpdateIncentive);
 router
-    .route("/fetch-service-history")
+    .route("/demo/api/v1/fetch-service-history")
     .get((0, userAuth_1.verifyUserType)(["Customer"]), service_controller_1.fetchServiceAddressHistory);
 exports.default = router;

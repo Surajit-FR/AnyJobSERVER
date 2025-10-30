@@ -26,18 +26,18 @@ const router: Router = express.Router();
 //without token
 
 //Categories
-router.route("/get-all-categories").get(getCategories);
+router.route("/demo/api/v1/get-all-categories").get(getCategories);
 
 //questions
-router.route("/fetch-all-question").get(fetchQuestions);
-router.route("/q/:categoryId/:questionId").get(fetchSingleQuestion);
+router.route("/demo/api/v1/fetch-all-question").get(fetchQuestions);
+router.route("/demo/api/v1/q/:categoryId/:questionId").get(fetchSingleQuestion);
 
 //Shifts
-router.route("/get-all-shifts").get(fetchShifs);
-router.route("/fetch-shift/:shiftId").get(fetchShiftbyId);
+router.route("/demo/api/v1/get-all-shifts").get(fetchShifs);
+router.route("/demo/api/v1/fetch-shift/:shiftId").get(fetchShiftbyId);
 
 router
-  .route("/nearby-services-providers/:serviceRequestId")
+  .route("/demo/api/v1/nearby-services-providers/:serviceRequestId")
   .get(fetchNearByServiceProvider);
 
 // protected customer routes------------
@@ -45,27 +45,27 @@ router
 router.use(VerifyJWTToken);
 
 router
-  .route("/get-service-request")
+  .route("/demo/api/v1/get-service-request")
   .post(verifyUserType(["Customer"]), getServiceRequestByStatus);
 
 router
-  .route("/fetch-assigned-sp/:serviceId")
+  .route("/demo/api/v1/fetch-assigned-sp/:serviceId")
   .get(verifyUserType(["Customer"]), fetchAssignedserviceProvider);
 
 router
-  .route("/send-query-message")
+  .route("/demo/api/v1/send-query-message")
   .post(verifyUserType(["Customer"]), sendQueryMessage);
 
 router
-  .route("/cancel-service")
+  .route("/demo/api/v1/cancel-service")
   .put(verifyUserType(["Customer"]), cancelServiceRequest);
 
 router
-  .route("/add-incentive")
+  .route("/demo/api/v1/add-incentive")
   .put(verifyUserType(["Customer"]), addorUpdateIncentive);
 
 router
-  .route("/fetch-service-history")
+  .route("/demo/api/v1/fetch-service-history")
   .get(verifyUserType(["Customer"]), fetchServiceAddressHistory);
 
 

@@ -40,7 +40,7 @@ app.use(
 );
 
 // ✅ 2. Raw Body Middleware for Stripe Webhook
-app.use("/stripe", express.raw({ type: "application/json" }), webhookRouter);
+app.use("/demo/api/v1/stripe", express.raw({ type: "application/json" }), webhookRouter);
 
 // ✅ 3. General Middleware 
 app.use(morgan("dev"));
@@ -51,27 +51,27 @@ app.use(express.static("public"));
 app.use(cookieParser());
 
 // ✅ 4. Regular API Routes (Stripe API but NOT webhook)
-app.use("/api/v1/stripe", stripeRouter);
+app.use("/demo/api/v1/stripe", stripeRouter);
 // ✅ 5. Other API Routes
-app.use("/api/v1/healthcheck", healthcheckRouter);
-app.use("/api/v1/auth", authRouter);
-app.use("/api/v1/category", categoryRouter);
-app.use("/api/v1/user", userRouter);
-app.use("/api/v1/service", serviceRouter);
-app.use("/api/v1/question", questionRouter);
-app.use("/api/v1/shift", shiftRouter);
-app.use("/api/v1/google-cloud", googleCloudRouter);
-app.use("/api/v1/chat", chatRouter);
-app.use("/api/v1/", imageRouter);
-app.use("/api/v1/wallet", walletRouter);
+app.use("/demo/api/v1/healthcheck", healthcheckRouter);
+app.use("/demo/api/v1/auth", authRouter);
+app.use("/demo/api/v1/category", categoryRouter);
+app.use("/demo/api/v1/user", userRouter);
+app.use("/demo/api/v1/service", serviceRouter);
+app.use("/demo/api/v1/question", questionRouter);
+app.use("/demo/api/v1/shift", shiftRouter);
+app.use("/demo/api/v1/google-cloud", googleCloudRouter);
+app.use("/demo/api/v1/chat", chatRouter);
+app.use("/demo/api/v1/", imageRouter);
+app.use("/demo/api/v1/wallet", walletRouter);
 
 // Schedule cleanup every day at midnight
 // cron.schedule("0 0 * * *", () => {
 //     console.log("Midnight cron job starts...");
 // ✅ 6. Customer Routes
-app.use("/api/v1/customer", customerRouter);
-app.use("/api/v1/otp", otpRouter);
-app.use("/api/v1/rating", ratingRouter);
+app.use("/demo/api/v1/customer", customerRouter);
+app.use("/demo/api/v1/otp", otpRouter);
+app.use("/demo/api/v1/rating", ratingRouter);
 
 // ✅ 7. Ping Route for Health Check
 app.get("/ping", (req: Request, res: Response) => {

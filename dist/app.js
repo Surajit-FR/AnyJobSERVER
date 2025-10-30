@@ -40,7 +40,7 @@ app.use((0, cors_1.default)({
     credentials: true,
 }));
 // ✅ 2. Raw Body Middleware for Stripe Webhook
-app.use("/stripe", express_1.default.raw({ type: "application/json" }), webhook_routes_1.default);
+app.use("/demo/api/v1/stripe", express_1.default.raw({ type: "application/json" }), webhook_routes_1.default);
 // ✅ 3. General Middleware 
 app.use((0, morgan_1.default)("dev"));
 app.use(express_1.default.json({ limit: constants_1.EXPRESS_CONFIG_LIMIT })); // JSON Parsing for Other Routes
@@ -48,26 +48,26 @@ app.use(express_1.default.urlencoded({ extended: true, limit: constants_1.EXPRES
 app.use(express_1.default.static("public"));
 app.use((0, cookie_parser_1.default)());
 // ✅ 4. Regular API Routes (Stripe API but NOT webhook)
-app.use("/api/v1/stripe", stripe_routes_1.default);
+app.use("/demo/api/v1/stripe", stripe_routes_1.default);
 // ✅ 5. Other API Routes
-app.use("/api/v1/healthcheck", healthcheck_routes_1.default);
-app.use("/api/v1/auth", auth_routes_1.default);
-app.use("/api/v1/category", category_routes_1.default);
-app.use("/api/v1/user", user_routes_1.default);
-app.use("/api/v1/service", service_routes_1.default);
-app.use("/api/v1/question", question_routes_1.default);
-app.use("/api/v1/shift", shift_routes_1.default);
-app.use("/api/v1/google-cloud", googleCloud_routes_1.default);
-app.use("/api/v1/chat", chat_routes_1.default);
-app.use("/api/v1/", upload_routes_1.default);
-app.use("/api/v1/wallet", wallet_routes_1.default);
+app.use("/demo/api/v1/healthcheck", healthcheck_routes_1.default);
+app.use("/demo/api/v1/auth", auth_routes_1.default);
+app.use("/demo/api/v1/category", category_routes_1.default);
+app.use("/demo/api/v1/user", user_routes_1.default);
+app.use("/demo/api/v1/service", service_routes_1.default);
+app.use("/demo/api/v1/question", question_routes_1.default);
+app.use("/demo/api/v1/shift", shift_routes_1.default);
+app.use("/demo/api/v1/google-cloud", googleCloud_routes_1.default);
+app.use("/demo/api/v1/chat", chat_routes_1.default);
+app.use("/demo/api/v1/", upload_routes_1.default);
+app.use("/demo/api/v1/wallet", wallet_routes_1.default);
 // Schedule cleanup every day at midnight
 // cron.schedule("0 0 * * *", () => {
 //     console.log("Midnight cron job starts...");
 // ✅ 6. Customer Routes
-app.use("/api/v1/customer", user_routes_2.default);
-app.use("/api/v1/otp", otp_routes_1.default);
-app.use("/api/v1/rating", rating_routes_1.default);
+app.use("/demo/api/v1/customer", user_routes_2.default);
+app.use("/demo/api/v1/otp", otp_routes_1.default);
+app.use("/demo/api/v1/rating", rating_routes_1.default);
 // ✅ 7. Ping Route for Health Check
 app.get("/ping", (req, res) => {
     res.send("Hi!...I am server, Happy to see you boss...");

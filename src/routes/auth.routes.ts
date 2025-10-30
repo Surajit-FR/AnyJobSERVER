@@ -28,11 +28,11 @@ import {
 
 const router: Router = express.Router();
 
-router.route("/demo/api/v1/store-fcm-token").post(storeFcmToken);
+router.route("/store-fcm-token").post(storeFcmToken);
 
 //sign-up
 router
-  .route("/demo/api/v1/signup")
+  .route("/signup")
   .post(
     rateLimiter,
     upload.fields([{ name: "avatar", maxCount: 1 }]),
@@ -41,14 +41,14 @@ router
 
 // Auth user (social)
 router.post(
-  "/demo/api/v1/user/social",
+  "/user/social",
   rateLimiter,
   [HandleSocialAuthError],
   AuthUserSocial
 );
 
 //login or sign-in route
-router.route("/demo/api/v1/signin").post(rateLimiter, loginUser);
+router.route("/signin").post(rateLimiter, loginUser);
 
 /***************************** secured routes *****************************/
 // Logout

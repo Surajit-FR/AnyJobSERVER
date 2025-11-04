@@ -11,6 +11,7 @@ import cardValidator from "card-validator";
 import UserPreferenceModel from "../models/userPreference.model";
 import mongoose from "mongoose";
 import { createCustomerIfNotExists } from "../controller/stripe.controller";
+import AdditionalInfoModel from "../models/userAdditionalInfo.model";
 
 export const generatePasswordFromFirstName = (firstName: string): string => {
   if (!firstName) return "User@123"; // Default fallback password
@@ -26,8 +27,11 @@ export const addUser = async (userData: IRegisterCredentials) => {
 
   let password = userData.password; // Default to provided password
   let permission, generatedPass;
+
   if (phone) {
     const existingPhone = await UserModel.findOne({ phone, userType });
+    console.log({existingPhone});
+    
     if (existingPhone) {
       // console.log(existingPhone);
       throw new ApiError(409, "User with phone already exists");
@@ -36,8 +40,19 @@ export const addUser = async (userData: IRegisterCredentials) => {
 
   if (email) {
     const existingEmail = await UserModel.findOne({ email,userType });
+    const existingAdditionalInfo = await AdditionalInfoModel.findOne({ userId: existingEmail?._id})
+    console.log({existingAdditionalInfo});
+
     if (existingEmail) {
-      throw new ApiError(409, "User with email already exists");
+      if(existingAdditionalInfo && userType === "ServiceProvider"){
+        throw new ApiError(409, "User with email already exists");   
+      }
+      else if (!existingAdditionalInfo && userType === "ServiceProvider"){
+        const deleteUser = await UserModel.findOneAndDelete({ _id: existingEmail?._id, userType:"ServiceProvider" });
+      }
+      else {
+        throw new ApiError(409, "User with email already exists");
+      }
     }
   }
 

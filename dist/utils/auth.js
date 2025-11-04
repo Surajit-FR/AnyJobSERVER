@@ -26,6 +26,7 @@ const card_validator_1 = __importDefault(require("card-validator"));
 const userPreference_model_1 = __importDefault(require("../models/userPreference.model"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const stripe_controller_1 = require("../controller/stripe.controller");
+const userAdditionalInfo_model_1 = __importDefault(require("../models/userAdditionalInfo.model"));
 const generatePasswordFromFirstName = (firstName) => {
     if (!firstName)
         return "User@123"; // Default fallback password
@@ -41,6 +42,7 @@ const addUser = (userData) => __awaiter(void 0, void 0, void 0, function* () {
     let permission, generatedPass;
     if (phone) {
         const existingPhone = yield user_model_1.default.findOne({ phone, userType });
+        console.log({ existingPhone });
         if (existingPhone) {
             // console.log(existingPhone);
             throw new ApisErrors_1.ApiError(409, "User with phone already exists");
@@ -48,8 +50,18 @@ const addUser = (userData) => __awaiter(void 0, void 0, void 0, function* () {
     }
     if (email) {
         const existingEmail = yield user_model_1.default.findOne({ email, userType });
+        const existingAdditionalInfo = yield userAdditionalInfo_model_1.default.findOne({ userId: existingEmail === null || existingEmail === void 0 ? void 0 : existingEmail._id });
+        console.log({ existingAdditionalInfo });
         if (existingEmail) {
-            throw new ApisErrors_1.ApiError(409, "User with email already exists");
+            if (existingAdditionalInfo && userType === "ServiceProvider") {
+                throw new ApisErrors_1.ApiError(409, "User with email already exists");
+            }
+            else if (!existingAdditionalInfo && userType === "ServiceProvider") {
+                const deleteUser = yield user_model_1.default.findOneAndDelete({ _id: existingEmail === null || existingEmail === void 0 ? void 0 : existingEmail._id, userType: "ServiceProvider" });
+            }
+            else {
+                throw new ApisErrors_1.ApiError(409, "User with email already exists");
+            }
         }
     }
     if (!password || (email && phone)) {

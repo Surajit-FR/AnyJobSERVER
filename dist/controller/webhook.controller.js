@@ -315,18 +315,18 @@ const handleWalletTopUp = (session) => __awaiter(void 0, void 0, void 0, functio
             return;
         }
         // transfer added wallet amount in sp's wallet---------------------------------
-        const transfer = yield stripe.transfers.create({
-            amount: session.amount_total,
-            currency: "usd",
-            destination: wallet.stripeConnectedAccountId,
-        });
+        // const transfer = await stripe.transfers.create({
+        //   amount: session.amount_total,
+        //   currency: "usd",
+        //   destination: wallet.stripeConnectedAccountId,
+        // });
         // -----------------------------------------------------------------------------
         // Update the wallet after successful add money (wallet credited)----------------
         const transaction = {
             type: "credit",
             amount,
             description: "AddMoney",
-            stripeTransactionId: transfer.id,
+            // stripeTransactionId: transfer.id,
         };
         yield wallet_model_1.default.findOneAndUpdate({ userId: user._id }, {
             $push: { transactions: transaction },
@@ -355,33 +355,39 @@ const handleLeadGenerationFee = (session) => __awaiter(void 0, void 0, void 0, f
             return;
         }
         // Update wallet against successfull lead generaion fee payment---------------------------
-        const wallet = yield wallet_model_1.default.findOne({ userId });
-        if (!wallet) {
-            console.warn("Wallet not found for user in leadgenerationfee webhook");
-            return;
-        }
-        const amount = session.amount_total / 100;
-        // Transfer funds from platform to itself (simulating)
-        const platformAccount = yield stripe.accounts.retrieve();
-        const transfer = yield stripe.transfers.create({
-            amount: session.amount_total,
-            currency: "usd",
-            destination: platformAccount.id,
-        }, {
-            stripeAccount: wallet.stripeConnectedAccountId,
-        });
-        const transaction = {
-            type: "debit",
-            amount,
-            description: "LeadGenerationFee",
-            serviceId,
-            stripeTransactionId: transfer.id,
-        };
-        yield wallet_model_1.default.findOneAndUpdate({ userId }, {
-            $push: { transactions: transaction },
-            $inc: { balance: -amount },
-            updatedAt: Date.now(),
-        });
+        // const wallet = await WalletModel.findOne({ userId });
+        // if (!wallet) {
+        //   console.warn("Wallet not found for user in leadgenerationfee webhook");
+        //   return;
+        // }
+        // const amount = session.amount_total / 100;
+        // // Transfer funds from platform to itself (simulating)
+        // const platformAccount = await stripe.accounts.retrieve();
+        // const transfer = await stripe.transfers.create(
+        //   {
+        //     amount: session.amount_total,
+        //     currency: "usd",
+        //     destination: platformAccount.id,
+        //   },
+        //   {
+        //     stripeAccount: wallet.stripeConnectedAccountId,
+        //   }
+        // );
+        // const transaction = {
+        //   type: "debit",
+        //   amount,
+        //   description: "LeadGenerationFee",
+        //   serviceId,
+        //   stripeTransactionId: transfer.id,
+        // };
+        // await WalletModel.findOneAndUpdate(
+        //   { userId },
+        //   {
+        //     $push: { transactions: transaction },
+        //     $inc: { balance: -amount },
+        //     updatedAt: Date.now(),
+        //   }
+        // );
         // -----------------------------------------------------------------------------------------
     }
     catch (error) {
@@ -408,14 +414,14 @@ const handleServiceCancellationFee = (session) => __awaiter(void 0, void 0, void
             return;
         }
         //transfer cancellation amount to sp ----------------------------------------------------------------
-        const transfer = yield stripe.transfers.create({
-            amount: SPAmount * 100,
-            description: `cancellationfee_transfer_to_sp_${SPId === null || SPId === void 0 ? void 0 : SPId.toString()}_for_service_${serviceId}`,
-            currency: "usd",
-            destination: SPStripeAccountId,
-            transfer_group: `cancellation_fee_sp_${SPId === null || SPId === void 0 ? void 0 : SPId.toString()}_service_${serviceId}`,
-        });
-        console.log({ cancellationfee_transfer_to_sp: transfer });
+        // const transfer = await stripe.transfers.create({
+        //   amount: SPAmount * 100,
+        //   description: `cancellationfee_transfer_to_sp_${SPId?.toString()}_for_service_${serviceId}`,
+        //   currency: "usd",
+        //   destination: SPStripeAccountId,
+        //   transfer_group: `cancellation_fee_sp_${SPId?.toString()}_service_${serviceId}`,
+        // });
+        // console.log({ cancellationfee_transfer_to_sp: transfer });
         // ------------------------------------------------------------------------------------------------------
         // Update payment method details-------------------------------------------------------------------------
         const paymentIntentId = session.payment_intent;
@@ -468,6 +474,8 @@ const handleServiceCancellationFee = (session) => __awaiter(void 0, void 0, void
             },
         }, { new: true });
         // ---------------------------------------------------------------------------------------------------------
+        // Update sp wallet for service cancellation fee--------------------
+        //------------------------------------------------------------------
         // Create a record for admin revenue as some amt of cancellation will be credited to admin'a account--------
         const transaction = {
             userId: user._id,

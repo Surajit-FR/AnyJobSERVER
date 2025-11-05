@@ -52,7 +52,7 @@ function createCustomerIfNotExists(userId) {
 }
 function transferIncentiveToSP(serviceId) {
     return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b;
+        var _a;
         const serviceData = yield service_model_1.default.findById({ _id: serviceId });
         if (!serviceData)
             throw new Error("Service not found");
@@ -66,25 +66,22 @@ function transferIncentiveToSP(serviceId) {
                 throw new Error("SP account not found");
             const spStripeAccountId = spAccount.stripeConnectedAccountId;
             const transferGroup = `incentive_fee_${(_a = serviceData === null || serviceData === void 0 ? void 0 : serviceData.serviceProviderId) === null || _a === void 0 ? void 0 : _a.toString()}_service_${serviceId}`;
-            const transfer = yield stripe.transfers.create({
-                amount: spIncentiveAmt * 100,
-                currency: "usd",
-                destination: spStripeAccountId,
-                transfer_group: transferGroup,
-                description: `IncentiveFee_transfer_to_sp_${(_b = serviceData === null || serviceData === void 0 ? void 0 : serviceData.serviceProviderId) === null || _b === void 0 ? void 0 : _b.toString()}_for_service_${serviceId}`,
-            });
-            console.log({ transfer });
-            if (transfer) {
-                const transaction = {
-                    userId: serviceData.userId,
-                    type: "credit",
-                    amount: adminIncentiveAmt,
-                    description: "ServiceIncentiveAmount",
-                    serviceId: serviceData._id,
-                    stripeTransactionId: transfer.id,
-                };
-                yield new adminRevenue_model_1.default(transaction).save();
-            }
+            // const transfer = await stripe.transfers.create({
+            //   amount: spIncentiveAmt * 100,
+            //   currency: "usd",
+            //   destination: spStripeAccountId,
+            //   transfer_group: transferGroup,
+            //   description: `IncentiveFee_transfer_to_sp_${serviceData?.serviceProviderId?.toString()}_for_service_${serviceId}`,
+            // });
+            const transaction = {
+                userId: serviceData.userId,
+                type: "credit",
+                amount: adminIncentiveAmt,
+                description: "ServiceIncentiveAmount",
+                serviceId: serviceData._id,
+                stripeTransactionId: "",
+            };
+            yield new adminRevenue_model_1.default(transaction).save();
         }
     });
 }
@@ -530,31 +527,40 @@ const createLeadGenerationCheckoutSession = (req, res) => __awaiter(void 0, void
             stripeCustomerId = customer.id;
             yield user_model_1.default.findByIdAndUpdate(userId, { stripeCustomerId });
         }
-        const session = yield stripe.checkout.sessions.create({
-            payment_method_types: ["card"],
-            mode: "payment",
-            customer: stripeCustomerId,
-            line_items: [
-                {
-                    price_data: {
-                        currency: "usd",
-                        unit_amount: amount * 100,
-                        product_data: {
-                            name: "Lead Generation Fee",
-                        },
-                    },
-                    quantity: 1,
-                },
-            ],
-            metadata: {
-                purpose: "leadGenerationee",
-                serviceId,
-                userId: userId === null || userId === void 0 ? void 0 : userId.toString(),
-            },
-            success_url: "https://frontend.theassure.co.uk/service-payment-success",
-            cancel_url: "https://frontend.theassure.co.uk/service-payment-cancel",
+        // const session = await stripe.checkout.sessions.create({
+        //   payment_method_types: ["card"],
+        //   mode: "payment",
+        //   customer: stripeCustomerId,
+        //   line_items: [
+        //     {
+        //       price_data: {
+        //         currency: "usd",
+        //         unit_amount: amount * 100,
+        //         product_data: {
+        //           name: "Lead Generation Fee",
+        //         },
+        //       },
+        //       quantity: 1,
+        //     },
+        //   ],
+        //   metadata: {
+        //     purpose: "leadGenerationee",
+        //     serviceId,
+        //     userId: userId?.toString(),
+        //   },
+        //   success_url: "https://frontend.theassure.co.uk/service-payment-success",
+        //   cancel_url: "https://frontend.theassure.co.uk/service-payment-cancel",
+        // } as Stripe.Checkout.SessionCreateParams);
+        const transaction = {
+            type: "debit",
+            amount,
+            description: "LeadGenerationFee",
+            serviceId,
+            stripeTransactionId: "",
+        };
+        res.json({
+            url: "https://frontend.theassure.co.uk/service-payment-success",
         });
-        res.json({ url: session.url });
     }
     catch (err) {
         console.error("Error creating Checkout Session for service fee:", err);
@@ -586,22 +592,25 @@ const payForService = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         }
         const account = yield stripe.accounts.retrieve();
         // Transfer funds from user's connected account to platform (admin)
-        const transfer = yield stripe.transfers.create({
-            amount: 100 * amount,
-            currency: "usd",
-            destination: account === null || account === void 0 ? void 0 : account.id,
-            description: `LeadGenerationFee_for_service_${serviceId}`,
-            transfer_group: `service-67ac74fb12c4396eb2f5d52b}-${Date.now()}`,
-        }, {
-            stripeAccount: spWalletDetails === null || spWalletDetails === void 0 ? void 0 : spWalletDetails.stripeConnectedAccountId,
-        });
-        console.log({ transfer });
+        // const transfer = await stripe.transfers.create(
+        //   {
+        //     amount: 100 * amount,
+        //     currency: "usd",
+        //     destination: account?.id,
+        //     description: `LeadGenerationFee_for_service_${serviceId}`,
+        //     transfer_group: `service-67ac74fb12c4396eb2f5d52b}-${Date.now()}`,
+        //   },
+        //   {
+        //     stripeAccount: spWalletDetails?.stripeConnectedAccountId,
+        //   }
+        // );
+        // console.log({ transfer });
         const transactionData = {
             type: "debit",
             amount: amount,
             description: "LeadGenerationFee",
             serviceId: serviceId,
-            stripeTransactionId: transfer.id,
+            stripeTransactionId: "",
         };
         yield wallet_model_1.default.findOneAndUpdate({ userId: (_b = req.user) === null || _b === void 0 ? void 0 : _b._id }, {
             $push: {
@@ -619,7 +628,7 @@ const payForService = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             type: "credit",
             amount: amount,
             description: "LeadGenerationFee",
-            stripeTransactionId: transfer.id,
+            stripeTransactionId: "",
             serviceId,
         };
         yield new adminRevenue_model_1.default(Admintransaction).save();
@@ -627,7 +636,6 @@ const payForService = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         res.status(200).json({
             message: "Payment for the Service made successfully",
             success: true,
-            transfer,
         });
     }
     catch (error) {
@@ -719,6 +727,23 @@ const createServiceCancellationCheckoutSession = (req, res) => __awaiter(void 0,
             cancel_url: "https://frontend.theassure.co.uk/payment-error",
         });
         console.log({ cancellationSession: session });
+        const transaction = {
+            type: "credit",
+            amount,
+            description: "ServiceCancellationAmount",
+            stripeTransferId: "",
+        };
+        const updateResult = yield wallet_model_1.default.findOneAndUpdate({ userId: serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId }, {
+            $push: { transactions: transaction },
+            $inc: { balance: amount },
+            updatedAt: Date.now(),
+        }, { new: true });
+        if (updateResult) {
+            console.log("ServiceCancellationAmount transferred to SP's account successfully.");
+        }
+        else {
+            console.warn(`Wallet not found for SP ID: ${serviceDeatils === null || serviceDeatils === void 0 ? void 0 : serviceDeatils.serviceProviderId}`);
+        }
         res.json({ url: session.url });
     }
     catch (err) {
@@ -742,27 +767,33 @@ const withdrawFunds = (req, res) => __awaiter(void 0, void 0, void 0, function* 
                 .json({ error: "Amount and currency are required." });
         }
         // Optional: Check available balance
-        const balance = yield stripe.balance.retrieve({
-            stripeAccount: connectedAccountId,
-        });
-        const available = balance.available.find((b) => b.currency === currency.toLowerCase());
-        if (!available || available.amount - amount < 200) {
+        const balance = walletDetails.balance;
+        if (!balance || balance - amount < 200) {
             return res
                 .status(400)
                 .json({ error: "Insufficient balance for payout." });
         }
-        // Create the payout
-        const payout = yield stripe.payouts.create({
-            amount: amount * 100,
-            currency,
-        }, {
-            stripeAccount: connectedAccountId,
+        // // Create the payout
+        // const payout = await stripe.payouts.create(
+        //   {
+        //     amount: amount * 100,
+        //     currency,
+        //   },
+        //   {
+        //     stripeAccount: connectedAccountId,
+        //   }
+        // );
+        const transfer = yield stripe.transfers.create({
+            amount: amount * 100, // in cents
+            currency: "usd",
+            destination: connectedAccountId,
+            description: "WithdrawFund",
         });
         const transaction = {
             type: "debit",
             amount,
             description: "WithdrawFund",
-            stripeTransactionId: payout.id,
+            stripeTransactionId: transfer.id,
         };
         yield wallet_model_1.default.findOneAndUpdate({ userId: (_b = req.user) === null || _b === void 0 ? void 0 : _b._id }, {
             $push: { transactions: transaction },
@@ -772,7 +803,7 @@ const withdrawFunds = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         return res.status(200).json({
             message: "Payout initiated successfully.",
             success: true,
-            payout,
+            payout: {},
         });
     }
     catch (error) {

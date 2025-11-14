@@ -36,6 +36,8 @@ app.use((0, cors_1.default)({
         "http://ec2-65-2-73-95.ap-south-1.compute.amazonaws.com",
         "http://65.2.73.95",
         "http://15.207.110.84",
+        "https://provider.anyjob.com",
+        "https://admin.anyjob.com"
     ],
     credentials: true,
 }));

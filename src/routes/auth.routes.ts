@@ -14,6 +14,7 @@ import {
   saveFcmToken,
   sendOTPEmail,
   deleteUser,
+  getRevnue,
 } from "../controller/auth/auth.controller";
 
 import { upload } from "../middlewares/multer.middleware";
@@ -90,5 +91,7 @@ router.route("/send-code-email").post(sendOTPEmail);
 router
   .route("/delete-user")
   .delete([VerifyJWTToken], verifyUserType(["SuperAdmin"]), deleteUser);
+
+
 
 export default router;

@@ -26,23 +26,23 @@ const app = express();
 
 // ✅ 1. CORS Middleware
 app.use(
-    cors({
-        origin: [
-            "https://frontend.theassure.co.uk",
-            "http://localhost:3000",
-            process.env.CORS_ORIGIN as string,
-            "http://ec2-65-2-73-95.ap-south-1.compute.amazonaws.com",
-            "http://65.2.73.95",
-            "http://15.207.110.84",
-        ],
-        credentials: true,
-    })
+  cors({
+    origin: [
+      "https://frontend.theassure.co.uk",
+      "http://localhost:3000",
+      process.env.CORS_ORIGIN as string,
+      "http://ec2-65-2-73-95.ap-south-1.compute.amazonaws.com",
+      "http://65.2.73.95",
+      "http://15.207.110.84",
+    ],
+    credentials: true,
+  })
 );
 
 // ✅ 2. Raw Body Middleware for Stripe Webhook
 app.use("/stripe", express.raw({ type: "application/json" }), webhookRouter);
 
-// ✅ 3. General Middleware 
+// ✅ 3. General Middleware
 app.use(morgan("dev"));
 
 app.use(express.json({ limit: EXPRESS_CONFIG_LIMIT })); // JSON Parsing for Other Routes
@@ -75,25 +75,25 @@ app.use("/api/v1/rating", ratingRouter);
 
 // ✅ 7. Ping Route for Health Check
 app.get("/ping", (req: Request, res: Response) => {
-    res.send("Hi!...I am server, Happy to see you boss...");
+  res.send("Hi!...I am server, Happy to see you boss...");
 });
 
 // ✅ 8. Internal Server Error Handling
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-    console.log(err);
-    res.status(500).json({
-        status: 500,
-        message: "Server Error",
-        error: err.message,
-    });
+  console.log(err);
+  res.status(500).json({
+    status: 500,
+    message: "Server Error",
+    error: err.message,
+  });
 });
 
 // ✅ 9. 404 Not Found Middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
-    res.status(404).json({
-        status: 404,
-        message: "Endpoint Not Found",
-    });
+  res.status(404).json({
+    status: 404,
+    message: "Endpoint Not Found",
+  });
 });
 
 // ✅ 10. Scheduled Cleanup Jobs

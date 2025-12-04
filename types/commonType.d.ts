@@ -6,6 +6,7 @@ import { IUser } from "./schemaTypes";
 export type DBInfo = {
     STATUS: string,
     HOST: string,
+    ENV:string
     DATE_TIME: string,
 };
 export type RequestHandler = (req: Request, res: Response, next: NextFunction) => Promise<any>;

@@ -22,6 +22,8 @@ import AdditionalInfoModel from "../../models/userAdditionalInfo.model";
 import bcrypt from "bcrypt";
 import { firestore } from "../../utils/sendPushNotification";
 import admin from "firebase-admin";
+import AdminRevenueModel from "../../models/adminRevenue.model";
+import WalletModel from "../../models/wallet.model";
 
 // fetchUserData func.
 export const fetchUserData = async (userId: string | ObjectId) => {
@@ -705,5 +707,55 @@ export const deleteUser = asyncHandler(
     }
 
     return sendSuccessResponse(res, 200, {}, `User deleted successfully.`);
+  }
+);
+
+//get revenue
+export const getRevnue = asyncHandler(
+  async (req: CustomRequest, res: Response) => {
+    const revenuedata = await AdminRevenueModel.find();
+    if (revenuedata.length === 0) {
+      return sendErrorResponse(
+        res,
+        new ApiError(400, "Revenue data not found")
+      );
+    }
+    let LeadGenerationFee = 0,
+      cancellation = 0,
+      incentive = 0,
+      TotalminimumBalance = 0;
+
+    revenuedata.map((item) => {
+      if (item.description === "LeadGenerationFee") {
+        LeadGenerationFee = LeadGenerationFee + Number(item.amount);
+      } else if (item.description === "ServiceCancellationAmount") {
+        cancellation = cancellation + Number(item.amount);
+      } else if (item.description === "ServiceIncentiveAmount") {
+        incentive = incentive + Number(item.amount);
+      }
+    });
+
+    const minimumBalanceHolder = await WalletModel.find();
+    minimumBalanceHolder.map((item) => {
+      if (item.balance <= 200) {
+        TotalminimumBalance = TotalminimumBalance + Number(item.balance);
+      } else if (item.balance > 200) {
+        TotalminimumBalance = TotalminimumBalance + 200;
+      }
+    });
+
+    return sendSuccessResponse(
+      res,
+      200,
+      {
+        LeadGenerationFee,
+        cancellation,
+        incentive,
+        TotalminimumBalance,
+        Revenue:
+          LeadGenerationFee + cancellation + incentive + TotalminimumBalance,
+      },
+      "Revenue fetched successfull"
+    );
   }
 );

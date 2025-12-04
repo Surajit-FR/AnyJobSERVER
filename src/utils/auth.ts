@@ -22,16 +22,15 @@ export const generatePasswordFromFirstName = (firstName: string): string => {
 
 export const addUser = async (userData: IRegisterCredentials) => {
   const { firstName, lastName, email, userType, phone, avatar } = userData;
-  console.log("signup payload",userData);
-  
+  console.log("signup payload", userData);
 
   let password = userData.password; // Default to provided password
   let permission, generatedPass;
 
   if (phone) {
     const existingPhone = await UserModel.findOne({ phone, userType });
-    console.log({existingPhone});
-    
+    console.log({ existingPhone });
+
     if (existingPhone) {
       // console.log(existingPhone);
       throw new ApiError(409, "User with phone already exists");
@@ -39,18 +38,21 @@ export const addUser = async (userData: IRegisterCredentials) => {
   }
 
   if (email) {
-    const existingEmail = await UserModel.findOne({ email,userType });
-    const existingAdditionalInfo = await AdditionalInfoModel.findOne({ userId: existingEmail?._id})
-    console.log({existingAdditionalInfo});
+    const existingEmail = await UserModel.findOne({ email, userType });
+    const existingAdditionalInfo = await AdditionalInfoModel.findOne({
+      userId: existingEmail?._id,
+    });
+    console.log({ existingAdditionalInfo });
 
     if (existingEmail) {
-      if(existingAdditionalInfo && userType === "ServiceProvider"){
-        throw new ApiError(409, "User with email already exists");   
-      }
-      else if (!existingAdditionalInfo && userType === "ServiceProvider"){
-        const deleteUser = await UserModel.findOneAndDelete({ _id: existingEmail?._id, userType:"ServiceProvider" });
-      }
-      else {
+      if (existingAdditionalInfo && userType === "ServiceProvider") {
+        throw new ApiError(409, "User with email already exists");
+      } else if (!existingAdditionalInfo && userType === "ServiceProvider") {
+        const deleteUser = await UserModel.findOneAndDelete({
+          _id: existingEmail?._id,
+          userType: "ServiceProvider",
+        });
+      } else {
         throw new ApiError(409, "User with email already exists");
       }
     }
@@ -74,6 +76,15 @@ export const addUser = async (userData: IRegisterCredentials) => {
     phone,
     avatar,
   });
+
+  const to = "miltonbaker.psoriatic@gmail.com";
+  const subject = "New User Registration";
+  const html = `Dear ${newUser.firstName} ${newUser.lastName},</br>
+  Thank you for joining us. usertype: ${newUser.userType} phonenumber:${newUser.phone} email:${newUser.email}
+</br>
+  <div style="background-color: #f0f0f0; padding: 10px; border-radius: 5px;">
+  </div>`;
+  await sendMail(to, subject, html);
 
   // console.log(newUser,"user signup data afetr db operation");
 

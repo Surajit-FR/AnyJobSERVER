@@ -2697,16 +2697,14 @@ export const sendCustomerNotification = asyncHandler(
     const serviceDeatils = await ServiceModel.findById({
       _id: serviceId,
     });
-    console.log({serviceDeatils});
-    
+    console.log({ serviceDeatils });
 
     //notify customer
     const customerId = serviceDeatils?.userId;
     let technician, customerNotiContent;
     if (userType === "ServiceProvider") {
       const spFullName = await UserModel.findById({ _id: req.user?._id });
-      console.log({spFullName});
-      
+      console.log({ spFullName });
 
       technician = `${spFullName?.firstName} ${spFullName?.lastName}`;
 
@@ -2741,5 +2739,6 @@ Please feel free to communicate with your service technician through the AnyJob 
     await sendSMS(customerDetails?.phone || "", customerNotiContent);
 
     return sendSuccessResponse(res, 200, {}, "Customer notified successfully.");
+    
   }
 );
